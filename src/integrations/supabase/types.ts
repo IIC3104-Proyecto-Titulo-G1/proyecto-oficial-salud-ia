@@ -14,16 +14,304 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      casos: {
+        Row: {
+          descripcion_adicional: string | null
+          diagnostico_principal: string
+          edad_paciente: number
+          email_paciente: string
+          estado: Database["public"]["Enums"]["estado_caso"] | null
+          fecha_actualizacion: string | null
+          fecha_analisis_ia: string | null
+          fecha_creacion: string | null
+          frecuencia_cardiaca: number | null
+          frecuencia_respiratoria: number | null
+          historia_clinica: string | null
+          id: string
+          medico_jefe_id: string | null
+          medico_tratante_id: string
+          nombre_paciente: string
+          presion_arterial: string | null
+          saturacion_oxigeno: number | null
+          sexo_paciente: string
+          sintomas: string | null
+          temperatura: number | null
+        }
+        Insert: {
+          descripcion_adicional?: string | null
+          diagnostico_principal: string
+          edad_paciente: number
+          email_paciente: string
+          estado?: Database["public"]["Enums"]["estado_caso"] | null
+          fecha_actualizacion?: string | null
+          fecha_analisis_ia?: string | null
+          fecha_creacion?: string | null
+          frecuencia_cardiaca?: number | null
+          frecuencia_respiratoria?: number | null
+          historia_clinica?: string | null
+          id?: string
+          medico_jefe_id?: string | null
+          medico_tratante_id: string
+          nombre_paciente: string
+          presion_arterial?: string | null
+          saturacion_oxigeno?: number | null
+          sexo_paciente: string
+          sintomas?: string | null
+          temperatura?: number | null
+        }
+        Update: {
+          descripcion_adicional?: string | null
+          diagnostico_principal?: string
+          edad_paciente?: number
+          email_paciente?: string
+          estado?: Database["public"]["Enums"]["estado_caso"] | null
+          fecha_actualizacion?: string | null
+          fecha_analisis_ia?: string | null
+          fecha_creacion?: string | null
+          frecuencia_cardiaca?: number | null
+          frecuencia_respiratoria?: number | null
+          historia_clinica?: string | null
+          id?: string
+          medico_jefe_id?: string | null
+          medico_tratante_id?: string
+          nombre_paciente?: string
+          presion_arterial?: string | null
+          saturacion_oxigeno?: number | null
+          sexo_paciente?: string
+          sintomas?: string | null
+          temperatura?: number | null
+        }
+        Relationships: []
+      }
+      comunicaciones_paciente: {
+        Row: {
+          caso_id: string | null
+          enviada: boolean | null
+          explicacion: string
+          fecha_creacion: string | null
+          fecha_envio: string | null
+          id: string
+          resultado: Database["public"]["Enums"]["resultado_comunicacion"]
+        }
+        Insert: {
+          caso_id?: string | null
+          enviada?: boolean | null
+          explicacion: string
+          fecha_creacion?: string | null
+          fecha_envio?: string | null
+          id?: string
+          resultado: Database["public"]["Enums"]["resultado_comunicacion"]
+        }
+        Update: {
+          caso_id?: string | null
+          enviada?: boolean | null
+          explicacion?: string
+          fecha_creacion?: string | null
+          fecha_envio?: string | null
+          id?: string
+          resultado?: Database["public"]["Enums"]["resultado_comunicacion"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunicaciones_paciente_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificaciones: {
+        Row: {
+          caso_id: string | null
+          fecha_creacion: string | null
+          fecha_lectura: string | null
+          id: string
+          leido: boolean | null
+          mensaje: string | null
+          tipo: Database["public"]["Enums"]["tipo_notificacion"] | null
+          titulo: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          caso_id?: string | null
+          fecha_creacion?: string | null
+          fecha_lectura?: string | null
+          id?: string
+          leido?: boolean | null
+          mensaje?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_notificacion"] | null
+          titulo?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          caso_id?: string | null
+          fecha_creacion?: string | null
+          fecha_lectura?: string | null
+          id?: string
+          leido?: boolean | null
+          mensaje?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_notificacion"] | null
+          titulo?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resolucion_caso: {
+        Row: {
+          caso_id: string
+          comentario_final: string | null
+          comentario_medico: string | null
+          decision_final:
+            | Database["public"]["Enums"]["resultado_comunicacion"]
+            | null
+          decision_medico: Database["public"]["Enums"]["decision_tipo"] | null
+          fecha_decision_medico: string | null
+          fecha_decision_medico_jefe: string | null
+          id: string
+        }
+        Insert: {
+          caso_id: string
+          comentario_final?: string | null
+          comentario_medico?: string | null
+          decision_final?:
+            | Database["public"]["Enums"]["resultado_comunicacion"]
+            | null
+          decision_medico?: Database["public"]["Enums"]["decision_tipo"] | null
+          fecha_decision_medico?: string | null
+          fecha_decision_medico_jefe?: string | null
+          id?: string
+        }
+        Update: {
+          caso_id?: string
+          comentario_final?: string | null
+          comentario_medico?: string | null
+          decision_final?:
+            | Database["public"]["Enums"]["resultado_comunicacion"]
+            | null
+          decision_medico?: Database["public"]["Enums"]["decision_tipo"] | null
+          fecha_decision_medico?: string | null
+          fecha_decision_medico_jefe?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resolucion_caso_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sugerencia_ia: {
+        Row: {
+          caso_id: string
+          confianza: number | null
+          explicacion: string | null
+          fecha_procesamiento: string | null
+          id: string
+          sugerencia: Database["public"]["Enums"]["sugerencia_tipo"]
+        }
+        Insert: {
+          caso_id: string
+          confianza?: number | null
+          explicacion?: string | null
+          fecha_procesamiento?: string | null
+          id?: string
+          sugerencia: Database["public"]["Enums"]["sugerencia_tipo"]
+        }
+        Update: {
+          caso_id?: string
+          confianza?: number | null
+          explicacion?: string | null
+          fecha_procesamiento?: string | null
+          id?: string
+          sugerencia?: Database["public"]["Enums"]["sugerencia_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugerencia_ia_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          email: string
+          especialidad: string | null
+          fecha_actualizacion: string | null
+          fecha_creacion: string | null
+          hospital: string | null
+          id: string
+          imagen: string | null
+          nombre: string
+          role: Database["public"]["Enums"]["app_role"]
+          telefono: string | null
+          ultimo_acceso: string | null
+          user_id: string
+        }
+        Insert: {
+          email: string
+          especialidad?: string | null
+          fecha_actualizacion?: string | null
+          fecha_creacion?: string | null
+          hospital?: string | null
+          id?: string
+          imagen?: string | null
+          nombre: string
+          role: Database["public"]["Enums"]["app_role"]
+          telefono?: string | null
+          ultimo_acceso?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: string
+          especialidad?: string | null
+          fecha_actualizacion?: string | null
+          fecha_creacion?: string | null
+          hospital?: string | null
+          id?: string
+          imagen?: string | null
+          nombre?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          telefono?: string | null
+          ultimo_acceso?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "medico" | "medico_jefe"
+      decision_tipo: "aceptado" | "rechazado" | "deriva"
+      estado_caso: "pendiente" | "aceptado" | "rechazado" | "derivado"
+      resultado_comunicacion: "aceptado" | "rechazado"
+      sugerencia_tipo: "aceptar" | "rechazar" | "incierto"
+      tipo_notificacion: "caso_derivado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +438,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "medico", "medico_jefe"],
+      decision_tipo: ["aceptado", "rechazado", "deriva"],
+      estado_caso: ["pendiente", "aceptado", "rechazado", "derivado"],
+      resultado_comunicacion: ["aceptado", "rechazado"],
+      sugerencia_tipo: ["aceptar", "rechazar", "incierto"],
+      tipo_notificacion: ["caso_derivado"],
+    },
   },
 } as const
