@@ -110,7 +110,7 @@ export default function VerCaso() {
             caso_id: id,
             decision_medico: 'rechazado',
             comentario_medico: justificacion,
-            fecha_decision_doctor: new Date().toISOString(),
+            fecha_decision_medico: new Date().toISOString(),
           },
         ]);
 
