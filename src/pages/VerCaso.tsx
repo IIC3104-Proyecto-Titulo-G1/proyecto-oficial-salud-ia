@@ -14,8 +14,8 @@ import { Label } from '@/components/ui/label';
 interface Caso {
   id: string;
   nombre_paciente: string;
-  edad: number;
-  sexo: string;
+  edad_paciente: number;
+  sexo_paciente: string;
   email_paciente: string;
   diagnostico_principal: string;
   sintomas: string;
@@ -108,7 +108,7 @@ export default function VerCaso() {
         .insert([
           {
             caso_id: id,
-            decision_medico: 'rechaza',
+            decision_medico: 'rechazado',
             comentario_medico: justificacion,
             fecha_decision_doctor: new Date().toISOString(),
           },
@@ -184,7 +184,7 @@ export default function VerCaso() {
               <div>
                 <CardTitle>{caso.nombre_paciente}</CardTitle>
                 <CardDescription>
-                  {caso.edad} años • {caso.sexo === 'M' ? 'Masculino' : caso.sexo === 'F' ? 'Femenino' : 'Otro'}
+                  {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
               </div>
               <Button

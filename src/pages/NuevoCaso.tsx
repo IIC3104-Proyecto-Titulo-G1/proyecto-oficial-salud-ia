@@ -46,8 +46,8 @@ export default function NuevoCaso() {
         .insert([
           {
             nombre_paciente: formData.nombre_paciente,
-            edad: parseInt(formData.edad),
-            sexo: formData.sexo,
+            edad_paciente: parseInt(formData.edad),
+            sexo_paciente: formData.sexo,
             email_paciente: formData.email_paciente,
             diagnostico_principal: formData.diagnostico_principal,
             sintomas: formData.sintomas,

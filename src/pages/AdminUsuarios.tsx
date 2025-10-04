@@ -54,27 +54,19 @@ export default function AdminUsuarios() {
   const loadUsuarios = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        nombre,
-        email,
-        hospital,
-        especialidad,
-        user_roles!inner(role)
-      `)
+      .from('user_roles')
+      .select('*')
       .order('nombre');
 
     if (!error && data) {
-      const formattedUsers = data.map((u: any) => ({
-        id: u.id,
+      setUsuarios(data.map((u: any) => ({
+        id: u.user_id,
         nombre: u.nombre,
         email: u.email,
-        rol: u.user_roles.role,
+        rol: u.role,
         hospital: u.hospital,
         especialidad: u.especialidad,
-      }));
-      setUsuarios(formattedUsers);
+      })));
     }
     setLoading(false);
   };
@@ -108,23 +100,17 @@ export default function AdminUsuarios() {
     try {
       if (editingUser) {
         // Editar usuario existente
-        const { error: profileError } = await supabase
-          .from('profiles')
+        const { error: updateError } = await supabase
+          .from('user_roles')
           .update({
             nombre: formData.nombre,
             hospital: formData.hospital,
             especialidad: formData.especialidad,
+            role: formData.rol,
           })
-          .eq('id', editingUser.id);
-
-        if (profileError) throw profileError;
-
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .update({ role: formData.rol })
           .eq('user_id', editingUser.id);
 
-        if (roleError) throw roleError;
+        if (updateError) throw updateError;
 
         toast({
           title: 'Usuario actualizado',
@@ -146,24 +132,17 @@ export default function AdminUsuarios() {
         if (authError) throw authError;
         if (!authData.user) throw new Error('No se pudo crear el usuario');
 
-        // Actualizar profile con datos adicionales
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            hospital: formData.hospital,
-            especialidad: formData.especialidad,
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
-
-        // Asignar rol
+        // Crear role con todos los datos
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert([
             {
               user_id: authData.user.id,
               role: formData.rol,
+              nombre: formData.nombre,
+              email: formData.email,
+              hospital: formData.hospital,
+              especialidad: formData.especialidad,
             },
           ]);
 

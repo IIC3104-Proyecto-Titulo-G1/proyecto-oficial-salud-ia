@@ -18,7 +18,7 @@ interface Caso {
 }
 
 interface Sugerencia {
-  sugerencia: 'aceptar' | 'rechazar';
+  sugerencia: 'aceptar' | 'rechazar' | 'incierto';
   explicacion: string;
 }
 
