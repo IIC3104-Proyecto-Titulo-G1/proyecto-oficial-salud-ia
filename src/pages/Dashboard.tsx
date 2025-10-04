@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
-import { Plus, LogOut, User, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Plus, LogOut, Users, User as UserIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Caso {
   id: string;
@@ -16,10 +17,11 @@ interface Caso {
 }
 
 export default function Dashboard() {
-  const { user, userRole, signOut } = useAuth();
-  const navigate = useNavigate();
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, userRole, userRoleData, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user) {
@@ -34,12 +36,18 @@ export default function Dashboard() {
     setLoading(true);
     const { data, error } = await supabase
       .from('casos')
-      .select('id, nombre_paciente, diagnostico_principal, estado, fecha_creacion')
+      .select('*')
       .order('fecha_creacion', { ascending: false })
       .limit(10);
 
-    if (!error && data) {
-      setCasos(data);
+    if (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los casos",
+        variant: "destructive",
+      });
+    } else {
+      setCasos(data || []);
     }
     setLoading(false);
   };
@@ -82,40 +90,29 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
-      <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="text-2xl font-bold">S</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">SaludIA</h1>
-                <p className="text-sm text-white/80">Sistema de Ley de Urgencia</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {userRole === 'admin' && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => navigate('/admin')}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Gestión de Usuarios
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSignOut}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/30"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Salir
+      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-primary">SaludIA</h1>
+            <p className="text-sm text-muted-foreground">
+              {userRoleData?.nombre} - {userRole === 'medico_jefe' ? 'Médico Jefe' : userRole === 'medico' ? 'Médico' : 'Administrador'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/perfil')}>
+              <UserIcon className="h-4 w-4 mr-2" />
+              Mi Perfil
+            </Button>
+            {userRole === 'admin' && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/admin/usuarios')}>
+                <Users className="h-4 w-4 mr-2" />
+                Usuarios
               </Button>
-            </div>
+            )}
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Salir
+            </Button>
           </div>
         </div>
       </header>

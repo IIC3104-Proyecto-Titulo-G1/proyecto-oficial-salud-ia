@@ -1,8 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// Deprecated - use @/integrations/supabase/client instead
+export { supabase } from '@/integrations/supabase/client';
 export type UserRole = 'admin' | 'medico' | 'medico_jefe';
