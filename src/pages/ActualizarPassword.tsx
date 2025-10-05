@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,30 +8,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
-const loginSchema = z.object({
-  email: z.string().email({ message: "Email inválido" }),
+const passwordSchema = z.object({
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
 });
 
-export default function Login() {
-  const [email, setEmail] = useState('');
+export default function ActualizarPassword() {
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
-    }
-  }, [user, loading, navigate]);
+    // Verificar si hay una sesión de recuperación
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "El enlace de recuperación es inválido o ha expirado.",
+          variant: "destructive",
+        });
+        navigate('/login');
+      }
+    });
+  }, [navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validación con zod
-    const validation = loginSchema.safeParse({ email, password });
+    const validation = passwordSchema.safeParse({ password, confirmPassword });
     if (!validation.success) {
       toast({
         title: "Error de validación",
@@ -43,32 +52,26 @@ export default function Login() {
 
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    });
+
+    setIsLoading(false);
 
     if (error) {
       toast({
-        title: "Error al iniciar sesión",
-        description: error.message === 'Invalid login credentials' 
-          ? "Credenciales inválidas. Verifica tu email y contraseña."
-          : error.message,
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
-      setIsLoading(false);
     } else {
       toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente.",
+        title: "¡Contraseña actualizada!",
+        description: "Tu contraseña ha sido cambiada exitosamente.",
       });
+      navigate('/dashboard');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted">
-        <p className="text-muted-foreground">Cargando...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
@@ -76,38 +79,18 @@ export default function Login() {
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
             <svg className="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <CardTitle className="text-2xl font-bold text-primary">SaludIA</CardTitle>
+          <CardTitle className="text-2xl font-bold text-primary">Nueva Contraseña</CardTitle>
           <CardDescription>
-            Ingresa tus credenciales para acceder al sistema
+            Ingresa tu nueva contraseña
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contraseña</Label>
-                <Link 
-                  to="/recuperar-password" 
-                  className="text-sm text-primary hover:underline"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
+              <Label htmlFor="password">Nueva contraseña</Label>
               <Input
                 id="password"
                 type="password"
@@ -118,12 +101,24 @@ export default function Login() {
                 disabled={isLoading}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
             <Button 
               type="submit" 
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+              {isLoading ? "Actualizando..." : "Actualizar contraseña"}
             </Button>
           </form>
         </CardContent>
