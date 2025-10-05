@@ -83,7 +83,7 @@ export default function ComunicacionPaciente() {
             comentario_medico: comentarioAdicional,
             decision_final: 'aceptado',
             comentario_final: comentarioAdicional,
-            fecha_decision_doctor: new Date().toISOString(),
+            fecha_decision_medico: new Date().toISOString(),
           },
         ]);
 
