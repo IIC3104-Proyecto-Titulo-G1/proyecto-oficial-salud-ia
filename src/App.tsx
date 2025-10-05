@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import RecuperarPassword from "./pages/RecuperarPassword";
 import ActualizarPassword from "./pages/ActualizarPassword";
+import Perfil from "./pages/Perfil";
 import Dashboard from "./pages/Dashboard";
 import NuevoCaso from "./pages/NuevoCaso";
 import VerCaso from "./pages/VerCaso";
@@ -27,8 +28,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/recuperar-password" element={<RecuperarPassword />} />
-            <Route path="/actualizar-password" element={<ActualizarPassword />} />
+          <Route path="/recuperar-password" element={<RecuperarPassword />} />
+          <Route path="/actualizar-password" element={<ActualizarPassword />} />
+          <Route path="/perfil" element={<Perfil />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/caso/nuevo" element={<NuevoCaso />} />
             <Route path="/caso/:id" element={<VerCaso />} />

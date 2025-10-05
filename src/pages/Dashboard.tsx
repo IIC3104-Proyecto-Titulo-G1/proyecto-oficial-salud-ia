@@ -129,6 +129,10 @@ export default function Dashboard() {
                   Usuarios
                 </Button>
               )}
+              <Button variant="outline" size="sm" onClick={() => navigate('/perfil')} className="gap-2">
+                <UserIcon className="h-4 w-4" />
+                Mi Perfil
+              </Button>
               <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-2">
                 <LogOut className="h-4 w-4" />
                 Salir
