@@ -124,7 +124,7 @@ export default function Dashboard() {
             </div>
             <div className="flex gap-3">
               {userRole === 'admin' && (
-                <Button variant="outline" size="sm" onClick={() => navigate('/admin/usuarios')} className="gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate('/admin')} className="gap-2">
                   <Users className="h-4 w-4" />
                   Usuarios
                 </Button>
