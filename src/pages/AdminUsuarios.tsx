@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -21,6 +21,8 @@ interface Usuario {
   especialidad?: string;
 }
 
+type RolFiltro = 'todos' | 'admin' | 'medico' | 'medico_jefe';
+
 export default function AdminUsuarios() {
   const { user, userRole, userRoleData, signOut, refreshUserRole } = useAuth();
   const navigate = useNavigate();
@@ -29,6 +31,8 @@ export default function AdminUsuarios() {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showPerfilDialog, setShowPerfilDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [rolFiltro, setRolFiltro] = useState<RolFiltro>('todos');
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -292,6 +296,24 @@ export default function AdminUsuarios() {
     }
   };
 
+  const filteredUsuarios = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    
+    return usuarios.filter((usuario) => {
+      const matchesSearch = normalizedSearch === '' || 
+        usuario.nombre.toLowerCase().includes(normalizedSearch) ||
+        usuario.email.toLowerCase().includes(normalizedSearch) ||
+        (usuario.hospital && usuario.hospital.toLowerCase().includes(normalizedSearch)) ||
+        (usuario.especialidad && usuario.especialidad.toLowerCase().includes(normalizedSearch));
+      
+      const matchesRol = rolFiltro === 'todos' || usuario.rol === rolFiltro;
+      
+      return matchesSearch && matchesRol;
+    });
+  }, [usuarios, searchTerm, rolFiltro]);
+
+  const filtrosActivos = searchTerm.trim() !== '' || rolFiltro !== 'todos';
+
   return (
     <div className="min-h-screen bg-muted/30">
       <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
@@ -340,8 +362,88 @@ export default function AdminUsuarios() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {usuarios.map((usuario) => (
+          <div className="space-y-6">
+            {/* Barra de búsqueda y filtros */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Buscar y Filtrar Usuarios</CardTitle>
+                <CardDescription>
+                  Busca usuarios por nombre, email, hospital o especialidad
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-col sm:flex-row gap-3 w-full">
+                    <div className="relative sm:max-w-sm w-full">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Buscar por nombre, email, hospital o especialidad"
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select value={rolFiltro} onValueChange={(value) => setRolFiltro(value as RolFiltro)}>
+                      <SelectTrigger className="sm:w-56">
+                        <SelectValue placeholder="Filtrar por rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los roles</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="medico">Médico</SelectItem>
+                        <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando <span className="font-semibold text-foreground">{filteredUsuarios.length}</span> de {usuarios.length} usuarios
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setRolFiltro('todos');
+                      }}
+                      disabled={!filtrosActivos}
+                      className="disabled:opacity-50"
+                    >
+                      Limpiar filtros
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lista de usuarios */}
+            {filteredUsuarios.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">
+                    {filtrosActivos 
+                      ? 'No se encontraron usuarios que coincidan con los filtros aplicados'
+                      : 'No hay usuarios registrados'
+                    }
+                  </p>
+                  {filtrosActivos && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setRolFiltro('todos');
+                      }}
+                      className="mt-4"
+                    >
+                      Limpiar filtros
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {filteredUsuarios.map((usuario) => (
               <Card key={usuario.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -387,7 +489,9 @@ export default function AdminUsuarios() {
                   </CardContent>
                 )}
               </Card>
-            ))}
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
