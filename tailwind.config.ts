@@ -51,6 +51,7 @@ export default {
         warning: "hsl(var(--warning))",
         error: "hsl(var(--error))",
         info: "hsl(var(--info))",
+        crm: "#1b7d74",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

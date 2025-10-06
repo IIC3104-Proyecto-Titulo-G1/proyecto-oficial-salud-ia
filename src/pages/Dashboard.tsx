@@ -97,6 +97,16 @@ export default function Dashboard() {
     });
   }, [casos, estadoFiltro, searchTerm]);
 
+  const casosPorEstado = useMemo(() => {
+    return casos.reduce(
+      (acc, caso) => {
+        acc[caso.estado] += 1;
+        return acc;
+      },
+      { aceptado: 0, rechazado: 0, pendiente: 0, derivado: 0 }
+    );
+  }, [casos]);
+
   const getEstadoBadgeVariant = (estado: string) => {
     switch (estado) {
       case 'aceptado':
@@ -115,7 +125,7 @@ export default function Dashboard() {
   const getEstadoLabel = (estado: string) => {
     switch (estado) {
       case 'aceptado':
-        return 'Aceptado';
+        return 'Ley de Urgencia Aceptada';
       case 'rechazado':
         return 'Rechazado';
       case 'pendiente':
@@ -223,7 +233,10 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Casos Aceptados</p>
                 <p className="text-4xl font-bold text-foreground">
-                  {casos.filter(c => c.estado === 'aceptado').length}
+                  {casosPorEstado.aceptado}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Rechazados: {casosPorEstado.rechazado}
                 </p>
               </div>
             </CardContent>
@@ -246,7 +259,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Casos Pendientes</p>
                 <p className="text-4xl font-bold text-foreground">
-                  {casos.filter(c => c.estado === 'pendiente').length}
+                  {casosPorEstado.pendiente}
                 </p>
               </div>
             </CardContent>
@@ -267,7 +280,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Casos Derivados</p>
                 <p className="text-4xl font-bold text-foreground">
-                  {casos.filter(c => c.estado === 'derivado').length}
+                  {casosPorEstado.derivado}
                 </p>
               </div>
             </CardContent>
@@ -279,7 +292,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-2xl font-bold mb-2 text-foreground">Casos Recientes</h2>
             <p className="text-muted-foreground">
-              Gestiona y evalúa casos clínicos bajo la Ley de Urgencia (Decreto 34)
+              Gestiona y evalúa casos clínicos bajo la Ley de Urgencia
             </p>
           </div>
           {(userRole === 'medico' || userRole === 'medico_jefe') && (
