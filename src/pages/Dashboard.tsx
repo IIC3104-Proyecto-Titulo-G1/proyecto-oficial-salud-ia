@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, LogOut, Users, User as UserIcon, FileText } from 'lucide-react';
+import { Plus, LogOut, Users, User as UserIcon, FileText, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Caso {
@@ -16,23 +18,19 @@ interface Caso {
   fecha_creacion: string;
 }
 
+type EstadoFiltro = 'todos' | 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
+
 export default function Dashboard() {
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos';
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    loadCasos();
-  }, [user, navigate]);
-
-  const loadCasos = async () => {
+  const loadCasos = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('casos')
@@ -50,12 +48,43 @@ export default function Dashboard() {
       setCasos(data || []);
     }
     setLoading(false);
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    loadCasos();
+  }, [user, navigate, loadCasos]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
   };
+
+  const filteredCasos = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return casos.filter((caso) => {
+      const matchesEstado = estadoFiltro === 'todos' || caso.estado === estadoFiltro;
+
+      if (!matchesEstado) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const hayCoincidencia = `${caso.nombre_paciente} ${caso.diagnostico_principal}`
+        .toLowerCase()
+        .includes(normalizedSearch);
+
+      return hayCoincidencia;
+    });
+  }, [casos, estadoFiltro, searchTerm]);
 
   const getEstadoBadgeVariant = (estado: string) => {
     switch (estado) {
@@ -106,15 +135,16 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-2xl blur opacity-40"></div>
-                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
+                <div>
+                  <img 
+                    src="/logo.jpeg" 
+                    alt="SaludIA Logo" 
+                    className="w-14 h-14 object-contain"
+                  />
                 </div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#3101ff] to-[#cb6ce6] bg-clip-text text-transparent">
                   SaludIA
                 </h1>
                 <p className="text-sm text-muted-foreground font-medium">
@@ -236,7 +266,7 @@ export default function Dashboard() {
         {/* Header de lista mejorado */}
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold mb-2 text-foreground">Casos Recientes</h2>
+            <h2 className="text-2xl font-bold mb-2 text-foreground">Casos Recientes</h2>
             <p className="text-muted-foreground">
               Gestiona y evalúa casos clínicos bajo la Ley de Urgencia (Decreto 34)
             </p>
@@ -247,6 +277,48 @@ export default function Dashboard() {
               Nuevo Caso
             </Button>
           )}
+        </div>
+
+        <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="relative sm:max-w-sm w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Buscar por paciente o diagnóstico"
+                className="pl-10"
+              />
+            </div>
+            <Select value={estadoFiltro} onValueChange={(value) => setEstadoFiltro(value as EstadoFiltro)}>
+              <SelectTrigger className="sm:w-56">
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="aceptado">Aceptado</SelectItem>
+                <SelectItem value="rechazado">Rechazado</SelectItem>
+                <SelectItem value="derivado">Derivado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <p className="text-sm text-muted-foreground">
+              Mostrando <span className="font-semibold text-foreground">{filteredCasos.length}</span> de {casos.length} casos
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchTerm('');
+                setEstadoFiltro('todos');
+              }}
+              disabled={!filtrosActivos}
+            >
+              Limpiar filtros
+            </Button>
+          </div>
         </div>
 
         {/* Lista de casos mejorada */}
@@ -268,9 +340,28 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+        ) : filteredCasos.length === 0 ? (
+          <Card className="border-dashed border-2 border-muted-foreground/30 bg-muted/20">
+            <CardContent className="p-12 text-center space-y-3">
+              <h3 className="text-xl font-semibold text-foreground">Sin coincidencias</h3>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                No encontramos casos que coincidan con los filtros seleccionados. Ajusta los criterios e inténtalo nuevamente.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setEstadoFiltro('todos');
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-5">
-            {casos.map((caso) => (
+            {filteredCasos.map((caso) => (
               <Card
                 key={caso.id}
                 className="relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/50 hover:border-primary/40 group bg-card"
@@ -281,12 +372,6 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between gap-6">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="relative flex-shrink-0">
-                          <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                          <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center ring-1 ring-primary/20">
-                            <UserIcon className="w-7 h-7 text-primary" />
-                          </div>
-                        </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="text-xl font-bold group-hover:text-primary transition-colors mb-2 truncate text-foreground">
                             {caso.nombre_paciente}
