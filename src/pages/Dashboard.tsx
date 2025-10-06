@@ -56,8 +56,19 @@ export default function Dashboard() {
       return;
     }
 
+    // Bloquear acceso a admins
+    if (userRole === 'admin') {
+      toast({
+        title: 'Acceso denegado',
+        description: 'Los administradores deben usar el panel de administración',
+        variant: 'destructive',
+      });
+      navigate('/admin');
+      return;
+    }
+
     loadCasos();
-  }, [user, navigate, loadCasos]);
+  }, [user, userRole, navigate, loadCasos, toast]);
 
   const handleSignOut = async () => {
     await signOut();

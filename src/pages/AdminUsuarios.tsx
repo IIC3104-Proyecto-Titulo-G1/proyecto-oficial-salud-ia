@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -22,12 +22,13 @@ interface Usuario {
 }
 
 export default function AdminUsuarios() {
-  const { user, userRole } = useAuth();
+  const { user, userRole, userRoleData, signOut, refreshUserRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showPerfilDialog, setShowPerfilDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -37,6 +38,13 @@ export default function AdminUsuarios() {
     hospital: '',
     especialidad: '',
   });
+  const [perfilData, setPerfilData] = useState({
+    nombre: '',
+    email: '',
+    hospital: '',
+    especialidad: '',
+    telefono: '',
+  });
 
   useEffect(() => {
     if (userRole !== 'admin') {
@@ -45,11 +53,23 @@ export default function AdminUsuarios() {
         description: 'No tiene permisos para acceder a esta sección',
         variant: 'destructive',
       });
-      navigate('/dashboard');
+      navigate('/login');
       return;
     }
     loadUsuarios();
   }, [userRole]);
+
+  useEffect(() => {
+    if (userRoleData) {
+      setPerfilData({
+        nombre: userRoleData.nombre || '',
+        email: userRoleData.email || '',
+        hospital: userRoleData.hospital || '',
+        especialidad: userRoleData.especialidad || '',
+        telefono: userRoleData.telefono || '',
+      });
+    }
+  }, [userRoleData]);
 
   const loadUsuarios = async () => {
     setLoading(true);
@@ -187,6 +207,45 @@ export default function AdminUsuarios() {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  const handleSavePerfil = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({
+          nombre: perfilData.nombre,
+          email: perfilData.email,
+          hospital: perfilData.hospital || null,
+          especialidad: perfilData.especialidad || null,
+          telefono: perfilData.telefono || null,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await refreshUserRole();
+
+      toast({
+        title: 'Perfil actualizado',
+        description: 'Los cambios se han guardado exitosamente',
+      });
+
+      setShowPerfilDialog(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getRoleBadge = (rol: string) => {
     switch (rol) {
       case 'admin':
@@ -202,27 +261,38 @@ export default function AdminUsuarios() {
     <div className="min-h-screen bg-muted/30">
       <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="text-white hover:bg-white/20"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
-            </Button>
+          <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
               <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
               <p className="text-sm text-white/80">Administrar médicos y médicos jefe</p>
             </div>
-            <Button
-              onClick={() => handleOpenDialog()}
-              className="bg-white/20 hover:bg-white/30 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Usuario
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleOpenDialog()}
+                className="bg-white/20 hover:bg-white/30 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Usuario
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPerfilDialog(true)}
+                className="text-white hover:bg-white/20"
+              >
+                <UserIcon className="w-4 h-4 mr-2" />
+                Mi Perfil
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-white hover:bg-white/20"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Salir
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -369,6 +439,80 @@ export default function AdminUsuarios() {
             </Button>
             <Button onClick={handleSaveUser}>
               {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar perfil del admin */}
+      <Dialog open={showPerfilDialog} onOpenChange={setShowPerfilDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mi Perfil</DialogTitle>
+            <DialogDescription>
+              Actualiza tus datos personales
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="perfil-nombre">Nombre Completo *</Label>
+              <Input
+                id="perfil-nombre"
+                value={perfilData.nombre}
+                onChange={(e) => setPerfilData({ ...perfilData, nombre: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="perfil-email">Email *</Label>
+              <Input
+                id="perfil-email"
+                type="email"
+                value={perfilData.email}
+                onChange={(e) => setPerfilData({ ...perfilData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="perfil-hospital">Hospital</Label>
+              <Input
+                id="perfil-hospital"
+                value={perfilData.hospital}
+                onChange={(e) => setPerfilData({ ...perfilData, hospital: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="perfil-especialidad">Especialidad</Label>
+              <Input
+                id="perfil-especialidad"
+                value={perfilData.especialidad}
+                onChange={(e) => setPerfilData({ ...perfilData, especialidad: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="perfil-telefono">Teléfono</Label>
+              <Input
+                id="perfil-telefono"
+                value={perfilData.telefono}
+                onChange={(e) => setPerfilData({ ...perfilData, telefono: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Rol</Label>
+              <Input
+                value="admin"
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-sm text-muted-foreground">
+                El rol no puede ser modificado
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPerfilDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePerfil}>
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>

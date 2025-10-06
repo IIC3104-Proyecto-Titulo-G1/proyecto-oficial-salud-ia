@@ -17,15 +17,20 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, loading } = useAuth();
+  const { signIn, user, userRole, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
+    if (!loading && user && userRole) {
+      // Redirigir admin a /admin, otros usuarios a /dashboard
+      if (userRole === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, userRole, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
