@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redireccionando…</title>
+    <script>
+      (function () {
+        var redirectPath = window.location.pathname + window.location.search + window.location.hash;
+        sessionStorage.setItem('spa-fallback', redirectPath);
+        window.location.replace('/');
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
