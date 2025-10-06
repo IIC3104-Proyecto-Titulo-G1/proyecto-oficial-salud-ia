@@ -46,6 +46,11 @@ export default function AdminUsuarios() {
     telefono: '',
   });
 
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
+
   useEffect(() => {
     if (userRole !== 'admin') {
       toast({
@@ -216,6 +221,7 @@ export default function AdminUsuarios() {
     if (!user) return;
 
     try {
+      // Actualizar datos del perfil
       const { error } = await supabase
         .from('user_roles')
         .update({
@@ -228,6 +234,35 @@ export default function AdminUsuarios() {
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      // Actualizar contraseña si se proporcionó
+      if (passwordData.newPassword) {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          toast({
+            title: 'Error',
+            description: 'Las contraseñas no coinciden',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+          toast({
+            title: 'Error',
+            description: 'La contraseña debe tener al menos 6 caracteres',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: passwordData.newPassword,
+        });
+
+        if (passwordError) throw passwordError;
+
+        setPasswordData({ newPassword: '', confirmPassword: '' });
+      }
 
       await refreshUserRole();
 
@@ -506,9 +541,48 @@ export default function AdminUsuarios() {
                 El rol no puede ser modificado
               </p>
             </div>
+
+            <div className="pt-4 border-t">
+              <h3 className="text-lg font-semibold mb-4">Cambiar Contraseña</h3>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nueva contraseña</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, newPassword: e.target.value })
+                    }
+                    placeholder="Mínimo 6 caracteres"
+                    minLength={6}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                    }
+                    placeholder="Repite la contraseña"
+                    minLength={6}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPerfilDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPerfilDialog(false);
+                setPasswordData({ newPassword: '', confirmPassword: '' });
+              }}
+            >
               Cancelar
             </Button>
             <Button onClick={handleSavePerfil}>

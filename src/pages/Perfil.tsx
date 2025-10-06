@@ -22,6 +22,11 @@ export default function Perfil() {
     telefono: "",
   });
   
+  const [passwordData, setPasswordData] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -50,6 +55,7 @@ export default function Perfil() {
     setSaving(true);
     
     try {
+      // Actualizar datos del perfil
       const { error } = await supabase
         .from("user_roles")
         .update({
@@ -62,6 +68,35 @@ export default function Perfil() {
         .eq("user_id", user.id);
 
       if (error) throw error;
+
+      // Actualizar contraseña si se proporcionó
+      if (passwordData.newPassword) {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          toast({
+            title: "Error",
+            description: "Las contraseñas no coinciden",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+          toast({
+            title: "Error",
+            description: "La contraseña debe tener al menos 6 caracteres",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: passwordData.newPassword,
+        });
+
+        if (passwordError) throw passwordError;
+
+        setPasswordData({ newPassword: "", confirmPassword: "" });
+      }
 
       await refreshUserRole();
 
@@ -189,6 +224,53 @@ export default function Perfil() {
               <Button type="submit" disabled={saving} className="w-full">
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Cambiar Contraseña</CardTitle>
+            <CardDescription>
+              Actualiza tu contraseña. Debe tener al menos 6 caracteres.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nueva contraseña</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, newPassword: e.target.value })
+                  }
+                  minLength={6}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                  }
+                  minLength={6}
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                disabled={saving || !passwordData.newPassword} 
+                className="w-full"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? "Guardando..." : "Cambiar contraseña"}
               </Button>
             </form>
           </CardContent>
