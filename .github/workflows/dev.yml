@@ -1,0 +1,47 @@
+name: Development Checks
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  quick-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Instalar dependencias
+      run: npm ci
+      
+    - name: Ejecutar linter
+      run: npm run lint
+      
+    - name: Verificar sintaxis TypeScript
+      run: npx tsc --noEmit --skipLibCheck
+      
+    - name: Verificar que el proyecto se puede levantar
+      run: |
+        npm run build
+        echo "✅ Build exitoso - El proyecto se puede desplegar"
+        
+    - name: Comentario en PR (si es PR)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🎉 **CI Passed!** Todos los checks pasaron correctamente:\n\n- ✅ Linter ejecutado\n- ✅ TypeScript verificado\n- ✅ Build exitoso\n\nEl código está listo para revisión.'
+          })
