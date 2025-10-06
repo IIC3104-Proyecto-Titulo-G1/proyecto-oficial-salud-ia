@@ -132,18 +132,18 @@ export default function ComunicacionPaciente() {
   }
 
   const resultado = sugerencia.sugerencia === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
-  const resultadoColor = sugerencia.sugerencia === 'aceptar' ? 'text-success' : 'text-destructive';
+  const resultadoColor = sugerencia.sugerencia === 'aceptar' ? 'text-crm' : 'text-destructive';
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
+      <header className="bg-gradient-to-r from-crm to-crm/80 text-white shadow-lg border-b border-crm/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(`/caso/${id}`)}
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/15"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
@@ -174,9 +174,9 @@ export default function ComunicacionPaciente() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-primary/20">
+        <Card className="border-2 border-crm/30">
           <CardHeader>
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex items-center gap-2 text-crm">
               <Mail className="w-5 h-5" />
               <CardTitle>Previsualización del Correo</CardTitle>
             </div>
@@ -193,7 +193,7 @@ export default function ComunicacionPaciente() {
             </div>
 
             <div className="space-y-4 pt-2">
-              <p>Estimado/a {caso.nombre_paciente},</p>
+              <p className="text-crm font-medium">Estimado/a {caso.nombre_paciente},</p>
 
               <p>
                 Por medio del presente, le informamos el resultado de la evaluación de su caso clínico

@@ -244,7 +244,7 @@ export default function VerCaso() {
         </Card>
 
         {/* Resultado IA */}
-        <Card className="border-2 border-primary/20">
+        <Card className="border-2 border-crm/30">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">Sugerencia de IA</CardTitle>
@@ -267,17 +267,17 @@ export default function VerCaso() {
               <div className="flex items-center gap-4">
                 <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
                   <div
-                    className="bg-primary h-full transition-all"
+                    className="bg-crm h-full transition-all"
                     style={{ width: `${sugerencia.confianza}%` }}
                   />
                 </div>
-                <span className="text-xl font-bold text-primary">{sugerencia.confianza}%</span>
+                <span className="text-xl font-bold text-crm">{sugerencia.confianza}%</span>
               </div>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 text-primary mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
                 <div>
                   <p className="font-medium mb-2">Explicación del Análisis</p>
                   <p className="text-sm text-muted-foreground">{sugerencia.explicacion}</p>
@@ -300,7 +300,7 @@ export default function VerCaso() {
               <Button
                 size="lg"
                 onClick={handleAceptarSugerencia}
-                className="w-full"
+                className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
                 Aceptar Sugerencia

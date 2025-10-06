@@ -151,40 +151,53 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header profesional con degradado sutil */}
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header className="sticky top-0 z-50 border-b border-crm/20 bg-gradient-to-r from-crm/15 via-white to-crm/15 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div>
                   <img 
-                    src="/logo.jpeg" 
+                    src="/logo1.jpeg" 
                     alt="SaludIA Logo" 
                     className="w-14 h-14 object-contain"
                   />
                 </div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#3101ff] to-[#cb6ce6] bg-clip-text text-transparent">
-                  SaludIA
-                </h1>
-                <p className="text-sm text-muted-foreground font-medium">
+                <h1 className="text-2xl font-bold text-crm">SaludIA</h1>
+                <p className="text-sm font-medium text-crm/80">
                   {userRoleData?.nombre} • {userRole === 'medico_jefe' ? 'Médico Jefe' : userRole === 'medico' ? 'Médico' : 'Administrador'}
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
               {userRole === 'admin' && (
-                <Button variant="outline" size="sm" onClick={() => navigate('/admin')} className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/admin')}
+                  className="gap-2 border-crm/40 text-crm hover:bg-crm/10 hover:text-crm"
+                >
                   <Users className="h-4 w-4" />
                   Usuarios
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => navigate('/perfil')} className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/perfil')}
+                className="gap-2 border-crm/40 text-crm hover:bg-crm/10 hover:text-crm"
+              >
                 <UserIcon className="h-4 w-4" />
                 Mi Perfil
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="gap-2 border-crm/40 text-crm hover:bg-crm/10 hover:text-crm"
+              >
                 <LogOut className="h-4 w-4" />
                 Salir
               </Button>
@@ -296,7 +309,11 @@ export default function Dashboard() {
             </p>
           </div>
           {(userRole === 'medico' || userRole === 'medico_jefe') && (
-            <Button onClick={() => navigate('/caso/nuevo')} size="lg" className="gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all">
+            <Button
+              onClick={() => navigate('/caso/nuevo')}
+              size="lg"
+              className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
+            >
               <Plus className="w-5 h-5" />
               Nuevo Caso
             </Button>
@@ -306,7 +323,7 @@ export default function Dashboard() {
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col sm:flex-row gap-3 w-full">
             <div className="relative sm:max-w-sm w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-crm" />
               <Input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
@@ -328,8 +345,8 @@ export default function Dashboard() {
             </Select>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <p className="text-sm text-muted-foreground">
-              Mostrando <span className="font-semibold text-foreground">{filteredCasos.length}</span> de {casos.length} casos
+            <p className="text-sm text-crm">
+              Mostrando <span className="font-semibold text-crm/80">{filteredCasos.length}</span> de {casos.length} casos
             </p>
             <Button
               variant="outline"
@@ -339,6 +356,7 @@ export default function Dashboard() {
                 setEstadoFiltro('todos');
               }}
               disabled={!filtrosActivos}
+              className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm disabled:text-muted-foreground disabled:border-muted"
             >
               Limpiar filtros
             </Button>
@@ -347,17 +365,21 @@ export default function Dashboard() {
 
         {/* Lista de casos mejorada */}
         {casos.length === 0 ? (
-          <Card className="border-dashed border-2 border-muted-foreground/30 bg-muted/20">
+          <Card className="border-dashed border-2 border-crm/30 bg-muted/20">
             <CardContent className="p-16 text-center">
-              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl flex items-center justify-center ring-1 ring-primary/20">
-                <FileText className="w-12 h-12 text-primary" />
+              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-crm/10 to-crm/20 rounded-2xl flex items-center justify-center ring-1 ring-crm/30">
+                <FileText className="w-12 h-12 text-crm" />
               </div>
               <h3 className="text-2xl font-bold mb-3 text-foreground">No hay casos registrados</h3>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 Comienza creando un nuevo caso clínico para evaluar bajo la Ley de Urgencia
               </p>
               {(userRole === 'medico' || userRole === 'medico_jefe') && (
-                <Button onClick={() => navigate('/caso/nuevo')} size="lg" className="gap-2">
+                <Button
+                  onClick={() => navigate('/caso/nuevo')}
+                  size="lg"
+                  className="gap-2 bg-crm hover:bg-crm/90 text-white"
+                >
                   <Plus className="w-5 h-5" />
                   Crear Primer Caso
                 </Button>
@@ -365,7 +387,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : filteredCasos.length === 0 ? (
-          <Card className="border-dashed border-2 border-muted-foreground/30 bg-muted/20">
+          <Card className="border-dashed border-2 border-crm/30 bg-muted/20">
             <CardContent className="p-12 text-center space-y-3">
               <h3 className="text-xl font-semibold text-foreground">Sin coincidencias</h3>
               <p className="text-muted-foreground text-sm sm:text-base">
@@ -378,6 +400,7 @@ export default function Dashboard() {
                   setSearchTerm('');
                   setEstadoFiltro('todos');
                 }}
+                className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm"
               >
                 Limpiar filtros
               </Button>
