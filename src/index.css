@@ -12,15 +12,9 @@ All colors MUST be HSL.
   :root {
     /* SaludIA Design System - Colores corporativos */
     
-    /* Azul primario corporativo #3D87E2 */
-    --primary: 209 75% 57%;
+    /* Verde corporativo CRM #1b7d74 */
+    --primary: 174 65% 30%;
     --primary-foreground: 0 0% 100%;
-    
-    /* Morado oscuro #733475 */
-    --purple-dark: 298 37% 33%;
-    
-    /* Morado claro #AC8694 */
-    --purple-light: 342 20% 60%;
     
     /* Backgrounds y surfaces */
     --background: 0 0% 100%;
@@ -34,44 +28,44 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
     
-    /* Secondary usa morado oscuro */
-    --secondary: 298 37% 33%;
+    /* Secondary emplea una variante luminosa del verde CRM */
+    --secondary: 174 54% 36%;
     --secondary-foreground: 0 0% 100%;
     
-    /* Muted con grises claros */
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 44%;
+    /* Muted con un tono suave del verde */
+    --muted: 174 30% 93%;
+    --muted-foreground: 174 34% 32%;
     
-    /* Accent con morado claro */
-    --accent: 342 20% 60%;
+    /* Accent con una versión brillante del verde */
+    --accent: 174 58% 44%;
     --accent-foreground: 0 0% 100%;
     
     /* Estados de feedback */
-    --success: 120 100% 33%;
+    --success: 174 65% 30%;
     --warning: 43 100% 45%;
     --error: 0 88% 63%;
-    --info: 207 100% 44%;
+    --info: 174 58% 44%;
     
     /* Destructive usa el rojo de error */
     --destructive: 0 88% 63%;
     --destructive-foreground: 0 0% 100%;
     
     /* Borders e inputs con grises */
-    --border: 0 0% 78%;
-    --input: 0 0% 91%;
-    --ring: 209 75% 57%;
+    --border: 174 32% 72%;
+    --input: 174 24% 88%;
+    --ring: 174 65% 30%;
     
     --radius: 0.5rem;
     
     /* Sidebar con grises */
-    --sidebar-background: 0 0% 96%;
-    --sidebar-foreground: 0 0% 44%;
-    --sidebar-primary: 209 75% 57%;
+    --sidebar-background: 174 30% 94%;
+    --sidebar-foreground: 174 34% 32%;
+    --sidebar-primary: 174 65% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 92%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 0 0% 78%;
-    --sidebar-ring: 209 75% 57%;
+    --sidebar-accent: 174 24% 88%;
+    --sidebar-accent-foreground: 174 34% 32%;
+    --sidebar-border: 174 32% 72%;
+    --sidebar-ring: 174 65% 30%;
   }
 
   .dark {
@@ -84,33 +78,33 @@ All colors MUST be HSL.
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 100%;
     
-    --primary: 209 75% 57%;
+    --primary: 174 65% 30%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 298 37% 33%;
+    --secondary: 174 54% 36%;
     --secondary-foreground: 0 0% 100%;
     
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 61%;
+    --muted: 174 26% 18%;
+    --muted-foreground: 174 28% 74%;
     
-    --accent: 342 20% 60%;
+    --accent: 174 58% 44%;
     --accent-foreground: 0 0% 100%;
     
     --destructive: 0 88% 63%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 209 75% 57%;
+    --border: 174 24% 24%;
+    --input: 174 24% 24%;
+    --ring: 174 65% 30%;
     
-    --sidebar-background: 0 0% 10%;
-    --sidebar-foreground: 0 0% 94%;
-    --sidebar-primary: 209 75% 57%;
+    --sidebar-background: 174 26% 12%;
+    --sidebar-foreground: 174 28% 74%;
+    --sidebar-primary: 174 65% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 209 75% 57%;
+    --sidebar-accent: 174 26% 18%;
+    --sidebar-accent-foreground: 174 28% 74%;
+    --sidebar-border: 174 24% 24%;
+    --sidebar-ring: 174 65% 30%;
   }
 }
 
