@@ -31,16 +31,111 @@ export default function NuevoCaso() {
     saturacion_oxigeno: '',
     frecuencia_respiratoria: '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const validationErrors: Record<string, string> = {};
+
+    const edad = Number(formData.edad);
+    if (!Number.isInteger(edad) || edad <= 0 || edad > 120) {
+      validationErrors.edad = 'Ingresa una edad válida entre 1 y 120 años.';
+    }
+
+    if (!formData.sexo) {
+      validationErrors.sexo = 'Selecciona el sexo del paciente.';
+    }
+
+    const email = formData.email_paciente.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      validationErrors.email_paciente = 'Ingresa un correo electrónico válido.';
+    }
+
+    const presion = formData.presion_arterial.trim();
+    if (presion) {
+      const match = presion.match(/^(\d{2,3})\/(\d{2,3})$/);
+      if (!match) {
+        validationErrors.presion_arterial = 'Usa el formato sistólica/diastólica (ej. 120/80).';
+      } else {
+        const sistolica = Number(match[1]);
+        const diastolica = Number(match[2]);
+        if (
+          sistolica < 70 ||
+          sistolica > 250 ||
+          diastolica < 40 ||
+          diastolica > 150 ||
+          diastolica >= sistolica
+        ) {
+          validationErrors.presion_arterial = 'Verifica que los valores estén dentro de un rango clínico válido.';
+        }
+      }
+    }
+
+    const frecuenciaCardiaca = formData.frecuencia_cardiaca.trim();
+    if (frecuenciaCardiaca) {
+      const valor = Number(frecuenciaCardiaca);
+      if (!Number.isInteger(valor) || valor < 30 || valor > 220) {
+        validationErrors.frecuencia_cardiaca = 'Ingresa pulsaciones entre 30 y 220 lpm.';
+      }
+    }
+
+    const temperatura = formData.temperatura.trim();
+    if (temperatura) {
+      const valor = Number(temperatura);
+      if (Number.isNaN(valor) || valor < 30 || valor > 45) {
+        validationErrors.temperatura = 'Ingresa una temperatura entre 30 y 45 °C.';
+      }
+    }
+
+    const saturacion = formData.saturacion_oxigeno.trim();
+    if (saturacion) {
+      const valor = Number(saturacion);
+      if (!Number.isInteger(valor) || valor < 70 || valor > 100) {
+        validationErrors.saturacion_oxigeno = 'Ingresa un porcentaje entre 70% y 100%.';
+      }
+    }
+
+    const frecuenciaRespiratoria = formData.frecuencia_respiratoria.trim();
+    if (frecuenciaRespiratoria) {
+      const valor = Number(frecuenciaRespiratoria);
+      if (!Number.isInteger(valor) || valor < 8 || valor > 40) {
+        validationErrors.frecuencia_respiratoria = 'Ingresa respiraciones entre 8 y 40 rpm.';
+      }
+    }
+
+    return validationErrors;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast({
+        title: 'Revisa los datos ingresados',
+        description: 'Corrige los campos marcados para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const presionValue = formData.presion_arterial.trim();
+      const frecuenciaCardiacaValue = formData.frecuencia_cardiaca.trim();
+      const temperaturaValue = formData.temperatura.trim();
+      const saturacionValue = formData.saturacion_oxigeno.trim();
+      const frecuenciaRespiratoriaValue = formData.frecuencia_respiratoria.trim();
+      const emailValue = formData.email_paciente.trim();
+
       const { data: caso, error: casoError } = await supabase
         .from('casos')
         .insert([
@@ -48,15 +143,15 @@ export default function NuevoCaso() {
             nombre_paciente: formData.nombre_paciente,
             edad_paciente: parseInt(formData.edad),
             sexo_paciente: formData.sexo,
-            email_paciente: formData.email_paciente,
+            email_paciente: emailValue,
             diagnostico_principal: formData.diagnostico_principal,
             sintomas: formData.sintomas,
             historia_clinica: formData.historia_clinica,
-            presion_arterial: formData.presion_arterial,
-            frecuencia_cardiaca: formData.frecuencia_cardiaca ? parseInt(formData.frecuencia_cardiaca) : null,
-            temperatura: formData.temperatura ? parseFloat(formData.temperatura) : null,
-            saturacion_oxigeno: formData.saturacion_oxigeno ? parseInt(formData.saturacion_oxigeno) : null,
-            frecuencia_respiratoria: formData.frecuencia_respiratoria ? parseInt(formData.frecuencia_respiratoria) : null,
+            presion_arterial: presionValue || null,
+            frecuencia_cardiaca: frecuenciaCardiacaValue ? parseInt(frecuenciaCardiacaValue) : null,
+            temperatura: temperaturaValue ? parseFloat(temperaturaValue) : null,
+            saturacion_oxigeno: saturacionValue ? parseInt(saturacionValue) : null,
+            frecuencia_respiratoria: frecuenciaRespiratoriaValue ? parseInt(frecuenciaRespiratoriaValue) : null,
             medico_tratante_id: user?.id,
             estado: 'pendiente',
           },
@@ -87,6 +182,7 @@ export default function NuevoCaso() {
         title: 'Caso creado exitosamente',
         description: 'El análisis de IA se ha generado',
       });
+      setErrors({});
 
       navigate(`/caso/${caso.id}`);
     } catch (error: any) {
@@ -154,16 +250,21 @@ export default function NuevoCaso() {
                       onChange={handleChange}
                       required
                       disabled={loading}
+                      className={errors.edad ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.edad && <p className="text-sm text-destructive">{errors.edad}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sexo">Sexo *</Label>
                     <Select
                       value={formData.sexo}
-                      onValueChange={(value) => setFormData({ ...formData, sexo: value })}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, sexo: value });
+                        setErrors((prev) => ({ ...prev, sexo: '' }));
+                      }}
                       disabled={loading}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.sexo ? 'border-destructive focus-visible:ring-destructive' : undefined}>
                         <SelectValue placeholder="Seleccionar" />
                       </SelectTrigger>
                       <SelectContent>
@@ -172,6 +273,7 @@ export default function NuevoCaso() {
                         <SelectItem value="Otro">Otro</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.sexo && <p className="text-sm text-destructive">{errors.sexo}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email_paciente">Email *</Label>
@@ -183,7 +285,9 @@ export default function NuevoCaso() {
                       onChange={handleChange}
                       required
                       disabled={loading}
+                      className={errors.email_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.email_paciente && <p className="text-sm text-destructive">{errors.email_paciente}</p>}
                   </div>
                 </div>
               </div>
@@ -239,7 +343,9 @@ export default function NuevoCaso() {
                       value={formData.presion_arterial}
                       onChange={handleChange}
                       disabled={loading}
+                      className={errors.presion_arterial ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.presion_arterial && <p className="text-sm text-destructive">{errors.presion_arterial}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="frecuencia_cardiaca">Frecuencia Cardíaca (lpm)</Label>
@@ -250,7 +356,9 @@ export default function NuevoCaso() {
                       value={formData.frecuencia_cardiaca}
                       onChange={handleChange}
                       disabled={loading}
+                      className={errors.frecuencia_cardiaca ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.frecuencia_cardiaca && <p className="text-sm text-destructive">{errors.frecuencia_cardiaca}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="temperatura">Temperatura (°C)</Label>
@@ -262,7 +370,9 @@ export default function NuevoCaso() {
                       value={formData.temperatura}
                       onChange={handleChange}
                       disabled={loading}
+                      className={errors.temperatura ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.temperatura && <p className="text-sm text-destructive">{errors.temperatura}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="saturacion_oxigeno">Saturación de Oxígeno (%)</Label>
@@ -273,7 +383,9 @@ export default function NuevoCaso() {
                       value={formData.saturacion_oxigeno}
                       onChange={handleChange}
                       disabled={loading}
+                      className={errors.saturacion_oxigeno ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.saturacion_oxigeno && <p className="text-sm text-destructive">{errors.saturacion_oxigeno}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="frecuencia_respiratoria">Frecuencia Respiratoria (rpm)</Label>
@@ -284,7 +396,9 @@ export default function NuevoCaso() {
                       value={formData.frecuencia_respiratoria}
                       onChange={handleChange}
                       disabled={loading}
+                      className={errors.frecuencia_respiratoria ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.frecuencia_respiratoria && <p className="text-sm text-destructive">{errors.frecuencia_respiratoria}</p>}
                   </div>
                 </div>
               </div>
