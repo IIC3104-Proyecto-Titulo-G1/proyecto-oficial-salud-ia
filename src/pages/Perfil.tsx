@@ -21,6 +21,7 @@ export default function Perfil() {
     especialidad: "",
     telefono: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const [passwordData, setPasswordData] = useState({
     newPassword: "",
@@ -47,23 +48,72 @@ export default function Perfil() {
     }
   }, [userRoleData]);
 
+  const validateForm = () => {
+    const validationErrors: Record<string, string> = {};
+
+    const nombre = formData.nombre.trim();
+    if (!nombre) {
+      validationErrors.nombre = "El nombre es obligatorio.";
+    } else if (nombre.length < 3) {
+      validationErrors.nombre = "Ingresa al menos 3 caracteres para el nombre.";
+    }
+
+    const email = formData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      validationErrors.email = "Ingresa un correo electrónico válido.";
+    }
+
+    const telefono = formData.telefono.trim();
+    if (telefono) {
+      const telefonoRegex = /^\+?\d{8,15}$/;
+      if (!telefonoRegex.test(telefono.replace(/\s|-/g, ""))) {
+        validationErrors.telefono = "Ingresa solo números (opcional +) entre 8 y 15 dígitos.";
+      }
+    }
+
+    return validationErrors;
+  };
+
+  const handleFormChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user || !userRoleData) return;
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast({
+        title: "Revisa los datos ingresados",
+        description: "Corrige los campos marcados para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setSaving(true);
     
     try {
+      const nombreValue = formData.nombre.trim();
+      const emailValue = formData.email.trim();
+      const hospitalValue = formData.hospital.trim();
+      const especialidadValue = formData.especialidad.trim();
+      const telefonoValue = formData.telefono.trim().replace(/\s|-/g, "");
+
       // Actualizar datos del perfil
       const { error } = await supabase
         .from("user_roles")
         .update({
-          nombre: formData.nombre,
-          email: formData.email,
-          hospital: formData.hospital || null,
-          especialidad: formData.especialidad || null,
-          telefono: formData.telefono || null,
+          nombre: nombreValue,
+          email: emailValue,
+          hospital: hospitalValue || null,
+          especialidad: especialidadValue || null,
+          telefono: telefonoValue || null,
         })
         .eq("user_id", user.id);
 
@@ -98,7 +148,16 @@ export default function Perfil() {
         setPasswordData({ newPassword: "", confirmPassword: "" });
       }
 
+      setFormData({
+        nombre: nombreValue,
+        email: emailValue,
+        hospital: hospitalValue,
+        especialidad: especialidadValue,
+        telefono: telefonoValue,
+      });
+
       await refreshUserRole();
+      setErrors({});
 
       toast({
         title: "Perfil actualizado",
@@ -156,11 +215,13 @@ export default function Perfil() {
                 <Input
                   id="nombre"
                   value={formData.nombre}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nombre: e.target.value })
-                  }
+                  onChange={(e) => handleFormChange("nombre", e.target.value)}
                   required
+                  className={errors.nombre ? "border-destructive focus-visible:ring-destructive" : undefined}
                 />
+                {errors.nombre && (
+                  <p className="text-sm text-destructive">{errors.nombre}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -169,11 +230,13 @@ export default function Perfil() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={(e) => handleFormChange("email", e.target.value)}
                   required
+                  className={errors.email ? "border-destructive focus-visible:ring-destructive" : undefined}
                 />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -181,9 +244,7 @@ export default function Perfil() {
                 <Input
                   id="hospital"
                   value={formData.hospital}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hospital: e.target.value })
-                  }
+                  onChange={(e) => handleFormChange("hospital", e.target.value)}
                 />
               </div>
 
@@ -192,9 +253,7 @@ export default function Perfil() {
                 <Input
                   id="especialidad"
                   value={formData.especialidad}
-                  onChange={(e) =>
-                    setFormData({ ...formData, especialidad: e.target.value })
-                  }
+                  onChange={(e) => handleFormChange("especialidad", e.target.value)}
                 />
               </div>
 
@@ -203,10 +262,12 @@ export default function Perfil() {
                 <Input
                   id="telefono"
                   value={formData.telefono}
-                  onChange={(e) =>
-                    setFormData({ ...formData, telefono: e.target.value })
-                  }
+                  onChange={(e) => handleFormChange("telefono", e.target.value)}
+                  className={errors.telefono ? "border-destructive focus-visible:ring-destructive" : undefined}
                 />
+                {errors.telefono && (
+                  <p className="text-sm text-destructive">{errors.telefono}</p>
+                )}
               </div>
 
               <div className="space-y-2">
