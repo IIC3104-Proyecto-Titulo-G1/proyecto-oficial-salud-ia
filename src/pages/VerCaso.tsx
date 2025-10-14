@@ -10,6 +10,9 @@ import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit } from 'lucide-react
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Caso {
   id: string;
@@ -43,12 +46,51 @@ export default function VerCaso() {
   const [sugerencia, setSugerencia] = useState<Sugerencia | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
   const [justificacion, setJustificacion] = useState('');
   const [processingDecision, setProcessingDecision] = useState(false);
+  const [editData, setEditData] = useState({
+    nombre_paciente: '',
+    edad_paciente: '',
+    sexo_paciente: '',
+    email_paciente: '',
+    diagnostico_principal: '',
+    sintomas: '',
+    historia_clinica: '',
+    presion_arterial: '',
+    frecuencia_cardiaca: '',
+    temperatura: '',
+    saturacion_oxigeno: '',
+    frecuencia_respiratoria: '',
+  });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [showUpdatedNotice, setShowUpdatedNotice] = useState(false);
 
   useEffect(() => {
     loadCaso();
   }, [id]);
+
+  const resetEditData = (casoData: Caso, options?: { resetNotice?: boolean }) => {
+    setEditData({
+      nombre_paciente: casoData.nombre_paciente || '',
+      edad_paciente: casoData.edad_paciente?.toString() || '',
+      sexo_paciente: casoData.sexo_paciente || '',
+      email_paciente: casoData.email_paciente || '',
+      diagnostico_principal: casoData.diagnostico_principal || '',
+      sintomas: casoData.sintomas || '',
+      historia_clinica: casoData.historia_clinica || '',
+      presion_arterial: casoData.presion_arterial || '',
+      frecuencia_cardiaca: casoData.frecuencia_cardiaca?.toString() || '',
+      temperatura: casoData.temperatura?.toString() || '',
+      saturacion_oxigeno: casoData.saturacion_oxigeno?.toString() || '',
+      frecuencia_respiratoria: casoData.frecuencia_respiratoria?.toString() || '',
+    });
+    setEditErrors({});
+    if (options?.resetNotice !== false) {
+      setShowUpdatedNotice(false);
+    }
+  };
 
   const loadCaso = async () => {
     if (!id) return;
@@ -79,6 +121,174 @@ export default function VerCaso() {
     setCaso(casoData);
     setSugerencia(sugerenciaData);
     setLoading(false);
+  };
+
+  useEffect(() => {
+    if (caso) {
+      resetEditData(caso);
+    }
+  }, [caso]);
+
+  const validateEditData = () => {
+    const errors: Record<string, string> = {};
+
+    const nombre = editData.nombre_paciente.trim();
+    if (!nombre) {
+      errors.nombre_paciente = 'El nombre es obligatorio.';
+    } else if (nombre.length < 3) {
+      errors.nombre_paciente = 'El nombre debe tener al menos 3 caracteres.';
+    }
+
+    const edad = Number(editData.edad_paciente);
+    if (!Number.isInteger(edad) || edad <= 0 || edad > 120) {
+      errors.edad_paciente = 'Ingresa una edad válida entre 1 y 120 años.';
+    }
+
+    if (!editData.sexo_paciente) {
+      errors.sexo_paciente = 'Selecciona el sexo del paciente.';
+    }
+
+    const email = editData.email_paciente.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      errors.email_paciente = 'Ingresa un correo electrónico válido.';
+    }
+
+    const diagnostico = editData.diagnostico_principal.trim();
+    if (!diagnostico) {
+      errors.diagnostico_principal = 'El diagnóstico principal es obligatorio.';
+    }
+
+    const presion = editData.presion_arterial.trim();
+    if (presion) {
+      const match = presion.match(/^(\d{2,3})\/(\d{2,3})$/);
+      if (!match) {
+        errors.presion_arterial = 'Usa el formato sistólica/diastólica (ej. 120/80).';
+      } else {
+        const sistolica = Number(match[1]);
+        const diastolica = Number(match[2]);
+        if (
+          sistolica < 70 ||
+          sistolica > 250 ||
+          diastolica < 40 ||
+          diastolica > 150 ||
+          diastolica >= sistolica
+        ) {
+          errors.presion_arterial = 'Verifica que los valores estén en un rango clínico válido.';
+        }
+      }
+    }
+
+    const frecuenciaCardiaca = editData.frecuencia_cardiaca.trim();
+    if (frecuenciaCardiaca) {
+      const valor = Number(frecuenciaCardiaca);
+      if (!Number.isInteger(valor) || valor < 30 || valor > 220) {
+        errors.frecuencia_cardiaca = 'Ingresa pulsaciones entre 30 y 220 lpm.';
+      }
+    }
+
+    const temperatura = editData.temperatura.trim();
+    if (temperatura) {
+      const valor = Number(temperatura);
+      if (Number.isNaN(valor) || valor < 30 || valor > 45) {
+        errors.temperatura = 'Ingresa una temperatura entre 30 y 45 °C.';
+      }
+    }
+
+    const saturacion = editData.saturacion_oxigeno.trim();
+    if (saturacion) {
+      const valor = Number(saturacion);
+      if (!Number.isInteger(valor) || valor < 70 || valor > 100) {
+        errors.saturacion_oxigeno = 'Ingresa un porcentaje entre 70% y 100%.';
+      }
+    }
+
+    const frecuenciaRespiratoria = editData.frecuencia_respiratoria.trim();
+    if (frecuenciaRespiratoria) {
+      const valor = Number(frecuenciaRespiratoria);
+      if (!Number.isInteger(valor) || valor < 8 || valor > 40) {
+        errors.frecuencia_respiratoria = 'Ingresa respiraciones entre 8 y 40 rpm.';
+      }
+    }
+
+    return errors;
+  };
+
+  const handleEditChange = (field: keyof typeof editData, value: string) => {
+    setEditData((prev) => ({ ...prev, [field]: value }));
+    setEditErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!caso) return;
+
+    const validationErrors = validateEditData();
+    if (Object.keys(validationErrors).length > 0) {
+      setEditErrors(validationErrors);
+      toast({
+        title: 'Revisa los datos ingresados',
+        description: 'Corrige los campos marcados para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setEditSaving(true);
+
+    try {
+      const nombreValue = editData.nombre_paciente.trim();
+      const edadValue = Number(editData.edad_paciente);
+      const sexoValue = editData.sexo_paciente;
+      const emailValue = editData.email_paciente.trim();
+      const diagnosticoValue = editData.diagnostico_principal.trim();
+      const sintomasValue = editData.sintomas.trim();
+      const historiaValue = editData.historia_clinica.trim();
+      const presionValue = editData.presion_arterial.trim();
+      const frecuenciaCardiacaValue = editData.frecuencia_cardiaca.trim();
+      const temperaturaValue = editData.temperatura.trim();
+      const saturacionValue = editData.saturacion_oxigeno.trim();
+      const frecuenciaRespiratoriaValue = editData.frecuencia_respiratoria.trim();
+
+      const { data: updatedCaso, error: updateError } = await supabase
+        .from('casos')
+        .update({
+          nombre_paciente: nombreValue,
+          edad_paciente: edadValue,
+          sexo_paciente: sexoValue,
+          email_paciente: emailValue,
+          diagnostico_principal: diagnosticoValue,
+          sintomas: sintomasValue || null,
+          historia_clinica: historiaValue || null,
+          presion_arterial: presionValue || null,
+          frecuencia_cardiaca: frecuenciaCardiacaValue ? Number(frecuenciaCardiacaValue) : null,
+          temperatura: temperaturaValue ? Number(temperaturaValue) : null,
+          saturacion_oxigeno: saturacionValue ? Number(saturacionValue) : null,
+          frecuencia_respiratoria: frecuenciaRespiratoriaValue ? Number(frecuenciaRespiratoriaValue) : null,
+        })
+        .eq('id', caso.id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      setCaso(updatedCaso as Caso);
+      setShowEditModal(false);
+      resetEditData(updatedCaso as Caso, { resetNotice: false });
+      setShowUpdatedNotice(true);
+      toast({
+        title: 'Datos actualizados',
+        description: 'La información del caso se actualizó correctamente.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error al actualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handleAceptarSugerencia = () => {
@@ -190,7 +400,7 @@ export default function VerCaso() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/caso/${id}/editar`)}
+                onClick={() => setShowEditModal(true)}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar datos
@@ -198,6 +408,15 @@ export default function VerCaso() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {showUpdatedNotice && (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle>Datos actualizados después de la evaluación</AlertTitle>
+                <AlertDescription>
+                  La evaluación de IA se generó con los valores anteriores. Considera volver a evaluar el caso si los cambios afectan la decisión.
+                </AlertDescription>
+              </Alert>
+            )}
             <div>
               <p className="text-sm font-medium text-muted-foreground">Diagnóstico Principal</p>
               <p className="text-base">{caso.diagnostico_principal}</p>
@@ -318,6 +537,198 @@ export default function VerCaso() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Modal de edición */}
+      <Dialog
+        open={showEditModal}
+        onOpenChange={(open) => {
+          setShowEditModal(open);
+          if (!open && caso) {
+            resetEditData(caso);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar datos del caso</DialogTitle>
+            <DialogDescription>
+              Actualiza la información del paciente y sus signos vitales. Se aplican las mismas validaciones que al crear un caso.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="space-y-5" onSubmit={handleSaveEdit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="edit-nombre">Nombre completo *</Label>
+                <Input
+                  id="edit-nombre"
+                  value={editData.nombre_paciente}
+                  onChange={(e) => handleEditChange('nombre_paciente', e.target.value)}
+                  className={editErrors.nombre_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.nombre_paciente && (
+                  <p className="text-sm text-destructive">{editErrors.nombre_paciente}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-edad">Edad *</Label>
+                <Input
+                  id="edit-edad"
+                  type="number"
+                  value={editData.edad_paciente}
+                  onChange={(e) => handleEditChange('edad_paciente', e.target.value)}
+                  className={editErrors.edad_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.edad_paciente && (
+                  <p className="text-sm text-destructive">{editErrors.edad_paciente}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-sexo">Sexo *</Label>
+                <Select
+                  value={editData.sexo_paciente}
+                  onValueChange={(value) => handleEditChange('sexo_paciente', value)}
+                >
+                  <SelectTrigger className={editErrors.sexo_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}>
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculino</SelectItem>
+                    <SelectItem value="F">Femenino</SelectItem>
+                    <SelectItem value="Otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+                {editErrors.sexo_paciente && (
+                  <p className="text-sm text-destructive">{editErrors.sexo_paciente}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-email">Correo electrónico *</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editData.email_paciente}
+                  onChange={(e) => handleEditChange('email_paciente', e.target.value)}
+                  className={editErrors.email_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.email_paciente && (
+                  <p className="text-sm text-destructive">{editErrors.email_paciente}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-diagnostico">Diagnóstico Principal *</Label>
+              <Input
+                id="edit-diagnostico"
+                value={editData.diagnostico_principal}
+                onChange={(e) => handleEditChange('diagnostico_principal', e.target.value)}
+                className={editErrors.diagnostico_principal ? 'border-destructive focus-visible:ring-destructive' : undefined}
+              />
+              {editErrors.diagnostico_principal && (
+                <p className="text-sm text-destructive">{editErrors.diagnostico_principal}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-sintomas">Síntomas</Label>
+              <Textarea
+                id="edit-sintomas"
+                value={editData.sintomas}
+                onChange={(e) => handleEditChange('sintomas', e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-historia">Historia Clínica</Label>
+              <Textarea
+                id="edit-historia"
+                value={editData.historia_clinica}
+                onChange={(e) => handleEditChange('historia_clinica', e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="edit-presion">Presión Arterial</Label>
+                <Input
+                  id="edit-presion"
+                  placeholder="120/80"
+                  value={editData.presion_arterial}
+                  onChange={(e) => handleEditChange('presion_arterial', e.target.value)}
+                  className={editErrors.presion_arterial ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.presion_arterial && (
+                  <p className="text-sm text-destructive">{editErrors.presion_arterial}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-fc">Frecuencia Cardíaca (lpm)</Label>
+                <Input
+                  id="edit-fc"
+                  type="number"
+                  value={editData.frecuencia_cardiaca}
+                  onChange={(e) => handleEditChange('frecuencia_cardiaca', e.target.value)}
+                  className={editErrors.frecuencia_cardiaca ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.frecuencia_cardiaca && (
+                  <p className="text-sm text-destructive">{editErrors.frecuencia_cardiaca}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-temp">Temperatura (°C)</Label>
+                <Input
+                  id="edit-temp"
+                  type="number"
+                  step="0.1"
+                  value={editData.temperatura}
+                  onChange={(e) => handleEditChange('temperatura', e.target.value)}
+                  className={editErrors.temperatura ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.temperatura && (
+                  <p className="text-sm text-destructive">{editErrors.temperatura}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-spo2">Saturación de Oxígeno (%)</Label>
+                <Input
+                  id="edit-spo2"
+                  type="number"
+                  value={editData.saturacion_oxigeno}
+                  onChange={(e) => handleEditChange('saturacion_oxigeno', e.target.value)}
+                  className={editErrors.saturacion_oxigeno ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.saturacion_oxigeno && (
+                  <p className="text-sm text-destructive">{editErrors.saturacion_oxigeno}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-fr">Frecuencia Respiratoria (rpm)</Label>
+                <Input
+                  id="edit-fr"
+                  type="number"
+                  value={editData.frecuencia_respiratoria}
+                  onChange={(e) => handleEditChange('frecuencia_respiratoria', e.target.value)}
+                  className={editErrors.frecuencia_respiratoria ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                />
+                {editErrors.frecuencia_respiratoria && (
+                  <p className="text-sm text-destructive">{editErrors.frecuencia_respiratoria}</p>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={editSaving}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={editSaving}>
+                {editSaving ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Rechazo */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
