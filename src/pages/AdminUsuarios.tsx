@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Upload, X } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -32,7 +32,6 @@ export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
-  const [showPerfilDialog, setShowPerfilDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [rolFiltro, setRolFiltro] = useState<RolFiltro>('todos');
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
@@ -44,23 +43,6 @@ export default function AdminUsuarios() {
     hospital: '',
     especialidad: '',
   });
-  const [perfilData, setPerfilData] = useState({
-    nombre: '',
-    email: '',
-    hospital: '',
-    especialidad: '',
-    telefono: '',
-  });
-
-  const [passwordData, setPasswordData] = useState({
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
-  const [isDragging, setIsDragging] = useState(false);
-  const [deleteImage, setDeleteImage] = useState(false);
 
   useEffect(() => {
     if (userRole !== 'admin') {
@@ -75,20 +57,6 @@ export default function AdminUsuarios() {
     loadUsuarios();
   }, [userRole]);
 
-  useEffect(() => {
-    if (userRoleData) {
-      setPerfilData({
-        nombre: userRoleData.nombre || '',
-        email: userRoleData.email || '',
-        hospital: userRoleData.hospital || '',
-        especialidad: userRoleData.especialidad || '',
-        telefono: userRoleData.telefono || '',
-      });
-      if (userRoleData.imagen) {
-        setImagePreview(userRoleData.imagen);
-      }
-    }
-  }, [userRoleData]);
 
   const loadUsuarios = async () => {
     setLoading(true);
@@ -250,158 +218,6 @@ export default function AdminUsuarios() {
     navigate('/login');
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processImageFile(file);
-    }
-  };
-
-  const processImageFile = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "La imagen no puede pesar más de 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    setImageFile(file);
-    setDeleteImage(false);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      processImageFile(file);
-    } else {
-      toast({
-        title: "Error",
-        description: "Por favor sube solo archivos de imagen",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteImage = () => {
-    setImageFile(null);
-    setImagePreview("");
-    setDeleteImage(true);
-  };
-
-  const handleSavePerfil = async () => {
-    if (!user) return;
-
-    try {
-      let imageUrl = userRoleData?.imagen || null;
-
-      // Eliminar imagen si el usuario lo solicitó
-      if (deleteImage && userRoleData?.imagen) {
-        const filePath = `${user.id}/profile.${userRoleData.imagen.split('.').pop()}`;
-        await supabase.storage
-          .from('profile-images')
-          .remove([filePath]);
-        imageUrl = null;
-      }
-
-      // Subir imagen si hay una nueva
-      if (imageFile && user) {
-        const fileExt = imageFile.name.split('.').pop();
-        const filePath = `${user.id}/profile.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('profile-images')
-          .upload(filePath, imageFile, { upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('profile-images')
-          .getPublicUrl(filePath);
-
-        imageUrl = publicUrl;
-      }
-
-      // Actualizar datos del perfil
-      const { error } = await supabase
-        .from('user_roles')
-        .update({
-          nombre: perfilData.nombre,
-          email: perfilData.email,
-          hospital: perfilData.hospital || null,
-          especialidad: perfilData.especialidad || null,
-          telefono: perfilData.telefono || null,
-          imagen: imageUrl,
-        })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      // Actualizar contraseña si se proporcionó
-      if (passwordData.newPassword) {
-        if (passwordData.newPassword !== passwordData.confirmPassword) {
-          toast({
-            title: 'Error',
-            description: 'Las contraseñas no coinciden',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        if (passwordData.newPassword.length < 6) {
-          toast({
-            title: 'Error',
-            description: 'La contraseña debe tener al menos 6 caracteres',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        const { error: passwordError } = await supabase.auth.updateUser({
-          password: passwordData.newPassword,
-        });
-
-        if (passwordError) throw passwordError;
-
-        setPasswordData({ newPassword: '', confirmPassword: '' });
-      }
-
-      await refreshUserRole();
-
-      toast({
-        title: 'Perfil actualizado',
-        description: 'Los cambios se han guardado exitosamente',
-      });
-
-      setShowPerfilDialog(false);
-      setImageFile(null);
-      setDeleteImage(false);
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
 
   const getRoleBadge = (rol: string) => {
     switch (rol) {
@@ -452,7 +268,7 @@ export default function AdminUsuarios() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowPerfilDialog(true)}
+                onClick={() => navigate('/admin/perfil')}
                 className="text-white hover:bg-white/20"
               >
                 <UserIcon className="w-4 h-4 mr-2" />
@@ -704,161 +520,6 @@ export default function AdminUsuarios() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para editar perfil del admin */}
-      <Dialog open={showPerfilDialog} onOpenChange={setShowPerfilDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Mi Perfil</DialogTitle>
-            <DialogDescription>
-              Actualiza tus datos personales
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <Avatar className="h-32 w-32">
-                  <AvatarImage src={imagePreview} alt={perfilData.nombre} />
-                  <AvatarFallback className="text-2xl">
-                    {perfilData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon />}
-                  </AvatarFallback>
-                </Avatar>
-                {imagePreview && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute -top-2 -right-2 h-8 w-8 rounded-full"
-                    onClick={handleDeleteImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              <div className="w-full">
-                <Label htmlFor="admin-image" className="cursor-pointer">
-                  <div 
-                    className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors ${
-                      isDragging ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    <Upload className="h-5 w-5" />
-                    <span>Arrastra una imagen o haz clic para seleccionar</span>
-                  </div>
-                  <Input
-                    id="admin-image"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/jpg"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </Label>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="perfil-nombre">Nombre Completo *</Label>
-              <Input
-                id="perfil-nombre"
-                value={perfilData.nombre}
-                onChange={(e) => setPerfilData({ ...perfilData, nombre: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="perfil-email">Email *</Label>
-              <Input
-                id="perfil-email"
-                type="email"
-                value={perfilData.email}
-                onChange={(e) => setPerfilData({ ...perfilData, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="perfil-hospital">Hospital</Label>
-              <Input
-                id="perfil-hospital"
-                value={perfilData.hospital}
-                onChange={(e) => setPerfilData({ ...perfilData, hospital: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="perfil-especialidad">Especialidad</Label>
-              <Input
-                id="perfil-especialidad"
-                value={perfilData.especialidad}
-                onChange={(e) => setPerfilData({ ...perfilData, especialidad: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="perfil-telefono">Teléfono</Label>
-              <Input
-                id="perfil-telefono"
-                value={perfilData.telefono}
-                onChange={(e) => setPerfilData({ ...perfilData, telefono: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Input
-                value="admin"
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-sm text-muted-foreground">
-                El rol no puede ser modificado
-              </p>
-            </div>
-
-            <div className="pt-4 border-t">
-              <h3 className="text-lg font-semibold mb-4">Cambiar Contraseña</h3>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">Nueva contraseña</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) =>
-                      setPasswordData({ ...passwordData, newPassword: e.target.value })
-                    }
-                    placeholder="Mínimo 6 caracteres"
-                    minLength={6}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                    }
-                    placeholder="Repite la contraseña"
-                    minLength={6}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowPerfilDialog(false);
-                setPasswordData({ newPassword: '', confirmPassword: '' });
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePerfil}>
-              Guardar Cambios
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import NuevoCaso from "./pages/NuevoCaso";
 import VerCaso from "./pages/VerCaso";
 import ComunicacionPaciente from "./pages/ComunicacionPaciente";
 import AdminUsuarios from "./pages/AdminUsuarios";
+import AdminPerfil from "./pages/AdminPerfil";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -41,6 +42,7 @@ const App = () => (
 
             <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
               <Route path="/admin" element={<AdminUsuarios />} />
+              <Route path="/admin/perfil" element={<AdminPerfil />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
