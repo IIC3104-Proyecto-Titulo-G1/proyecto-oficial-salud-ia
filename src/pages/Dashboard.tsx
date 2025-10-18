@@ -76,6 +76,17 @@ export default function Dashboard() {
     navigate('/login');
   };
 
+  const handleCardClick = (estado: EstadoFiltro) => {
+    setEstadoFiltro(estado);
+    // Scroll suave hacia la lista de casos
+    setTimeout(() => {
+      const casosSection = document.getElementById('casos-section');
+      if (casosSection) {
+        casosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   const filteredCasos = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -218,7 +229,10 @@ export default function Dashboard() {
         {/* Stats Cards Grid mejorado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {/* Total Casos */}
-          <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-xl transition-all duration-300 group">
+          <Card 
+            className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('todos')}
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between mb-4">
@@ -237,7 +251,10 @@ export default function Dashboard() {
           </Card>
 
           {/* Aceptados */}
-          <Card className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group">
+          <Card 
+            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('aceptado')}
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between mb-4">
@@ -263,7 +280,10 @@ export default function Dashboard() {
           </Card>
 
           {/* Pendientes */}
-          <Card className="relative overflow-hidden border-warning/20 bg-gradient-to-br from-card to-warning/5 hover:shadow-xl transition-all duration-300 group">
+          <Card 
+            className="relative overflow-hidden border-warning/20 bg-gradient-to-br from-card to-warning/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('pendiente')}
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-warning/10 rounded-full blur-3xl group-hover:bg-warning/20 transition-all"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between mb-4">
@@ -286,7 +306,10 @@ export default function Dashboard() {
           </Card>
 
           {/* Derivados */}
-          <Card className="relative overflow-hidden border-secondary/20 bg-gradient-to-br from-card to-secondary/5 hover:shadow-xl transition-all duration-300 group">
+          <Card 
+            className="relative overflow-hidden border-secondary/20 bg-gradient-to-br from-card to-secondary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('derivado')}
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-3xl group-hover:bg-secondary/20 transition-all"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between mb-4">
@@ -308,7 +331,7 @@ export default function Dashboard() {
         </div>
 
         {/* Header de lista mejorado */}
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div id="casos-section" className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-2 text-foreground">Casos Recientes</h2>
             <p className="text-muted-foreground">
