@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Upload } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -19,6 +20,7 @@ interface Usuario {
   rol: 'admin' | 'medico' | 'medico_jefe';
   hospital?: string;
   especialidad?: string;
+  imagen?: string;
 }
 
 type RolFiltro = 'todos' | 'admin' | 'medico' | 'medico_jefe';
@@ -55,6 +57,9 @@ export default function AdminUsuarios() {
     confirmPassword: '',
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+
   useEffect(() => {
     if (userRole !== 'admin') {
       toast({
@@ -77,6 +82,9 @@ export default function AdminUsuarios() {
         especialidad: userRoleData.especialidad || '',
         telefono: userRoleData.telefono || '',
       });
+      if (userRoleData.imagen) {
+        setImagePreview(userRoleData.imagen);
+      }
     }
   }, [userRoleData]);
 
@@ -95,6 +103,7 @@ export default function AdminUsuarios() {
         rol: u.role,
         hospital: u.hospital,
         especialidad: u.especialidad,
+        imagen: u.imagen,
       })));
     }
     setLoading(false);
@@ -239,10 +248,50 @@ export default function AdminUsuarios() {
     navigate('/login');
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "La imagen no puede pesar más de 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSavePerfil = async () => {
     if (!user) return;
 
     try {
+      let imageUrl = userRoleData?.imagen || null;
+
+      // Subir imagen si hay una nueva
+      if (imageFile && user) {
+        const fileExt = imageFile.name.split('.').pop();
+        const filePath = `${user.id}/profile.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(filePath, imageFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+      }
+
       // Actualizar datos del perfil
       const { error } = await supabase
         .from('user_roles')
@@ -252,6 +301,7 @@ export default function AdminUsuarios() {
           hospital: perfilData.hospital || null,
           especialidad: perfilData.especialidad || null,
           telefono: perfilData.telefono || null,
+          imagen: imageUrl,
         })
         .eq('user_id', user.id);
 
@@ -294,6 +344,7 @@ export default function AdminUsuarios() {
       });
 
       setShowPerfilDialog(false);
+      setImageFile(null);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -466,9 +517,12 @@ export default function AdminUsuarios() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary" />
-                      </div>
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={usuario.imagen || ''} alt={usuario.nombre} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {usuario.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <CardTitle className="mb-2">{usuario.nombre}</CardTitle>
                         <CardDescription>{usuario.email}</CardDescription>
@@ -611,6 +665,29 @@ export default function AdminUsuarios() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center gap-4">
+              <Avatar className="h-32 w-32">
+                <AvatarImage src={imagePreview} alt={perfilData.nombre} />
+                <AvatarFallback className="text-2xl">
+                  {perfilData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="w-full">
+                <Label htmlFor="admin-image" className="cursor-pointer">
+                  <div className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg hover:bg-muted/50 transition-colors">
+                    <Upload className="h-5 w-5" />
+                    <span>Seleccionar imagen</span>
+                  </div>
+                  <Input
+                    id="admin-image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </Label>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="perfil-nombre">Nombre Completo *</Label>
               <Input

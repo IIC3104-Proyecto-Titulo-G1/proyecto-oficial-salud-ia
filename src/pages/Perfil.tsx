@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Upload, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Perfil() {
   const { user, userRoleData, loading, refreshUserRole } = useAuth();
@@ -22,6 +23,8 @@ export default function Perfil() {
     telefono: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   
   const [passwordData, setPasswordData] = useState({
     newPassword: "",
@@ -45,6 +48,9 @@ export default function Perfil() {
         especialidad: userRoleData.especialidad || "",
         telefono: userRoleData.telefono || "",
       });
+      if (userRoleData.imagen) {
+        setImagePreview(userRoleData.imagen);
+      }
     }
   }, [userRoleData]);
 
@@ -80,6 +86,26 @@ export default function Perfil() {
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "La imagen no puede pesar más de 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -105,6 +131,26 @@ export default function Perfil() {
       const especialidadValue = formData.especialidad.trim();
       const telefonoValue = formData.telefono.trim().replace(/\s|-/g, "");
 
+      let imageUrl = userRoleData?.imagen || null;
+
+      // Subir imagen si hay una nueva
+      if (imageFile && user) {
+        const fileExt = imageFile.name.split('.').pop();
+        const filePath = `${user.id}/profile.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(filePath, imageFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+      }
+
       // Actualizar datos del perfil
       const { error } = await supabase
         .from("user_roles")
@@ -114,6 +160,7 @@ export default function Perfil() {
           hospital: hospitalValue || null,
           especialidad: especialidadValue || null,
           telefono: telefonoValue || null,
+          imagen: imageUrl,
         })
         .eq("user_id", user.id);
 
@@ -200,6 +247,38 @@ export default function Perfil() {
             </p>
           </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Imagen de Perfil</CardTitle>
+            <CardDescription>
+              Sube una foto de perfil (máximo 5MB)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <Avatar className="h-32 w-32">
+              <AvatarImage src={imagePreview} alt={formData.nombre} />
+              <AvatarFallback className="text-2xl">
+                {formData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <User />}
+              </AvatarFallback>
+            </Avatar>
+            <div className="w-full">
+              <Label htmlFor="image" className="cursor-pointer">
+                <div className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg hover:bg-muted/50 transition-colors">
+                  <Upload className="h-5 w-5" />
+                  <span>Seleccionar imagen</span>
+                </div>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Caso {
   id: string;
@@ -171,7 +172,13 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-crm/20">
+                <AvatarImage src={userRoleData?.imagen || ''} alt={userRoleData?.nombre} />
+                <AvatarFallback className="bg-crm/10 text-crm">
+                  {userRoleData?.nombre?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon className="h-5 w-5" />}
+                </AvatarFallback>
+              </Avatar>
               {userRole === 'admin' && (
                 <Button
                   variant="outline"
