@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Upload, X } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -59,6 +59,8 @@ export default function AdminUsuarios() {
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [deleteImage, setDeleteImage] = useState(false);
 
   useEffect(() => {
     if (userRole !== 'admin') {
@@ -251,21 +253,58 @@ export default function AdminUsuarios() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "La imagen no puede pesar más de 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      processImageFile(file);
     }
+  };
+
+  const processImageFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "La imagen no puede pesar más de 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    setImageFile(file);
+    setDeleteImage(false);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      processImageFile(file);
+    } else {
+      toast({
+        title: "Error",
+        description: "Por favor sube solo archivos de imagen",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    setDeleteImage(true);
   };
 
   const handleSavePerfil = async () => {
@@ -273,6 +312,15 @@ export default function AdminUsuarios() {
 
     try {
       let imageUrl = userRoleData?.imagen || null;
+
+      // Eliminar imagen si el usuario lo solicitó
+      if (deleteImage && userRoleData?.imagen) {
+        const filePath = `${user.id}/profile.${userRoleData.imagen.split('.').pop()}`;
+        await supabase.storage
+          .from('profile-images')
+          .remove([filePath]);
+        imageUrl = null;
+      }
 
       // Subir imagen si hay una nueva
       if (imageFile && user) {
@@ -345,6 +393,7 @@ export default function AdminUsuarios() {
 
       setShowPerfilDialog(false);
       setImageFile(null);
+      setDeleteImage(false);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -666,17 +715,37 @@ export default function AdminUsuarios() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex flex-col items-center gap-4">
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={imagePreview} alt={perfilData.nombre} />
-                <AvatarFallback className="text-2xl">
-                  {perfilData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon />}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-32 w-32">
+                  <AvatarImage src={imagePreview} alt={perfilData.nombre} />
+                  <AvatarFallback className="text-2xl">
+                    {perfilData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon />}
+                  </AvatarFallback>
+                </Avatar>
+                {imagePreview && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-8 w-8 rounded-full"
+                    onClick={handleDeleteImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <div className="w-full">
                 <Label htmlFor="admin-image" className="cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg hover:bg-muted/50 transition-colors">
+                  <div 
+                    className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors ${
+                      isDragging ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <Upload className="h-5 w-5" />
-                    <span>Seleccionar imagen</span>
+                    <span>Arrastra una imagen o haz clic para seleccionar</span>
                   </div>
                   <Input
                     id="admin-image"
