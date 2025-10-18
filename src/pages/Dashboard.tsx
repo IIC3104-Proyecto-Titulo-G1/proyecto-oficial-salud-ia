@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -36,8 +38,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from('casos')
       .select('*')
-      .order('fecha_creacion', { ascending: false })
-      .limit(10);
+      .order('fecha_creacion', { ascending: false });
 
     if (error) {
       toast({
@@ -78,6 +79,7 @@ export default function Dashboard() {
 
   const handleCardClick = (estado: EstadoFiltro) => {
     setEstadoFiltro(estado);
+    setCurrentPage(1); // Resetear a la primera página
     // Scroll suave hacia la lista de casos
     setTimeout(() => {
       const casosSection = document.getElementById('casos-section');
@@ -86,6 +88,11 @@ export default function Dashboard() {
       }
     }, 100);
   };
+
+  // Resetear a la primera página cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, estadoFiltro]);
 
   const filteredCasos = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -108,6 +115,23 @@ export default function Dashboard() {
       return hayCoincidencia;
     });
   }, [casos, estadoFiltro, searchTerm]);
+
+  // Calcular casos paginados
+  const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCasos = filteredCasos.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    // Scroll suave hacia la lista de casos
+    setTimeout(() => {
+      const casosSection = document.getElementById('casos-section');
+      if (casosSection) {
+        casosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
 
   const casosPorEstado = useMemo(() => {
     return casos.reduce(
@@ -377,6 +401,11 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-sm text-crm">
               Mostrando <span className="font-semibold text-crm/80">{filteredCasos.length}</span> de {casos.length} casos
+              {filteredCasos.length > 0 && (
+                <span className="text-muted-foreground">
+                  {' '}(Página {currentPage} de {totalPages})
+                </span>
+              )}
             </p>
             <Button
               variant="outline"
@@ -384,6 +413,7 @@ export default function Dashboard() {
               onClick={() => {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
+                setCurrentPage(1);
               }}
               disabled={!filtrosActivos}
               className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm disabled:text-muted-foreground disabled:border-muted"
@@ -437,8 +467,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-5">
-            {filteredCasos.map((caso) => (
+          <>
+            <div className="grid gap-5">
+              {paginatedCasos.map((caso) => (
               <Card
                 key={caso.id}
                 className="relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/50 hover:border-primary/40 group bg-card"
@@ -489,8 +520,105 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm disabled:text-muted-foreground disabled:border-muted"
+                >
+                  Anterior
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const pages: (number | string)[] = [];
+                    
+                    // Si hay 7 o menos páginas, mostrar todas
+                    if (totalPages <= 7) {
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      // Siempre mostrar la primera página
+                      pages.push(1);
+                      
+                      // Si la página actual está lejos del inicio
+                      if (currentPage > 3) {
+                        pages.push('...');
+                      }
+                      
+                      // Calcular el rango de páginas a mostrar
+                      let startPage = Math.max(2, currentPage - 1);
+                      let endPage = Math.min(totalPages - 1, currentPage + 1);
+                      
+                      // Ajustar el rango si estamos cerca de los bordes
+                      if (currentPage <= 3) {
+                        endPage = 4;
+                      }
+                      if (currentPage >= totalPages - 2) {
+                        startPage = totalPages - 3;
+                      }
+                      
+                      // Agregar páginas del rango (sin duplicados)
+                      for (let i = startPage; i <= endPage; i++) {
+                        if (i !== 1 && i !== totalPages) {
+                          pages.push(i);
+                        }
+                      }
+                      
+                      // Si la página actual está lejos del final
+                      if (currentPage < totalPages - 2) {
+                        pages.push('...');
+                      }
+                      
+                      // Siempre mostrar la última página
+                      pages.push(totalPages);
+                    }
+                    
+                    return pages.map((page, index) => {
+                      if (page === '...') {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      
+                      const pageNum = page as number;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(pageNum)}
+                          className={currentPage === pageNum ? "bg-crm hover:bg-crm/90 text-white" : "border-crm/40 text-crm hover:bg-crm/10"}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm disabled:text-muted-foreground disabled:border-muted"
+                >
+                  Siguiente
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
