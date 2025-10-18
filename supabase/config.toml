@@ -1,1 +1,7 @@
 project_id = "kbveluprkmphtuxfvpha"
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.update-user-email]
+verify_jwt = true

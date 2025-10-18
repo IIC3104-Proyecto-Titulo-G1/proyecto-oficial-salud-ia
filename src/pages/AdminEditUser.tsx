@@ -323,11 +323,29 @@ export default function AdminEditUser() {
 
       // Actualizar email en auth si cambió
       if (formData.email !== usuario.email) {
-        const { error: emailError } = await supabase.auth.admin.updateUserById(
-          userId,
-          { email: formData.email }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No hay sesión activa');
+
+        const response = await fetch(
+          `https://kbveluprkmphtuxfvpha.supabase.co/functions/v1/update-user-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              userId: userId,
+              newEmail: formData.email 
+            }),
+          }
         );
-        if (emailError) throw emailError;
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Error al actualizar email');
+        }
       }
 
       // Actualizar datos del usuario
