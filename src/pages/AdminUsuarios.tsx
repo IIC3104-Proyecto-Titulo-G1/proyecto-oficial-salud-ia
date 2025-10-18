@@ -198,8 +198,26 @@ export default function AdminUsuarios() {
     if (!confirm('¿Está seguro de que desea eliminar este usuario?')) return;
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No hay sesión activa');
+
+      const response = await fetch(
+        `https://kbveluprkmphtuxfvpha.supabase.co/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al eliminar usuario');
+      }
 
       toast({
         title: 'Usuario eliminado',
