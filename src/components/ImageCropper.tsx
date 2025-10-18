@@ -48,7 +48,7 @@ export function ImageCropper({ image, open, onClose, onCropComplete }: ImageCrop
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      throw new Error('No 2d context');
+      throw new Error('No se pudo obtener el contexto 2D del canvas');
     }
 
     // Set canvas size to match the cropped area
@@ -75,7 +75,7 @@ export function ImageCropper({ image, open, onClose, onCropComplete }: ImageCrop
     const circularCtx = circularCanvas.getContext('2d');
 
     if (!circularCtx) {
-      throw new Error('No 2d context');
+      throw new Error('No se pudo obtener el contexto 2D del canvas circular');
     }
 
     // Draw the circular mask
@@ -98,17 +98,14 @@ export function ImageCropper({ image, open, onClose, onCropComplete }: ImageCrop
   const handleSave = async () => {
     try {
       if (!croppedAreaPixels) {
-        console.error('No hay área de recorte definida');
+        alert('Por favor espera un momento antes de aplicar el recorte');
         return;
       }
-      console.log('Iniciando recorte de imagen...');
       const croppedImage = await getCroppedImg(image, croppedAreaPixels);
-      console.log('Imagen recortada exitosamente');
       onCropComplete(croppedImage);
       onClose();
     } catch (error) {
-      console.error('Error al recortar la imagen:', error);
-      alert('Error al procesar la imagen. Por favor intenta nuevamente.');
+      alert(`Error al procesar la imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 

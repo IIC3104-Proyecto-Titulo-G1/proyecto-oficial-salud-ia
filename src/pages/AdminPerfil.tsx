@@ -124,7 +124,29 @@ export default function AdminPerfil() {
 
   const handleAvatarDoubleClick = () => {
     if (imagePreview) {
-      setImageToCrop(imagePreview);
+      // Si la imagen es un base64 (ya recortada), usarla directamente
+      // Si es una URL de Supabase, cargarla primero
+      if (imagePreview.startsWith('data:image')) {
+        setImageToCrop(imagePreview);
+      } else {
+        // Es una URL de Supabase, cargar la imagen como base64
+        fetch(imagePreview)
+          .then(res => res.blob())
+          .then(blob => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setImageToCrop(reader.result as string);
+            };
+            reader.readAsDataURL(blob);
+          })
+          .catch(error => {
+            toast({
+              title: 'Error',
+              description: 'No se pudo cargar la imagen para editar',
+              variant: 'destructive',
+            });
+          });
+      }
       setShowCropper(true);
     }
   };
@@ -138,9 +160,12 @@ export default function AdminPerfil() {
         setImageFile(file);
         setImagePreview(croppedImage);
         setDeleteImage(false);
+        toast({
+          title: 'Imagen recortada',
+          description: 'La imagen se actualizará al guardar los cambios',
+        });
       })
       .catch(error => {
-        console.error('Error al procesar imagen recortada:', error);
         toast({
           title: 'Error',
           description: 'No se pudo procesar la imagen recortada',
@@ -217,11 +242,13 @@ export default function AdminPerfil() {
       // Subir imagen si hay una nueva
       if (imageFile && user) {
         const fileExt = imageFile.name.split('.').pop();
-        const filePath = `${user.id}/profile.${fileExt}`;
+        const timestamp = Date.now();
+        // Agregar timestamp para forzar una nueva URL y evitar caché
+        const filePath = `${user.id}/profile_${timestamp}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('profile-images')
-          .upload(filePath, imageFile, { upsert: true });
+          .upload(filePath, imageFile, { upsert: false });
 
         if (uploadError) throw uploadError;
 
@@ -230,6 +257,20 @@ export default function AdminPerfil() {
           .getPublicUrl(filePath);
 
         imageUrl = publicUrl;
+        
+        // Limpiar imagen anterior si existe
+        if (userRoleData?.imagen && userRoleData.imagen !== publicUrl) {
+          try {
+            const oldFilePath = userRoleData.imagen.split('/profile-images/')[1];
+            if (oldFilePath) {
+              await supabase.storage
+                .from('profile-images')
+                .remove([oldFilePath]);
+            }
+          } catch (cleanupError) {
+            // Error no crítico, continuar
+          }
+        }
       }
 
       // Actualizar datos del perfil
@@ -285,7 +326,11 @@ export default function AdminPerfil() {
         description: 'Los cambios se han guardado exitosamente',
       });
 
-      setImageFile(null);
+      // Limpiar estados de imagen solo si no hay una imagen nueva para subir
+      // Esto permite que la imagen recortada se mantenga en el preview
+      if (!imageFile) {
+        setImageFile(null);
+      }
       setDeleteImage(false);
     } catch (error: any) {
       toast({
