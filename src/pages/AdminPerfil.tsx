@@ -1,95 +1,69 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Upload, User, X } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ImageCropper } from "@/components/ImageCropper";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, Save, Upload, User, X } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ImageCropper } from '@/components/ImageCropper';
 
-export default function Perfil() {
-  const { user, userRoleData, loading, refreshUserRole } = useAuth();
+export default function AdminPerfil() {
+  const { user, userRole, userRoleData, refreshUserRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
-    hospital: "",
-    especialidad: "",
-    telefono: "",
+  const [perfilData, setPerfilData] = useState({
+    nombre: '',
+    email: '',
+    hospital: '',
+    especialidad: '',
+    telefono: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [deleteImage, setDeleteImage] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCropper, setShowCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string>("");
-  
-  const [passwordData, setPasswordData] = useState({
-    newPassword: "",
-    confirmPassword: "",
-  });
-  
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login");
+    if (userRole !== 'admin') {
+      toast({
+        title: 'Acceso denegado',
+        description: 'No tiene permisos para acceder a esta sección',
+        variant: 'destructive',
+      });
+      navigate('/login');
+      return;
     }
-  }, [user, loading, navigate]);
+  }, [userRole, navigate, toast]);
 
   useEffect(() => {
     if (userRoleData) {
-      setFormData({
-        nombre: userRoleData.nombre || "",
-        email: userRoleData.email || "",
-        hospital: userRoleData.hospital || "",
-        especialidad: userRoleData.especialidad || "",
-        telefono: userRoleData.telefono || "",
+      setPerfilData({
+        nombre: userRoleData.nombre || '',
+        email: userRoleData.email || '',
+        hospital: userRoleData.hospital || '',
+        especialidad: userRoleData.especialidad || '',
+        telefono: userRoleData.telefono || '',
       });
       if (userRoleData.imagen) {
         setImagePreview(userRoleData.imagen);
       }
     }
   }, [userRoleData]);
-
-  const validateForm = () => {
-    const validationErrors: Record<string, string> = {};
-
-    const nombre = formData.nombre.trim();
-    if (!nombre) {
-      validationErrors.nombre = "El nombre es obligatorio.";
-    } else if (nombre.length < 3) {
-      validationErrors.nombre = "Ingresa al menos 3 caracteres para el nombre.";
-    }
-
-    const email = formData.email.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      validationErrors.email = "Ingresa un correo electrónico válido.";
-    }
-
-    const telefono = formData.telefono.trim();
-    if (telefono) {
-      const telefonoRegex = /^\+?\d{8,15}$/;
-      if (!telefonoRegex.test(telefono.replace(/\s|-/g, ""))) {
-        validationErrors.telefono = "Ingresa solo números (opcional +) entre 8 y 15 dígitos.";
-      }
-    }
-
-    return validationErrors;
-  };
-
-  const handleFormChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -200,35 +174,64 @@ export default function Perfil() {
       });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user || !userRoleData) return;
+  const validateForm = () => {
+    const validationErrors: Record<string, string> = {};
 
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    // Validar nombre
+    const nombre = perfilData.nombre.trim();
+    if (!nombre) {
+      validationErrors.nombre = 'El nombre es obligatorio.';
+    } else if (nombre.length < 3) {
+      validationErrors.nombre = 'El nombre debe tener al menos 3 caracteres.';
+    }
+
+    // Validar email
+    const email = perfilData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      validationErrors.email = 'El email es obligatorio.';
+    } else if (!emailRegex.test(email)) {
+      validationErrors.email = 'Ingresa un correo electrónico válido.';
+    }
+
+    // Validar teléfono (solo si se ingresa)
+    const telefono = perfilData.telefono.trim();
+    if (telefono) {
+      // Formato chileno: +56912345678, 56912345678, 912345678, o 12345678
+      const telefonoRegex = /^(\+?56)?9?\d{8}$/;
+      if (!telefonoRegex.test(telefono.replace(/\s|-/g, ''))) {
+        validationErrors.telefono = 'Ingresa un teléfono válido de Chile (ej: +56912345678).';
+      }
+    }
+
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
+  };
+
+  const handleFormChange = (field: keyof typeof perfilData, value: string) => {
+    setPerfilData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handleSavePerfil = async () => {
+    if (!user) return;
+
+    // Validar formulario antes de guardar
+    if (!validateForm()) {
       toast({
-        title: "Revisa los datos ingresados",
-        description: "Corrige los campos marcados para continuar.",
-        variant: "destructive",
+        title: 'Error de validación',
+        description: 'Por favor corrige los errores en el formulario',
+        variant: 'destructive',
       });
       return;
     }
-    
-    setSaving(true);
-    
-    try {
-      const nombreValue = formData.nombre.trim();
-      const emailValue = formData.email.trim();
-      const hospitalValue = formData.hospital.trim();
-      const especialidadValue = formData.especialidad.trim();
-      const telefonoValue = formData.telefono.trim().replace(/\s|-/g, "");
 
+    setSaving(true);
+    try {
       let imageUrl = userRoleData?.imagen || null;
 
       // Eliminar imagen si el usuario lo solicitó
-      if (deleteImage && user && userRoleData?.imagen) {
+      if (deleteImage && userRoleData?.imagen) {
         const filePath = `${user.id}/profile.${userRoleData.imagen.split('.').pop()}`;
         await supabase.storage
           .from('profile-images')
@@ -272,16 +275,16 @@ export default function Perfil() {
 
       // Actualizar datos del perfil
       const { error } = await supabase
-        .from("user_roles")
+        .from('user_roles')
         .update({
-          nombre: nombreValue,
-          email: emailValue,
-          hospital: hospitalValue || null,
-          especialidad: especialidadValue || null,
-          telefono: telefonoValue || null,
+          nombre: perfilData.nombre,
+          email: perfilData.email,
+          hospital: perfilData.hospital || null,
+          especialidad: perfilData.especialidad || null,
+          telefono: perfilData.telefono || null,
           imagen: imageUrl,
         })
-        .eq("user_id", user.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -289,19 +292,21 @@ export default function Perfil() {
       if (passwordData.newPassword) {
         if (passwordData.newPassword !== passwordData.confirmPassword) {
           toast({
-            title: "Error",
-            description: "Las contraseñas no coinciden",
-            variant: "destructive",
+            title: 'Error',
+            description: 'Las contraseñas no coinciden',
+            variant: 'destructive',
           });
+          setSaving(false);
           return;
         }
 
         if (passwordData.newPassword.length < 6) {
           toast({
-            title: "Error",
-            description: "La contraseña debe tener al menos 6 caracteres",
-            variant: "destructive",
+            title: 'Error',
+            description: 'La contraseña debe tener al menos 6 caracteres',
+            variant: 'destructive',
           });
+          setSaving(false);
           return;
         }
 
@@ -311,42 +316,32 @@ export default function Perfil() {
 
         if (passwordError) throw passwordError;
 
-        setPasswordData({ newPassword: "", confirmPassword: "" });
+        setPasswordData({ newPassword: '', confirmPassword: '' });
       }
 
-      setFormData({
-        nombre: nombreValue,
-        email: emailValue,
-        hospital: hospitalValue,
-        especialidad: especialidadValue,
-        telefono: telefonoValue,
-      });
-
       await refreshUserRole();
-      setErrors({});
 
       toast({
-        title: "Perfil actualizado",
-        description: "Los cambios se han guardado exitosamente",
+        title: 'Perfil actualizado',
+        description: 'Los cambios se han guardado exitosamente',
       });
+
+      // Limpiar estados de imagen solo si no hay una imagen nueva para subir
+      // Esto permite que la imagen recortada se mantenga en el preview
+      if (!imageFile) {
+        setImageFile(null);
+      }
+      setDeleteImage(false);
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Cargando...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -357,14 +352,14 @@ export default function Perfil() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate('/admin')}
                 className="text-white hover:bg-white/20"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">Mi Perfil</h1>
-                <p className="text-sm text-white/80">Edita tu información personal</p>
+                <p className="text-sm text-white/80">Administrador</p>
               </div>
             </div>
           </div>
@@ -373,7 +368,7 @@ export default function Perfil() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto space-y-6">
-          {/* Información Personal con Imagen */}
+          {/* Información Personal */}
           <Card>
             <CardHeader>
               <CardTitle>Información Personal</CardTitle>
@@ -390,9 +385,9 @@ export default function Perfil() {
                       className="h-32 w-32 cursor-pointer hover:opacity-80 transition-opacity"
                       onDoubleClick={handleAvatarDoubleClick}
                     >
-                      <AvatarImage src={imagePreview} alt={formData.nombre} />
+                      <AvatarImage src={imagePreview} alt={perfilData.nombre} />
                       <AvatarFallback className="text-2xl">
-                        {formData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <User />}
+                        {perfilData.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <User />}
                       </AvatarFallback>
                     </Avatar>
                     {imagePreview && (
@@ -413,7 +408,7 @@ export default function Perfil() {
                     </p>
                   )}
                   <div className="w-full">
-                    <Label htmlFor="image" className="cursor-pointer">
+                    <Label htmlFor="admin-image" className="cursor-pointer">
                       <div 
                         className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors ${
                           isDragging ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
@@ -426,7 +421,7 @@ export default function Perfil() {
                         <span className="text-sm text-center">Arrastra una imagen o haz clic para seleccionar</span>
                       </div>
                       <Input
-                        id="image"
+                        id="admin-image"
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/jpg"
                         onChange={handleImageChange}
@@ -438,87 +433,85 @@ export default function Perfil() {
 
                 {/* Form Fields */}
                 <div className="lg:col-span-2 space-y-4">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nombre">Nombre Completo *</Label>
-                        <Input
-                          id="nombre"
-                          value={formData.nombre}
-                          onChange={(e) => handleFormChange("nombre", e.target.value)}
-                          placeholder="Ej: Juan Pérez González"
-                          className={errors.nombre ? "border-destructive" : ""}
-                        />
-                        {errors.nombre && (
-                          <p className="text-sm text-destructive">{errors.nombre}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleFormChange("email", e.target.value)}
-                          placeholder="Ej: juan.perez@hospital.cl"
-                          className={errors.email ? "border-destructive" : ""}
-                        />
-                        {errors.email && (
-                          <p className="text-sm text-destructive">{errors.email}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="hospital">Hospital</Label>
-                        <Input
-                          id="hospital"
-                          value={formData.hospital}
-                          onChange={(e) => handleFormChange("hospital", e.target.value)}
-                          placeholder="Ej: Hospital Clínico Universidad de Chile"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="especialidad">Especialidad</Label>
-                        <Input
-                          id="especialidad"
-                          value={formData.especialidad}
-                          onChange={(e) => handleFormChange("especialidad", e.target.value)}
-                          placeholder="Ej: Cardiología"
-                        />
-                      </div>
-                    </div>
-
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="telefono">Teléfono</Label>
+                      <Label htmlFor="perfil-nombre">Nombre Completo *</Label>
                       <Input
-                        id="telefono"
-                        value={formData.telefono}
-                        onChange={(e) => handleFormChange("telefono", e.target.value)}
-                        placeholder="Ej: +56912345678"
-                        className={errors.telefono ? "border-destructive" : ""}
+                        id="perfil-nombre"
+                        value={perfilData.nombre}
+                        onChange={(e) => handleFormChange('nombre', e.target.value)}
+                        placeholder="Ej: Juan Pérez González"
+                        className={errors.nombre ? 'border-destructive' : ''}
                       />
-                      {errors.telefono && (
-                        <p className="text-sm text-destructive">{errors.telefono}</p>
+                      {errors.nombre && (
+                        <p className="text-sm text-destructive">{errors.nombre}</p>
                       )}
-                      <p className="text-sm text-muted-foreground">
-                        Formato chileno: +56912345678, 912345678 o 12345678
-                      </p>
                     </div>
-
                     <div className="space-y-2">
-                      <Label>Rol</Label>
+                      <Label htmlFor="perfil-email">Email *</Label>
                       <Input
-                        value={userRoleData?.role === 'medico' ? 'Médico' : userRoleData?.role === 'medico_jefe' ? 'Médico Jefe' : userRoleData?.role || ""}
-                        disabled
-                        className="bg-muted"
+                        id="perfil-email"
+                        type="email"
+                        value={perfilData.email}
+                        onChange={(e) => handleFormChange('email', e.target.value)}
+                        placeholder="Ej: juan.perez@hospital.cl"
+                        className={errors.email ? 'border-destructive' : ''}
                       />
-                      <p className="text-sm text-muted-foreground">
-                        El rol no puede ser modificado
-                      </p>
+                      {errors.email && (
+                        <p className="text-sm text-destructive">{errors.email}</p>
+                      )}
                     </div>
-                  </form>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="perfil-hospital">Hospital</Label>
+                      <Input
+                        id="perfil-hospital"
+                        value={perfilData.hospital}
+                        onChange={(e) => handleFormChange('hospital', e.target.value)}
+                        placeholder="Ej: Hospital Clínico Universidad de Chile"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="perfil-especialidad">Especialidad</Label>
+                      <Input
+                        id="perfil-especialidad"
+                        value={perfilData.especialidad}
+                        onChange={(e) => handleFormChange('especialidad', e.target.value)}
+                        placeholder="Ej: Cardiología"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="perfil-telefono">Teléfono</Label>
+                    <Input
+                      id="perfil-telefono"
+                      value={perfilData.telefono}
+                      onChange={(e) => handleFormChange('telefono', e.target.value)}
+                      placeholder="Ej: +56912345678"
+                      className={errors.telefono ? 'border-destructive' : ''}
+                    />
+                    {errors.telefono && (
+                      <p className="text-sm text-destructive">{errors.telefono}</p>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      Formato chileno: +56912345678, 912345678 o 12345678
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Rol</Label>
+                    <Input
+                      value="Administrador"
+                      disabled
+                      className="bg-muted"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      El rol no puede ser modificado
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -533,7 +526,7 @@ export default function Perfil() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">Nueva contraseña</Label>
                   <Input
@@ -561,7 +554,7 @@ export default function Perfil() {
                     minLength={6}
                   />
                 </div>
-              </form>
+              </div>
             </CardContent>
           </Card>
 
@@ -569,13 +562,13 @@ export default function Perfil() {
           <div className="flex justify-end gap-4">
             <Button
               variant="outline"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/admin')}
               disabled={saving}
             >
               Cancelar
             </Button>
             <Button 
-              onClick={handleSubmit}
+              onClick={handleSavePerfil}
               disabled={saving}
             >
               {saving ? (
@@ -604,3 +597,4 @@ export default function Perfil() {
     </div>
   );
 }
+
