@@ -276,7 +276,6 @@ export default function NuevoCaso() {
                       name="nombre_paciente"
                       value={formData.nombre_paciente}
                       onChange={handleChange}
-                      required
                       disabled={loading}
                       className={errors.nombre_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
@@ -290,7 +289,6 @@ export default function NuevoCaso() {
                       type="number"
                       value={formData.edad}
                       onChange={handleChange}
-                      required
                       disabled={loading}
                       className={errors.edad ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
@@ -322,10 +320,9 @@ export default function NuevoCaso() {
                     <Input
                       id="email_paciente"
                       name="email_paciente"
-                      type="email"
+                      type="text"
                       value={formData.email_paciente}
                       onChange={handleChange}
-                      required
                       disabled={loading}
                       className={errors.email_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
@@ -344,7 +341,6 @@ export default function NuevoCaso() {
                     name="diagnostico_principal"
                     value={formData.diagnostico_principal}
                     onChange={handleChange}
-                    required
                     disabled={loading}
                     className={errors.diagnostico_principal ? 'border-destructive focus-visible:ring-destructive' : undefined}
                   />
@@ -357,7 +353,6 @@ export default function NuevoCaso() {
                     name="sintomas"
                     value={formData.sintomas}
                     onChange={handleChange}
-                    required
                     disabled={loading}
                     rows={3}
                     className={errors.sintomas ? 'border-destructive focus-visible:ring-destructive' : undefined}
@@ -371,7 +366,6 @@ export default function NuevoCaso() {
                     name="historia_clinica"
                     value={formData.historia_clinica}
                     onChange={handleChange}
-                    required
                     disabled={loading}
                     rows={3}
                     className={errors.historia_clinica ? 'border-destructive focus-visible:ring-destructive' : undefined}
