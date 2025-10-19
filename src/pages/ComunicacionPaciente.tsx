@@ -65,6 +65,23 @@ export default function ComunicacionPaciente() {
     setSending(true);
 
     try {
+      // Obtener el caso para verificar su estado
+      const { data: casoActual } = await supabase
+        .from('casos')
+        .select('estado, medico_jefe_id')
+        .eq('id', id)
+        .single();
+
+      // Si el caso está derivado y el médico jefe no está asignado, asignarlo
+      if (casoActual?.estado === 'derivado' && !casoActual.medico_jefe_id) {
+        const { error: assignError } = await supabase
+          .from('casos')
+          .update({ medico_jefe_id: user?.id })
+          .eq('id', id);
+
+        if (assignError) throw assignError;
+      }
+
       // Verificar si ya existe una resolución previa
       const { data: resolucionExistente } = await supabase
         .from('resolucion_caso')

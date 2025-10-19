@@ -314,6 +314,16 @@ export default function VerCaso() {
     try {
       // Si es médico jefe, rechazar definitivamente
       if (userRole === 'medico_jefe') {
+        // Primero asignar el médico jefe al caso si está derivado
+        if (caso?.estado === 'derivado') {
+          const { error: assignError } = await supabase
+            .from('casos')
+            .update({ medico_jefe_id: user?.id })
+            .eq('id', id);
+
+          if (assignError) throw assignError;
+        }
+
         const { error: resolucionError } = await supabase
           .from('resolucion_caso')
           .insert([
