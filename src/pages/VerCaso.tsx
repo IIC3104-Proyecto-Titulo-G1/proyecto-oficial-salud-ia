@@ -312,32 +312,59 @@ export default function VerCaso() {
     setProcessingDecision(true);
 
     try {
-      // Crear resolución con rechazo
-      const { error: resolucionError } = await supabase
-        .from('resolucion_caso')
-        .insert([
-          {
-            caso_id: id,
-            decision_medico: 'rechazado',
-            comentario_medico: justificacion,
-            fecha_decision_medico: new Date().toISOString(),
-          },
-        ]);
+      // Si es médico jefe, rechazar definitivamente
+      if (userRole === 'medico_jefe') {
+        const { error: resolucionError } = await supabase
+          .from('resolucion_caso')
+          .insert([
+            {
+              caso_id: id,
+              decision_final: 'rechazado',
+              comentario_final: justificacion,
+              fecha_decision_medico_jefe: new Date().toISOString(),
+            },
+          ]);
 
-      if (resolucionError) throw resolucionError;
+        if (resolucionError) throw resolucionError;
 
-      // Actualizar estado del caso a derivado
-      const { error: updateError } = await supabase
-        .from('casos')
-        .update({ estado: 'derivado' })
-        .eq('id', id);
+        const { error: updateError } = await supabase
+          .from('casos')
+          .update({ estado: 'rechazado' })
+          .eq('id', id);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
 
-      toast({
-        title: 'Caso derivado',
-        description: 'El caso ha sido derivado al pool de médicos jefe',
-      });
+        toast({
+          title: 'Caso rechazado',
+          description: 'El caso ha sido rechazado definitivamente',
+        });
+      } else {
+        // Si es médico normal, derivar a médico jefe
+        const { error: resolucionError } = await supabase
+          .from('resolucion_caso')
+          .insert([
+            {
+              caso_id: id,
+              decision_medico: 'rechazado',
+              comentario_medico: justificacion,
+              fecha_decision_medico: new Date().toISOString(),
+            },
+          ]);
+
+        if (resolucionError) throw resolucionError;
+
+        const { error: updateError } = await supabase
+          .from('casos')
+          .update({ estado: 'derivado' })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: 'Caso derivado',
+          description: 'El caso ha sido derivado al pool de médicos jefe',
+        });
+      }
 
       navigate('/dashboard');
     } catch (error: any) {
@@ -507,35 +534,123 @@ export default function VerCaso() {
         </Card>
 
         {/* Acciones */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Decisión del Médico</CardTitle>
-            <CardDescription>
-              Revise la sugerencia de IA y tome una decisión sobre el caso
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                size="lg"
-                onClick={handleAceptarSugerencia}
-                className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
-              >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Aceptar Sugerencia
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={handleRechazarSugerencia}
-                className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
-              >
-                <XCircle className="w-5 h-5 mr-2" />
-                Rechazar Sugerencia
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {caso.estado === 'pendiente' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Decisión del Médico</CardTitle>
+              <CardDescription>
+                Revise la sugerencia de IA y tome una decisión sobre el caso
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  size="lg"
+                  onClick={handleAceptarSugerencia}
+                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Aceptar Sugerencia
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleRechazarSugerencia}
+                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                >
+                  <XCircle className="w-5 h-5 mr-2" />
+                  Rechazar Sugerencia
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {caso.estado === 'aceptado' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Modificar Decisión</CardTitle>
+              <CardDescription>
+                Este caso ya fue aceptado anteriormente. Puede modificar la decisión si es necesario.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  size="lg"
+                  onClick={handleAceptarSugerencia}
+                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Volver a Aceptar
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleRechazarSugerencia}
+                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                >
+                  <XCircle className="w-5 h-5 mr-2" />
+                  Cambiar a Rechazar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {caso.estado === 'derivado' && userRole === 'medico_jefe' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Decisión del Médico Jefe</CardTitle>
+              <CardDescription>
+                Este caso fue derivado por un médico tratante. Tome la decisión final.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  size="lg"
+                  onClick={handleAceptarSugerencia}
+                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Aceptar Sugerencia
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleRechazarSugerencia}
+                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                >
+                  <XCircle className="w-5 h-5 mr-2" />
+                  Rechazar Definitivamente
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+              <CardDescription className="text-amber-700">
+                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
+        {caso.estado === 'rechazado' && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader>
+              <CardTitle className="text-destructive">Caso Rechazado</CardTitle>
+              <CardDescription>
+                Este caso fue rechazado definitivamente por un médico jefe.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
       </main>
 
       {/* Modal de edición */}
@@ -736,8 +851,10 @@ export default function VerCaso() {
           <DialogHeader>
             <DialogTitle>Rechazar Sugerencia de IA</DialogTitle>
             <DialogDescription>
-              Al rechazar la sugerencia, el caso será derivado automáticamente al pool de médicos jefe.
-              Por favor, ingrese una justificación.
+              {userRole === 'medico_jefe' 
+                ? 'Al rechazar la sugerencia como médico jefe, el caso será marcado como rechazado definitivamente.'
+                : 'Al rechazar la sugerencia, el caso será derivado automáticamente al pool de médicos jefe.'}
+              {' '}Por favor, ingrese una justificación.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

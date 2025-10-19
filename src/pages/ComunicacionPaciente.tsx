@@ -65,29 +65,50 @@ export default function ComunicacionPaciente() {
     setSending(true);
 
     try {
-      // Actualizar caso como aceptado
+      // Verificar si ya existe una resolución previa
+      const { data: resolucionExistente } = await supabase
+        .from('resolucion_caso')
+        .select('*')
+        .eq('caso_id', id)
+        .single();
+
+      if (resolucionExistente) {
+        // Si ya existe, actualizar la resolución
+        const { error: updateResolucionError } = await supabase
+          .from('resolucion_caso')
+          .update({
+            decision_final: 'aceptado',
+            comentario_final: comentarioAdicional,
+            fecha_decision_medico_jefe: new Date().toISOString(),
+          })
+          .eq('caso_id', id);
+
+        if (updateResolucionError) throw updateResolucionError;
+      } else {
+        // Si no existe, crear nueva resolución
+        const { error: resolucionError } = await supabase
+          .from('resolucion_caso')
+          .insert([
+            {
+              caso_id: id,
+              decision_medico: 'aceptado',
+              comentario_medico: comentarioAdicional,
+              decision_final: 'aceptado',
+              comentario_final: comentarioAdicional,
+              fecha_decision_medico: new Date().toISOString(),
+            },
+          ]);
+
+        if (resolucionError) throw resolucionError;
+      }
+
+      // Actualizar estado del caso a aceptado
       const { error: updateError } = await supabase
         .from('casos')
         .update({ estado: 'aceptado' })
         .eq('id', id);
 
       if (updateError) throw updateError;
-
-      // Crear resolución final
-      const { error: resolucionError } = await supabase
-        .from('resolucion_caso')
-        .insert([
-          {
-            caso_id: id,
-            decision_medico: 'aceptado',
-            comentario_medico: comentarioAdicional,
-            decision_final: 'aceptado',
-            comentario_final: comentarioAdicional,
-            fecha_decision_medico: new Date().toISOString(),
-          },
-        ]);
-
-      if (resolucionError) throw resolucionError;
 
       // Registrar comunicación
       const { error: comunicacionError } = await supabase
