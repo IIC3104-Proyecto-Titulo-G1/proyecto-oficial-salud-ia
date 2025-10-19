@@ -10,6 +10,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft } from 'lucide-react';
+import { z } from 'zod';
+
+// Schema de validación con zod
+const formSchema = z.object({
+  nombre_paciente: z.string()
+    .trim()
+    .min(4, 'El nombre debe tener al menos 4 caracteres')
+    .max(50, 'El nombre no puede exceder 50 caracteres')
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras y espacios'),
+  edad: z.number()
+    .int('La edad debe ser un número entero')
+    .min(0, 'La edad no puede ser negativa')
+    .max(120, 'La edad no puede ser mayor a 120 años'),
+  sexo: z.string().min(1, 'Selecciona el sexo del paciente'),
+  email_paciente: z.string()
+    .trim()
+    .email('Ingresa un correo electrónico válido')
+    .max(255, 'El correo no puede exceder 255 caracteres'),
+  diagnostico_principal: z.string()
+    .trim()
+    .min(10, 'El diagnóstico debe tener al menos 10 caracteres'),
+  sintomas: z.string()
+    .trim()
+    .min(10, 'Los síntomas deben tener al menos 10 caracteres'),
+  historia_clinica: z.string()
+    .trim()
+    .min(5, 'La historia clínica debe tener al menos 5 caracteres'),
+  presion_arterial: z.string().optional(),
+  frecuencia_cardiaca: z.string().optional(),
+  temperatura: z.string().optional(),
+  saturacion_oxigeno: z.string().optional(),
+  frecuencia_respiratoria: z.string().optional(),
+});
 
 export default function NuevoCaso() {
   const { user } = useAuth();
@@ -36,21 +69,28 @@ export default function NuevoCaso() {
   const validateForm = () => {
     const validationErrors: Record<string, string> = {};
 
-    const edad = Number(formData.edad);
-    if (!Number.isInteger(edad) || edad <= 0 || edad > 120) {
-      validationErrors.edad = 'Ingresa una edad válida entre 1 y 120 años.';
+    // Validar campos principales con zod
+    try {
+      formSchema.parse({
+        nombre_paciente: formData.nombre_paciente,
+        edad: Number(formData.edad),
+        sexo: formData.sexo,
+        email_paciente: formData.email_paciente,
+        diagnostico_principal: formData.diagnostico_principal,
+        sintomas: formData.sintomas,
+        historia_clinica: formData.historia_clinica,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            validationErrors[err.path[0] as string] = err.message;
+          }
+        });
+      }
     }
 
-    if (!formData.sexo) {
-      validationErrors.sexo = 'Selecciona el sexo del paciente.';
-    }
-
-    const email = formData.email_paciente.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      validationErrors.email_paciente = 'Ingresa un correo electrónico válido.';
-    }
-
+    // Validaciones adicionales para signos vitales (opcional)
     const presion = formData.presion_arterial.trim();
     if (presion) {
       const match = presion.match(/^(\d{2,3})\/(\d{2,3})$/);
@@ -238,7 +278,9 @@ export default function NuevoCaso() {
                       onChange={handleChange}
                       required
                       disabled={loading}
+                      className={errors.nombre_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
+                    {errors.nombre_paciente && <p className="text-sm text-destructive">{errors.nombre_paciente}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edad">Edad *</Label>
@@ -304,29 +346,37 @@ export default function NuevoCaso() {
                     onChange={handleChange}
                     required
                     disabled={loading}
+                    className={errors.diagnostico_principal ? 'border-destructive focus-visible:ring-destructive' : undefined}
                   />
+                  {errors.diagnostico_principal && <p className="text-sm text-destructive">{errors.diagnostico_principal}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sintomas">Síntomas</Label>
+                  <Label htmlFor="sintomas">Síntomas *</Label>
                   <Textarea
                     id="sintomas"
                     name="sintomas"
                     value={formData.sintomas}
                     onChange={handleChange}
+                    required
                     disabled={loading}
                     rows={3}
+                    className={errors.sintomas ? 'border-destructive focus-visible:ring-destructive' : undefined}
                   />
+                  {errors.sintomas && <p className="text-sm text-destructive">{errors.sintomas}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="historia_clinica">Historia Clínica</Label>
+                  <Label htmlFor="historia_clinica">Historia Clínica *</Label>
                   <Textarea
                     id="historia_clinica"
                     name="historia_clinica"
                     value={formData.historia_clinica}
                     onChange={handleChange}
+                    required
                     disabled={loading}
                     rows={3}
+                    className={errors.historia_clinica ? 'border-destructive focus-visible:ring-destructive' : undefined}
                   />
+                  {errors.historia_clinica && <p className="text-sm text-destructive">{errors.historia_clinica}</p>}
                 </div>
               </div>
 
