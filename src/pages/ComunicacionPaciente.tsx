@@ -87,16 +87,18 @@ export default function ComunicacionPaciente() {
         .from('resolucion_caso')
         .select('*')
         .eq('caso_id', id)
-        .single();
+        .maybeSingle();
 
       if (resolucionExistente) {
         // Si ya existe, actualizar la resolución
         const { error: updateResolucionError } = await supabase
           .from('resolucion_caso')
           .update({
+            decision_medico: 'aceptado',
+            comentario_medico: comentarioAdicional,
             decision_final: 'aceptado',
             comentario_final: comentarioAdicional,
-            fecha_decision_medico_jefe: new Date().toISOString(),
+            fecha_decision_medico: new Date().toISOString(),
           })
           .eq('caso_id', id);
 

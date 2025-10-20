@@ -312,6 +312,13 @@ export default function VerCaso() {
     setProcessingDecision(true);
 
     try {
+      // Verificar si ya existe una resolución
+      const { data: resolucionExistente } = await supabase
+        .from('resolucion_caso')
+        .select('*')
+        .eq('caso_id', id)
+        .maybeSingle();
+
       // Si es médico jefe, rechazar definitivamente
       if (userRole === 'medico_jefe') {
         // Primero asignar el médico jefe al caso si está derivado
@@ -324,18 +331,33 @@ export default function VerCaso() {
           if (assignError) throw assignError;
         }
 
-        const { error: resolucionError } = await supabase
-          .from('resolucion_caso')
-          .insert([
-            {
-              caso_id: id,
+        if (resolucionExistente) {
+          // Actualizar resolución existente
+          const { error: resolucionError } = await supabase
+            .from('resolucion_caso')
+            .update({
               decision_final: 'rechazado',
               comentario_final: justificacion,
               fecha_decision_medico_jefe: new Date().toISOString(),
-            },
-          ]);
+            })
+            .eq('caso_id', id);
 
-        if (resolucionError) throw resolucionError;
+          if (resolucionError) throw resolucionError;
+        } else {
+          // Crear nueva resolución
+          const { error: resolucionError } = await supabase
+            .from('resolucion_caso')
+            .insert([
+              {
+                caso_id: id,
+                decision_final: 'rechazado',
+                comentario_final: justificacion,
+                fecha_decision_medico_jefe: new Date().toISOString(),
+              },
+            ]);
+
+          if (resolucionError) throw resolucionError;
+        }
 
         const { error: updateError } = await supabase
           .from('casos')
@@ -350,18 +372,35 @@ export default function VerCaso() {
         });
       } else {
         // Si es médico normal, derivar a médico jefe
-        const { error: resolucionError } = await supabase
-          .from('resolucion_caso')
-          .insert([
-            {
-              caso_id: id,
+        if (resolucionExistente) {
+          // Actualizar resolución existente
+          const { error: resolucionError } = await supabase
+            .from('resolucion_caso')
+            .update({
               decision_medico: 'rechazado',
               comentario_medico: justificacion,
+              decision_final: null,
+              comentario_final: null,
               fecha_decision_medico: new Date().toISOString(),
-            },
-          ]);
+            })
+            .eq('caso_id', id);
 
-        if (resolucionError) throw resolucionError;
+          if (resolucionError) throw resolucionError;
+        } else {
+          // Crear nueva resolución
+          const { error: resolucionError } = await supabase
+            .from('resolucion_caso')
+            .insert([
+              {
+                caso_id: id,
+                decision_medico: 'rechazado',
+                comentario_medico: justificacion,
+                fecha_decision_medico: new Date().toISOString(),
+              },
+            ]);
+
+          if (resolucionError) throw resolucionError;
+        }
 
         const { error: updateError } = await supabase
           .from('casos')
