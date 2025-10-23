@@ -27,7 +27,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [currentPage, setCurrentPage] = useState(1);
-  const [leyMetricas, setLeyMetricas] = useState<{ ley_aplicada: number; ley_no_aplicada: number }>({ ley_aplicada: 0, ley_no_aplicada: 0 });
+  
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
@@ -49,21 +49,6 @@ export default function Dashboard() {
       });
     } else {
       setCasos(data || []);
-    }
-
-    // Cargar métricas de ley
-    const { data: metricasData, error: metricasError } = await supabase
-      .from('v_ley_metricas_doctor' as any)
-      .select('*')
-      .maybeSingle();
-
-    if (metricasError) {
-      console.error('Error cargando métricas de ley:', metricasError);
-    } else if (metricasData) {
-      setLeyMetricas({
-        ley_aplicada: (metricasData as any).ley_aplicada || 0,
-        ley_no_aplicada: (metricasData as any).ley_no_aplicada || 0,
-      });
     }
 
     setLoading(false);
@@ -369,13 +354,11 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Métricas de Ley de Urgencia */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
           {/* Ley Aplicada */}
           <Card 
-            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group"
+            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('aceptado')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
             <CardContent className="p-6 relative">
@@ -392,10 +375,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
                 <p className="text-4xl font-bold text-foreground">
-                  {leyMetricas.ley_aplicada}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Casos con decisión final aceptada
+                  {casosPorEstado.aceptado}
                 </p>
               </div>
             </CardContent>
@@ -403,7 +383,8 @@ export default function Dashboard() {
 
           {/* Ley No Aplicada */}
           <Card 
-            className="relative overflow-hidden border-destructive/20 bg-gradient-to-br from-card to-destructive/5 hover:shadow-xl transition-all duration-300 group"
+            className="relative overflow-hidden border-destructive/20 bg-gradient-to-br from-card to-destructive/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('rechazado')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full blur-3xl group-hover:bg-destructive/20 transition-all"></div>
             <CardContent className="p-6 relative">
@@ -420,10 +401,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Ley No Aplicada</p>
                 <p className="text-4xl font-bold text-foreground">
-                  {leyMetricas.ley_no_aplicada}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Casos con decisión final rechazada
+                  {casosPorEstado.rechazado}
                 </p>
               </div>
             </CardContent>
