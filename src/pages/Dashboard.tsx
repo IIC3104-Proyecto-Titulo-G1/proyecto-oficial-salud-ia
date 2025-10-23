@@ -165,7 +165,7 @@ export default function Dashboard() {
       case 'aceptado':
         return 'Ley de Urgencia Aceptada';
       case 'rechazado':
-        return 'Rechazado';
+        return 'Ley de Urgencia No Aceptada';
       case 'pendiente':
         return 'Pendiente';
       case 'derivado':
@@ -276,34 +276,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Aceptados */}
-          <Card 
-            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-            onClick={() => handleCardClick('aceptado')}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
-                  <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
-                  Aprobados
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Casos Aceptados</p>
-                <p className="text-4xl font-bold text-foreground">
-                  {casosPorEstado.aceptado}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Rechazados: {casosPorEstado.rechazado}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Pendientes */}
           <Card 
