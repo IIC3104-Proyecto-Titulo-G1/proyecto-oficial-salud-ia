@@ -152,26 +152,10 @@ export default function Dashboard() {
       case 'rechazado':
         return 'destructive';
       case 'pendiente':
-        return 'outline';
       case 'derivado':
         return 'outline';
       default:
         return 'secondary';
-    }
-  };
-
-  const getEstadoBadgeClassName = (estado: string) => {
-    switch (estado) {
-      case 'pendiente':
-        return 'bg-warning/10 text-warning border-warning/30';
-      case 'aceptado':
-        return 'bg-success/10 text-success border-success/30';
-      case 'rechazado':
-        return '';
-      case 'derivado':
-        return 'bg-info/10 text-info border-info/30';
-      default:
-        return '';
     }
   };
 
@@ -554,7 +538,6 @@ export default function Dashboard() {
                     </div>
                     <Badge 
                       variant={getEstadoBadgeVariant(caso.estado)}
-                      className={`flex-shrink-0 px-4 py-2 text-xs font-semibold ${getEstadoBadgeClassName(caso.estado)}`}
                     >
                       {getEstadoLabel(caso.estado)}
                     </Badge>
