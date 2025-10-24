@@ -151,11 +151,19 @@ export default function Dashboard() {
         return 'default';
       case 'rechazado':
         return 'destructive';
-      case 'pendiente':
       case 'derivado':
         return 'outline';
       default:
         return 'secondary';
+    }
+  };
+
+  const getEstadoBadgeClassName = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return 'bg-muted/50 text-muted-foreground border-border/50';
+      default:
+        return '';
     }
   };
 
@@ -538,6 +546,7 @@ export default function Dashboard() {
                     </div>
                     <Badge 
                       variant={getEstadoBadgeVariant(caso.estado)}
+                      className={getEstadoBadgeClassName(caso.estado)}
                     >
                       {getEstadoLabel(caso.estado)}
                     </Badge>
