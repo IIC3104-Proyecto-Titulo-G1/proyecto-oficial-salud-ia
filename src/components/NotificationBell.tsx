@@ -112,7 +112,8 @@ export function NotificationBell() {
   };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // Agregar 'Z' para forzar que sea interpretado como UTC
+    const date = new Date(dateString + 'Z');
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
@@ -126,7 +127,7 @@ export function NotificationBell() {
     } else if (diffDays < 7) {
       return `Hace ${diffDays}d`;
     } else {
-      return date.toLocaleDateString();
+      return date.toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
     }
   };
 
