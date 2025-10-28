@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, LogOut, Users, User as UserIcon, FileText, Search } from 'lucide-react';
+import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -33,15 +34,27 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [filtroMedico, setFiltroMedico] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
+  const [openDateFilter, setOpenDateFilter] = useState(false);
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos';
+  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '');
+
+  // Establecer fecha de término por defecto a hoy
+  useEffect(() => {
+    if (userRole === 'medico_jefe' && !fechaFin) {
+      const hoy = new Date().toISOString().split('T')[0];
+      setFechaFin(hoy);
+    }
+  }, [userRole]);
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
@@ -145,7 +158,7 @@ export default function Dashboard() {
   // Resetear a la primera página cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, estadoFiltro]);
+  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
 
   const filteredCasos = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -154,6 +167,27 @@ export default function Dashboard() {
       const matchesEstado = estadoFiltro === 'todos' || caso.estado === estadoFiltro;
 
       if (!matchesEstado) {
+        return false;
+      }
+
+      // Filtro por fecha
+      // Agregar 'Z' para forzar que sea interpretado como UTC
+      const casoFecha = new Date(caso.fecha_creacion + 'Z');
+      if (fechaInicio) {
+        const fechaInicioDate = new Date(fechaInicio + 'T00:00:00Z');
+        if (casoFecha < fechaInicioDate) {
+          return false;
+        }
+      }
+      if (fechaFin) {
+        const fechaFinDate = new Date(fechaFin + 'T23:59:59.999Z');
+        if (casoFecha > fechaFinDate) {
+          return false;
+        }
+      }
+
+      // Filtro por médico
+      if (filtroMedico !== 'todos' && caso.medico_tratante_id !== filtroMedico) {
         return false;
       }
 
@@ -167,7 +201,7 @@ export default function Dashboard() {
 
       return hayCoincidencia;
     });
-  }, [casos, estadoFiltro, searchTerm]);
+  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin, filtroMedico]);
 
   // Calcular casos paginados
   const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
@@ -269,12 +303,14 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <NotificationBell />
-              <Avatar className="h-10 w-10 border-2 border-crm/20">
-                <AvatarImage src={userRoleData?.imagen || ''} alt={userRoleData?.nombre} />
-                <AvatarFallback className="bg-crm/10 text-crm">
-                  {userRoleData?.nombre?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon className="h-5 w-5" />}
-                </AvatarFallback>
-              </Avatar>
+              <button onClick={() => navigate('/perfil')} className="cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar className="h-10 w-10 border-2 border-crm/20">
+                  <AvatarImage src={userRoleData?.imagen || ''} alt={userRoleData?.nombre} />
+                  <AvatarFallback className="bg-crm/10 text-crm">
+                    {userRoleData?.nombre?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon className="h-5 w-5" />}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
               {userRole === 'admin' && (
                 <Button
                   variant="outline"
@@ -312,7 +348,7 @@ export default function Dashboard() {
       {/* Main Content con diseño moderno */}
       <main className="container mx-auto px-6 py-10 max-w-7xl">
         {/* Stats Cards Grid mejorado */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
           {/* Total Casos */}
           <Card 
             className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
@@ -386,31 +422,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Ley Aplicada */}
-          <Card 
-            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-            onClick={() => handleCardClick('aceptado')}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
-                  <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
-                  Aplicada
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
-                <p className="text-4xl font-bold text-foreground">
-                  {casosPorEstado.aceptado}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Ley No Aplicada */}
           <Card 
@@ -433,6 +445,32 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-muted-foreground mb-1">Ley No Aplicada</p>
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.rechazado}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ley Aplicada */}
+          <Card 
+            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('aceptado')}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
+                  <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
+                  Aplicada
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
+                <p className="text-4xl font-bold text-foreground">
+                  {casosPorEstado.aceptado}
                 </p>
               </div>
             </CardContent>
@@ -461,7 +499,7 @@ export default function Dashboard() {
 
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <div className="relative sm:max-w-sm w-full">
+            <div className="relative sm:max-w-[300px] w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-crm" />
               <Input
                 value={searchTerm}
@@ -471,17 +509,84 @@ export default function Dashboard() {
               />
             </div>
             <Select value={estadoFiltro} onValueChange={(value) => setEstadoFiltro(value as EstadoFiltro)}>
-              <SelectTrigger className="sm:w-56">
+              <SelectTrigger className="sm:w-[200px]">
                 <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="aceptado">Aceptado</SelectItem>
-                <SelectItem value="rechazado">Rechazado</SelectItem>
+                <SelectItem value="aceptado">Aplica ley</SelectItem>
+                <SelectItem value="rechazado">No aplica ley</SelectItem>
                 <SelectItem value="derivado">Derivado</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Filtro por médico solo para médicos jefe */}
+            {userRole === 'medico_jefe' && Object.keys(medicosData).length > 0 && (
+              <Select value={filtroMedico || 'todos'} onValueChange={setFiltroMedico}>
+                <SelectTrigger className="sm:w-[200px]">
+                  <SelectValue placeholder="Filtrar por médico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los médicos</SelectItem>
+                  {Object.entries(medicosData).map(([medicoId, medicoInfo]) => (
+                    <SelectItem key={medicoId} value={medicoId}>
+                      {medicoInfo.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Filtros de fecha solo para médicos jefe */}
+            {userRole === 'medico_jefe' && (
+              <Popover open={openDateFilter} onOpenChange={setOpenDateFilter}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Filtrar por fecha
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto" align="start">
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-center block">Fecha inicio</label>
+                      <Input
+                        type="date"
+                        value={fechaInicio}
+                        onChange={(event) => setFechaInicio(event.target.value)}
+                        className="w-[200px] text-center"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-center block">Fecha término</label>
+                      <Input
+                        type="date"
+                        value={fechaFin}
+                        onChange={(event) => setFechaFin(event.target.value)}
+                        className="w-[200px] text-center"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFechaInicio('');
+                          setFechaFin('');
+                        }}
+                        disabled={!fechaInicio && !fechaFin}
+                      >
+                        Limpiar
+                      </Button>
+                      <Button size="sm" onClick={() => setOpenDateFilter(false)}>
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-sm text-crm">
@@ -498,6 +603,9 @@ export default function Dashboard() {
               onClick={() => {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
+                setFechaInicio('');
+                setFechaFin('');
+                setFiltroMedico('todos');
                 setCurrentPage(1);
               }}
               disabled={!filtrosActivos}
@@ -579,19 +687,21 @@ export default function Dashboard() {
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          {new Date(caso.fecha_creacion).toLocaleDateString('es-CL', {
+                          {new Date(caso.fecha_creacion + 'Z').toLocaleDateString('es-CL', {
                             day: '2-digit',
                             month: 'long',
-                            year: 'numeric'
+                            year: 'numeric',
+                            timeZone: 'America/Santiago'
                           })}
                         </div>
                         <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg ring-1 ring-border/50">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {new Date(caso.fecha_creacion).toLocaleTimeString('es-CL', {
+                          {new Date(caso.fecha_creacion + 'Z').toLocaleTimeString('es-CL', {
                             hour: '2-digit',
-                            minute: '2-digit'
+                            minute: '2-digit',
+                            timeZone: 'America/Santiago'
                           })}
                         </div>
                       </div>

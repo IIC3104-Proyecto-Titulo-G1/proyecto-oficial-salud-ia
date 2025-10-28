@@ -558,6 +558,92 @@ export default function VerCaso() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+        {/* Mensaje de Caso Derivado para médicos normales */}
+        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+              <CardDescription className="text-amber-700">
+                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
+              </CardDescription>
+            </CardHeader>
+            {resolucionInfo && (
+              <CardContent>
+                <div className="bg-white rounded-lg p-4 border border-amber-200">
+                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
+                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
+
+        {/* Ley Aplicada / No Aplicada - Para médicos normales en casos resueltos */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
+         userRole === 'medico' && 
+         caso.medico_jefe_id && 
+         caso.medico_tratante_id === user?.id && (
+          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
+            <CardHeader>
+              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+              </CardTitle>
+              <CardDescription>
+                {caso.estado === 'aceptado' 
+                  ? 'Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.'
+                  : 'Un médico jefe determinó que este caso no aplica para la ley de urgencia.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                size="lg"
+                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                className="w-full"
+              >
+                <Mail className="w-5 h-5 mr-2" />
+                Enviar Correo a Paciente
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Información del médico que derivó - Para médicos jefe */}
+        {caso.estado === 'derivado' && userRole === 'medico_jefe' && medicoInfo && resolucionInfo && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+              <CardDescription className="text-amber-700">
+                Este caso fue derivado por un médico tratante que rechazó la sugerencia de IA.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                {medicoInfo.imagen ? (
+                  <img
+                    src={medicoInfo.imagen}
+                    alt={medicoInfo.nombre}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-amber-300"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center border-2 border-amber-300">
+                    <span className="text-2xl font-bold text-amber-700">
+                      {medicoInfo.nombre.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="font-medium text-amber-900">Dr(a). {medicoInfo.nombre}</p>
+                  <p className="text-sm text-amber-700">Médico Tratante</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-amber-200">
+                <p className="text-sm font-medium text-amber-900 mb-2">Razón del Rechazo:</p>
+                <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Datos del Paciente */}
         <Card>
           <CardHeader>
@@ -701,16 +787,19 @@ export default function VerCaso() {
                 <Button
                   size="lg"
                   onClick={handleAplicarLey}
-                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                  className={sugerencia?.sugerencia === 'aceptar' 
+                    ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
+                    : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Aplicar Ley
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
                   onClick={handleNoAplicarLey}
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  className={sugerencia?.sugerencia === 'rechazar'
+                    ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
+                    : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
                 >
                   <XCircle className="w-5 h-5 mr-2" />
                   No Aplicar Ley
@@ -733,16 +822,19 @@ export default function VerCaso() {
                 <Button
                   size="lg"
                   onClick={handleAplicarLey}
-                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                  className={sugerencia?.sugerencia === 'aceptar' 
+                    ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
+                    : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Aplicar Ley
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
                   onClick={handleNoAplicarLey}
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  className={sugerencia?.sugerencia === 'rechazar'
+                    ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
+                    : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
                 >
                   <XCircle className="w-5 h-5 mr-2" />
                   No Aplicar Ley
@@ -753,45 +845,7 @@ export default function VerCaso() {
         )}
 
         {caso.estado === 'derivado' && userRole === 'medico_jefe' && (
-          <>
-            {/* Información del médico que derivó */}
-            {medicoInfo && resolucionInfo && (
-              <Card className="border-amber-200 bg-amber-50">
-                <CardHeader>
-                  <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
-                  <CardDescription className="text-amber-700">
-                    Este caso fue derivado por un médico tratante que rechazó la sugerencia de IA.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    {medicoInfo.imagen ? (
-                      <img
-                        src={medicoInfo.imagen}
-                        alt={medicoInfo.nombre}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-amber-300"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center border-2 border-amber-300">
-                        <span className="text-2xl font-bold text-amber-700">
-                          {medicoInfo.nombre.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-medium text-amber-900">Dr(a). {medicoInfo.nombre}</p>
-                      <p className="text-sm text-amber-700">Médico Tratante</p>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 border border-amber-200">
-                    <p className="text-sm font-medium text-amber-900 mb-2">Razón del Rechazo:</p>
-                    <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle>Decisión del Médico Jefe</CardTitle>
                 <CardDescription>
@@ -803,73 +857,28 @@ export default function VerCaso() {
                   <Button
                     size="lg"
                     onClick={handleAplicarLey}
-                    className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                    className={sugerencia?.sugerencia === 'aceptar' 
+                      ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
+                      : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
                   >
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Ley Aplicada
+                    Aplicar Ley
                   </Button>
                   <Button
                     size="lg"
-                    variant="outline"
                     onClick={handleNoAplicarLey}
-                    className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                    className={sugerencia?.sugerencia === 'rechazar'
+                      ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
+                      : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
                   >
                     <XCircle className="w-5 h-5 mr-2" />
-                    Ley No Aplicada
+                    No Aplicar Ley
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </>
         )}
 
-        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardHeader>
-              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
-              <CardDescription className="text-amber-700">
-                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
-              </CardDescription>
-            </CardHeader>
-            {resolucionInfo && (
-              <CardContent>
-                <div className="bg-white rounded-lg p-4 border border-amber-200">
-                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
-                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        )}
-
-        {/* Si es médico normal y el caso fue resuelto (aceptado o rechazado) por médico jefe */}
-        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
-         userRole === 'medico' && 
-         caso.medico_jefe_id && 
-         caso.medico_tratante_id === user?.id && (
-          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
-            <CardHeader>
-              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
-              </CardTitle>
-              <CardDescription>
-                {caso.estado === 'aceptado' 
-                  ? 'Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.'
-                  : 'Un médico jefe determinó que este caso no aplica para la ley de urgencia.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                size="lg"
-                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
-                className="w-full"
-              >
-                <Mail className="w-5 h-5 mr-2" />
-                Enviar Correo a Paciente
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Si es médico jefe o el caso fue resuelto sin intervención de médico jefe */}
         {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
@@ -899,14 +908,15 @@ export default function VerCaso() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Editar datos del caso</DialogTitle>
             <DialogDescription>
               Actualiza la información del paciente y sus signos vitales. Se aplican las mismas validaciones que al crear un caso.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-5" onSubmit={handleSaveEdit}>
+          <form className="flex flex-col flex-1 overflow-hidden" onSubmit={handleSaveEdit}>
+          <div className="overflow-y-auto flex-1 pr-2 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="edit-nombre">Nombre completo *</Label>
@@ -1068,8 +1078,9 @@ export default function VerCaso() {
                 )}
               </div>
             </div>
+          </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 mt-4">
               <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={editSaving}>
                 Cancelar
               </Button>

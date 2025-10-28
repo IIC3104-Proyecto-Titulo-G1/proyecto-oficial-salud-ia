@@ -112,28 +112,36 @@ export function NotificationBell() {
   };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // Agregar 'Z' para forzar que sea interpretado como UTC
+    const date = new Date(dateString + 'Z');
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
+    const diffMonths = Math.floor(diffDays / 30);
 
     if (diffMins < 60) {
-      return `Hace ${diffMins} min`;
+      return `Hace ${diffMins} ${diffMins === 1 ? 'minuto' : 'minutos'}`;
     } else if (diffHours < 24) {
-      return `Hace ${diffHours}h`;
-    } else if (diffDays < 7) {
-      return `Hace ${diffDays}d`;
+      return `Hace ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
+    } else if (diffDays < 30) {
+      return `Hace ${diffDays} ${diffDays === 1 ? 'día' : 'días'}`;
+    } else if (diffMonths < 12) {
+      return `Hace ${diffMonths} ${diffMonths === 1 ? 'mes' : 'meses'}`;
     } else {
-      return date.toLocaleDateString();
+      return date.toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
     }
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={`relative ${open ? 'bg-accent' : ''}`}
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-semibold">
