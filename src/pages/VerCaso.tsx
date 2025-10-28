@@ -578,6 +578,43 @@ export default function VerCaso() {
           </Card>
         )}
 
+        {/* Información del médico que derivó - Para médicos jefe */}
+        {caso.estado === 'derivado' && userRole === 'medico_jefe' && medicoInfo && resolucionInfo && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+              <CardDescription className="text-amber-700">
+                Este caso fue derivado por un médico tratante que rechazó la sugerencia de IA.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                {medicoInfo.imagen ? (
+                  <img
+                    src={medicoInfo.imagen}
+                    alt={medicoInfo.nombre}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-amber-300"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center border-2 border-amber-300">
+                    <span className="text-2xl font-bold text-amber-700">
+                      {medicoInfo.nombre.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="font-medium text-amber-900">Dr(a). {medicoInfo.nombre}</p>
+                  <p className="text-sm text-amber-700">Médico Tratante</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-amber-200">
+                <p className="text-sm font-medium text-amber-900 mb-2">Razón del Rechazo:</p>
+                <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Datos del Paciente */}
         <Card>
           <CardHeader>
@@ -779,45 +816,7 @@ export default function VerCaso() {
         )}
 
         {caso.estado === 'derivado' && userRole === 'medico_jefe' && (
-          <>
-            {/* Información del médico que derivó */}
-            {medicoInfo && resolucionInfo && (
-              <Card className="border-amber-200 bg-amber-50">
-                <CardHeader>
-                  <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
-                  <CardDescription className="text-amber-700">
-                    Este caso fue derivado por un médico tratante que rechazó la sugerencia de IA.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    {medicoInfo.imagen ? (
-                      <img
-                        src={medicoInfo.imagen}
-                        alt={medicoInfo.nombre}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-amber-300"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center border-2 border-amber-300">
-                        <span className="text-2xl font-bold text-amber-700">
-                          {medicoInfo.nombre.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-medium text-amber-900">Dr(a). {medicoInfo.nombre}</p>
-                      <p className="text-sm text-amber-700">Médico Tratante</p>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 border border-amber-200">
-                    <p className="text-sm font-medium text-amber-900 mb-2">Razón del Rechazo:</p>
-                    <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle>Decisión del Médico Jefe</CardTitle>
                 <CardDescription>
@@ -829,24 +828,26 @@ export default function VerCaso() {
                   <Button
                     size="lg"
                     onClick={handleAplicarLey}
-                    className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                    className={sugerencia?.sugerencia === 'aceptar' 
+                      ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
+                      : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
                   >
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Ley Aplicada
+                    Aplicar Ley
                   </Button>
                   <Button
                     size="lg"
-                    variant="outline"
                     onClick={handleNoAplicarLey}
-                    className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                    className={sugerencia?.sugerencia === 'rechazar'
+                      ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
+                      : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
                   >
                     <XCircle className="w-5 h-5 mr-2" />
-                    Ley No Aplicada
+                    No Aplicar Ley
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </>
         )}
 
         {/* Si es médico normal y el caso fue resuelto (aceptado o rechazado) por médico jefe */}
