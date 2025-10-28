@@ -701,16 +701,19 @@ export default function VerCaso() {
                 <Button
                   size="lg"
                   onClick={handleAplicarLey}
-                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                  className={sugerencia?.sugerencia === 'aceptar' 
+                    ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
+                    : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Aplicar Ley
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
                   onClick={handleNoAplicarLey}
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  className={sugerencia?.sugerencia === 'rechazar'
+                    ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
+                    : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
                 >
                   <XCircle className="w-5 h-5 mr-2" />
                   No Aplicar Ley
@@ -733,16 +736,19 @@ export default function VerCaso() {
                 <Button
                   size="lg"
                   onClick={handleAplicarLey}
-                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                  className={sugerencia?.sugerencia === 'aceptar' 
+                    ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
+                    : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Aplicar Ley
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
                   onClick={handleNoAplicarLey}
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  className={sugerencia?.sugerencia === 'rechazar'
+                    ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
+                    : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
                 >
                   <XCircle className="w-5 h-5 mr-2" />
                   No Aplicar Ley
