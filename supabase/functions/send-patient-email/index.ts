@@ -40,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
     const resultColor = result === 'aceptado' ? '#10b981' : '#ef4444';
 
     const emailResponse = await resend.emails.send({
-      from: "SaludIA <onboarding@resend.dev>",
+      from: "SaludIA <noreply@saludia.net>",
       to: [to],
       subject: "Resultado de Evaluación - Ley de Urgencia",
       html: `
