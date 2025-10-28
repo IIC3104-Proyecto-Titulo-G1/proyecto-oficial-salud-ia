@@ -796,7 +796,7 @@ export default function VerCaso() {
                     className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
                   >
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Aplicar Ley
+                    Ley Aplicada
                   </Button>
                   <Button
                     size="lg"
@@ -805,7 +805,7 @@ export default function VerCaso() {
                     className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
                   >
                     <XCircle className="w-5 h-5 mr-2" />
-                    No Aplicar Ley
+                    Ley No Aplicada
                   </Button>
                 </div>
               </CardContent>
@@ -835,9 +835,20 @@ export default function VerCaso() {
         {caso.estado === 'rechazado' && (
           <Card className="border-destructive/30 bg-destructive/5">
             <CardHeader>
-              <CardTitle className="text-destructive">Caso Rechazado</CardTitle>
+              <CardTitle className="text-destructive">Ley No Aplicada</CardTitle>
               <CardDescription>
-                Este caso fue rechazado definitivamente por un médico jefe.
+                Un médico jefe determinó que este caso no aplica para la ley de urgencia.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
+        {caso.estado === 'aceptado' && (
+          <Card className="border-crm/30 bg-crm/5">
+            <CardHeader>
+              <CardTitle className="text-crm">Ley Aplicada</CardTitle>
+              <CardDescription>
+                Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.
               </CardDescription>
             </CardHeader>
           </Card>
