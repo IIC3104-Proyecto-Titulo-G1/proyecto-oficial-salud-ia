@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface Caso {
   id: string;
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
@@ -72,7 +74,18 @@ export default function Dashboard() {
     }
 
     loadCasos();
-  }, [user, userRole, navigate, loadCasos, toast]);
+
+    // Filtrar por caso si viene desde notificación
+    const casoId = searchParams.get('caso');
+    if (casoId) {
+      const caso = casos.find(c => c.id === casoId);
+      if (caso) {
+        setSearchTerm(caso.nombre_paciente);
+      }
+      // Limpiar el parámetro de la URL
+      setSearchParams({});
+    }
+  }, [user, userRole, navigate, loadCasos, toast, searchParams, casos, setSearchParams]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -217,6 +230,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationBell />
               <Avatar className="h-10 w-10 border-2 border-crm/20">
                 <AvatarImage src={userRoleData?.imagen || ''} alt={userRoleData?.nombre} />
                 <AvatarFallback className="bg-crm/10 text-crm">

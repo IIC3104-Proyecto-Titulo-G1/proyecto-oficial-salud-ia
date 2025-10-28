@@ -294,7 +294,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_ley_metricas_doctor: {
+        Row: {
+          ley_aplicada: number | null
+          ley_no_aplicada: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
