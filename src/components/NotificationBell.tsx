@@ -119,13 +119,16 @@ export function NotificationBell() {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
+    const diffMonths = Math.floor(diffDays / 30);
 
     if (diffMins < 60) {
-      return `Hace ${diffMins} min`;
+      return `Hace ${diffMins} ${diffMins === 1 ? 'min' : 'minutos'}`;
     } else if (diffHours < 24) {
-      return `Hace ${diffHours}h`;
-    } else if (diffDays < 7) {
-      return `Hace ${diffDays}d`;
+      return `Hace ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
+    } else if (diffDays < 30) {
+      return `Hace ${diffDays} ${diffDays === 1 ? 'día' : 'días'}`;
+    } else if (diffMonths < 12) {
+      return `Hace ${diffMonths} ${diffMonths === 1 ? 'mes' : 'meses'}`;
     } else {
       return date.toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
     }
