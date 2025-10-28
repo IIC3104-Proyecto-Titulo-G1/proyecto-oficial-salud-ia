@@ -675,13 +675,15 @@ export default function VerCaso() {
           </CardContent>
         </Card>
 
-        {/* Acciones */}
+        {/* Acciones para casos pendientes */}
         {caso.estado === 'pendiente' && (
           <Card>
             <CardHeader>
               <CardTitle>Decisión del Médico</CardTitle>
               <CardDescription>
-                Revise la sugerencia de IA y tome una decisión sobre el caso
+                {userRole === 'medico_jefe' 
+                  ? 'Como médico jefe, puedes retomar este caso y tomar la decisión final.'
+                  : 'Revise la sugerencia de IA y tome una decisión sobre el caso'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
