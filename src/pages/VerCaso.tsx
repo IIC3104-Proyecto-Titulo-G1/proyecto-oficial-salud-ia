@@ -578,6 +578,35 @@ export default function VerCaso() {
           </Card>
         )}
 
+        {/* Ley Aplicada / No Aplicada - Para médicos normales en casos resueltos */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
+         userRole === 'medico' && 
+         caso.medico_jefe_id && 
+         caso.medico_tratante_id === user?.id && (
+          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
+            <CardHeader>
+              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+              </CardTitle>
+              <CardDescription>
+                {caso.estado === 'aceptado' 
+                  ? 'Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.'
+                  : 'Un médico jefe determinó que este caso no aplica para la ley de urgencia.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                size="lg"
+                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                className="w-full"
+              >
+                <Mail className="w-5 h-5 mr-2" />
+                Enviar Correo a Paciente
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Información del médico que derivó - Para médicos jefe */}
         {caso.estado === 'derivado' && userRole === 'medico_jefe' && medicoInfo && resolucionInfo && (
           <Card className="border-amber-200 bg-amber-50">
@@ -850,34 +879,6 @@ export default function VerCaso() {
             </Card>
         )}
 
-        {/* Si es médico normal y el caso fue resuelto (aceptado o rechazado) por médico jefe */}
-        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
-         userRole === 'medico' && 
-         caso.medico_jefe_id && 
-         caso.medico_tratante_id === user?.id && (
-          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
-            <CardHeader>
-              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
-              </CardTitle>
-              <CardDescription>
-                {caso.estado === 'aceptado' 
-                  ? 'Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.'
-                  : 'Un médico jefe determinó que este caso no aplica para la ley de urgencia.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                size="lg"
-                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
-                className="w-full"
-              >
-                <Mail className="w-5 h-5 mr-2" />
-                Enviar Correo a Paciente
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Si es médico jefe o el caso fue resuelto sin intervención de médico jefe */}
         {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
