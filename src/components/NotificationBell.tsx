@@ -122,7 +122,7 @@ export function NotificationBell() {
     const diffMonths = Math.floor(diffDays / 30);
 
     if (diffMins < 60) {
-      return `Hace ${diffMins} ${diffMins === 1 ? 'min' : 'minutos'}`;
+      return `Hace ${diffMins} ${diffMins === 1 ? 'minuto' : 'minutos'}`;
     } else if (diffHours < 24) {
       return `Hace ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
     } else if (diffDays < 30) {
