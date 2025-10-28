@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+  const [filtroMedico, setFiltroMedico] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '';
+  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '');
 
   // Establecer fecha de término por defecto a hoy
   useEffect(() => {
@@ -157,7 +158,7 @@ export default function Dashboard() {
   // Resetear a la primera página cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin]);
+  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
 
   const filteredCasos = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -185,6 +186,11 @@ export default function Dashboard() {
         }
       }
 
+      // Filtro por médico
+      if (filtroMedico !== 'todos' && caso.medico_tratante_id !== filtroMedico) {
+        return false;
+      }
+
       if (!normalizedSearch) {
         return true;
       }
@@ -195,7 +201,7 @@ export default function Dashboard() {
 
       return hayCoincidencia;
     });
-  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin]);
+  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin, filtroMedico]);
 
   // Calcular casos paginados
   const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
@@ -493,7 +499,7 @@ export default function Dashboard() {
 
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <div className="relative sm:max-w-sm w-full">
+            <div className="relative sm:max-w-[300px] w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-crm" />
               <Input
                 value={searchTerm}
@@ -503,7 +509,7 @@ export default function Dashboard() {
               />
             </div>
             <Select value={estadoFiltro} onValueChange={(value) => setEstadoFiltro(value as EstadoFiltro)}>
-              <SelectTrigger className="sm:w-56">
+              <SelectTrigger className="sm:w-[200px]">
                 <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent>
@@ -514,6 +520,23 @@ export default function Dashboard() {
                 <SelectItem value="derivado">Derivado</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Filtro por médico solo para médicos jefe */}
+            {userRole === 'medico_jefe' && Object.keys(medicosData).length > 0 && (
+              <Select value={filtroMedico || 'todos'} onValueChange={setFiltroMedico}>
+                <SelectTrigger className="sm:w-[200px]">
+                  <SelectValue placeholder="Filtrar por médico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los médicos</SelectItem>
+                  {Object.entries(medicosData).map(([medicoId, medicoInfo]) => (
+                    <SelectItem key={medicoId} value={medicoId}>
+                      {medicoInfo.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             {/* Filtros de fecha solo para médicos jefe */}
             {userRole === 'medico_jefe' && (
@@ -582,6 +605,7 @@ export default function Dashboard() {
                 setEstadoFiltro('todos');
                 setFechaInicio('');
                 setFechaFin('');
+                setFiltroMedico('todos');
                 setCurrentPage(1);
               }}
               disabled={!filtrosActivos}
