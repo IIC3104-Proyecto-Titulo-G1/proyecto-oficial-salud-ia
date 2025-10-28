@@ -87,9 +87,16 @@ export default function ComunicacionPaciente() {
         if (assignError) throw assignError;
       }
 
-      // Determinar el resultado final basado en la acción del médico
-      const resultadoFinal = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
-      const estadoFinal = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+      // Determinar el resultado final basado en la acción del médico y la sugerencia de IA
+      let resultadoFinal: 'aceptado' | 'rechazado';
+      if (accionMedico === 'aceptar') {
+        // Médico acepta la sugerencia de IA
+        resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado';
+      } else {
+        // Médico rechaza la sugerencia de IA (hace lo opuesto)
+        resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'rechazado' : 'aceptado';
+      }
+      const estadoFinal = resultadoFinal;
 
       // Verificar si ya existe una resolución previa
       const { data: resolucionExistente } = await supabase
@@ -156,7 +163,7 @@ export default function ComunicacionPaciente() {
 
       // Si se debe enviar el correo, llamar al edge function
       if (enviar) {
-        const resultadoEmail = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+        const resultadoEmail = resultadoFinal;
         
         const { data: emailData, error: emailError } = await supabase.functions.invoke(
           'send-patient-email',
@@ -189,7 +196,7 @@ export default function ComunicacionPaciente() {
       }
 
       // Registrar comunicación
-      const resultadoComunicacion = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+      const resultadoComunicacion = resultadoFinal;
       
       const { error: comunicacionError } = await supabase
         .from('comunicaciones_paciente')
@@ -233,9 +240,18 @@ export default function ComunicacionPaciente() {
     );
   }
 
-  // El resultado final depende de la acción del médico, no de la sugerencia de IA
-  const resultado = accionMedico === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
-  const resultadoColor = accionMedico === 'aceptar' ? 'text-crm' : 'text-destructive';
+  // El resultado final depende de si el médico acepta o rechaza la sugerencia de IA
+  // Si acepta la sugerencia: resultado = sugerencia de IA
+  // Si rechaza la sugerencia: resultado = opuesto a la sugerencia de IA
+  let resultado: string;
+  if (accionMedico === 'aceptar') {
+    // Médico acepta la sugerencia de IA
+    resultado = sugerencia.sugerencia === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
+  } else {
+    // Médico rechaza la sugerencia de IA (hace lo opuesto)
+    resultado = sugerencia.sugerencia === 'aceptar' ? 'NO ACTIVADA' : 'ACTIVADA';
+  }
+  const resultadoColor = resultado === 'ACTIVADA' ? 'text-crm' : 'text-destructive';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -304,7 +320,7 @@ export default function ComunicacionPaciente() {
               </p>
 
               <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
-                accionMedico === 'aceptar' ? 'border-success' : 'border-destructive'
+                resultado === 'ACTIVADA' ? 'border-success' : 'border-destructive'
               }`}>
                 <p className="font-semibold text-lg mb-2">
                   Resultado: <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
