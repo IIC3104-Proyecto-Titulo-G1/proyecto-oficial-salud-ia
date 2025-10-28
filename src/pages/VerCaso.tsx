@@ -29,12 +29,22 @@ interface Caso {
   saturacion_oxigeno: number;
   frecuencia_respiratoria: number;
   estado: string;
+  medico_tratante_id: string;
 }
 
 interface Sugerencia {
   sugerencia: 'aceptar' | 'rechazar' | 'incierto';
   confianza: number;
   explicacion: string;
+}
+
+interface MedicoInfo {
+  nombre: string;
+  imagen: string | null;
+}
+
+interface ResolucionInfo {
+  comentario_medico: string;
 }
 
 export default function VerCaso() {
@@ -44,6 +54,8 @@ export default function VerCaso() {
   const { toast } = useToast();
   const [caso, setCaso] = useState<Caso | null>(null);
   const [sugerencia, setSugerencia] = useState<Sugerencia | null>(null);
+  const [medicoInfo, setMedicoInfo] = useState<MedicoInfo | null>(null);
+  const [resolucionInfo, setResolucionInfo] = useState<ResolucionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -116,7 +128,27 @@ export default function VerCaso() {
       .from('sugerencia_ia')
       .select('*')
       .eq('caso_id', id)
+      .order('fecha_procesamiento', { ascending: false })
+      .limit(1)
       .single();
+
+    // Si el caso está derivado, cargar info del médico que lo derivó y la resolución
+    if (casoData?.estado === 'derivado') {
+      const { data: medicoData } = await supabase
+        .from('user_roles')
+        .select('nombre, imagen')
+        .eq('user_id', casoData.medico_tratante_id)
+        .single();
+
+      const { data: resolucionData } = await supabase
+        .from('resolucion_caso')
+        .select('comentario_medico')
+        .eq('caso_id', id)
+        .single();
+
+      setMedicoInfo(medicoData);
+      setResolucionInfo(resolucionData);
+    }
 
     setCaso(casoData);
     setSugerencia(sugerenciaData);
@@ -679,35 +711,74 @@ export default function VerCaso() {
         )}
 
         {caso.estado === 'derivado' && userRole === 'medico_jefe' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Decisión del Médico Jefe</CardTitle>
-              <CardDescription>
-                Este caso fue derivado por un médico tratante. Tome la decisión final.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button
-                  size="lg"
-                  onClick={handleAceptarSugerencia}
-                  className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
-                >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Aceptar Sugerencia
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={handleRechazarSugerencia}
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
-                >
-                  <XCircle className="w-5 h-5 mr-2" />
-                  Rechazar Definitivamente
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <>
+            {/* Información del médico que derivó */}
+            {medicoInfo && resolucionInfo && (
+              <Card className="border-amber-200 bg-amber-50">
+                <CardHeader>
+                  <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+                  <CardDescription className="text-amber-700">
+                    Este caso fue derivado por un médico tratante que rechazó la sugerencia de IA.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    {medicoInfo.imagen ? (
+                      <img
+                        src={medicoInfo.imagen}
+                        alt={medicoInfo.nombre}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-amber-300"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center border-2 border-amber-300">
+                        <span className="text-2xl font-bold text-amber-700">
+                          {medicoInfo.nombre.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-amber-900">Dr(a). {medicoInfo.nombre}</p>
+                      <p className="text-sm text-amber-700">Médico Tratante</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-amber-200">
+                    <p className="text-sm font-medium text-amber-900 mb-2">Razón del Rechazo:</p>
+                    <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Decisión del Médico Jefe</CardTitle>
+                <CardDescription>
+                  Este caso fue derivado por un médico tratante. Tome la decisión final.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    size="lg"
+                    onClick={handleAceptarSugerencia}
+                    className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
+                  >
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Aceptar Sugerencia
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={handleRechazarSugerencia}
+                    className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  >
+                    <XCircle className="w-5 h-5 mr-2" />
+                    Rechazar Definitivamente
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
@@ -718,6 +789,14 @@ export default function VerCaso() {
                 Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
               </CardDescription>
             </CardHeader>
+            {resolucionInfo && (
+              <CardContent>
+                <div className="bg-white rounded-lg p-4 border border-amber-200">
+                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
+                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+                </div>
+              </CardContent>
+            )}
           </Card>
         )}
 
