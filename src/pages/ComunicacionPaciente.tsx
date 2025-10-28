@@ -149,7 +149,15 @@ export default function ComunicacionPaciente() {
 
         if (emailError) {
           console.error('Error al enviar correo:', emailError);
-          throw new Error('No se pudo enviar el correo electrónico');
+          throw new Error('Error al conectar con el servicio de correo');
+        }
+
+        // Verificar si Resend rechazó el envío
+        if (emailData && !emailData.success) {
+          console.error('Resend error:', emailData.error);
+          throw new Error(
+            'Resend requiere verificar un dominio. Por ahora solo puedes enviar correos de prueba a: tallerintegraciong1@gmail.com'
+          );
         }
 
         console.log('Email enviado:', emailData);
@@ -188,6 +196,7 @@ export default function ComunicacionPaciente() {
       setSending(false);
     }
   };
+
 
   if (loading || !caso || !sugerencia) {
     return (
