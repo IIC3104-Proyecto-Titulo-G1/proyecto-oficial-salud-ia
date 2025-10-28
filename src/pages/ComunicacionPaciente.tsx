@@ -58,11 +58,31 @@ export default function ComunicacionPaciente() {
       .limit(1)
       .single();
 
+    // Cargar comunicación previa si existe
+    const { data: comunicacionPrevia } = await supabase
+      .from('comunicaciones_paciente')
+      .select('explicacion, enviada')
+      .eq('caso_id', id)
+      .eq('enviada', true)
+      .order('fecha_envio', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     if (casoData) {
       setCaso(casoData);
       setEmailPaciente(casoData.email_paciente);
     }
     setSugerencia(sugerenciaData);
+    
+    // Si hay comunicación previa, pre-cargar el comentario adicional
+    if (comunicacionPrevia?.explicacion) {
+      const lineas = comunicacionPrevia.explicacion.split('\n\n');
+      if (lineas.length > 1) {
+        // La última parte es el comentario adicional
+        setComentarioAdicional(lineas[lineas.length - 1]);
+      }
+    }
+    
     setLoading(false);
   };
 

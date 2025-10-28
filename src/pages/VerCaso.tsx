@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit, Mail } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,7 @@ interface Caso {
   frecuencia_respiratoria: number;
   estado: string;
   medico_tratante_id: string;
+  medico_jefe_id?: string;
 }
 
 interface Sugerencia {
@@ -359,7 +360,7 @@ export default function VerCaso() {
     // Si la IA sugiere aplicar la ley, estamos de acuerdo -> ir a comunicación
     // Si la IA sugiere NO aplicar la ley, estamos en desacuerdo -> derivar o modal
     if (sugerencia?.sugerencia === 'aceptar') {
-      // Coincidimos con la IA, ir directo a comunicación
+      // Coincidimos con la IA, ir directo a comunicación (médico puede editar caso)
       navigate(`/caso/${id}/comunicacion?accion=aceptar`);
     } else {
       // No coincidimos con la IA
@@ -367,7 +368,8 @@ export default function VerCaso() {
         // Médico jefe decide directamente
         navigate(`/caso/${id}/comunicacion?accion=rechazar`);
       } else {
-        // Médico normal, mostrar modal para derivar
+        // Médico normal: si sigue la sugerencia inversa, puede editar (como médico jefe)
+        // Si rechaza la sugerencia, muestra modal para derivar
         setShowRejectModal(true);
       }
     }
@@ -378,7 +380,7 @@ export default function VerCaso() {
     // Si la IA sugiere NO aplicar la ley, estamos de acuerdo -> ir a comunicación
     // Si la IA sugiere aplicar la ley, estamos en desacuerdo -> derivar o modal
     if (sugerencia?.sugerencia === 'rechazar') {
-      // Coincidimos con la IA, ir directo a comunicación
+      // Coincidimos con la IA, ir directo a comunicación (médico puede editar caso)
       navigate(`/caso/${id}/comunicacion?accion=aceptar`);
     } else {
       // No coincidimos con la IA
@@ -386,7 +388,7 @@ export default function VerCaso() {
         // Médico jefe decide directamente
         navigate(`/caso/${id}/comunicacion?accion=rechazar`);
       } else {
-        // Médico normal, mostrar modal para derivar
+        // Médico normal: muestra modal para derivar
         setShowRejectModal(true);
       }
     }
@@ -566,14 +568,22 @@ export default function VerCaso() {
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEditModal(true)}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar datos
-              </Button>
+              {/* Mostrar botón de editar solo si:
+                  - Es médico jefe, O
+                  - Es médico normal y el caso está pendiente, O
+                  - Es médico normal y el caso está aceptado (y no derivado/resuelto por médico jefe) */}
+              {(userRole === 'medico_jefe' || 
+                (userRole === 'medico' && caso.estado === 'pendiente') ||
+                (userRole === 'medico' && caso.estado === 'aceptado' && !caso.medico_jefe_id)) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEditModal(true)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar datos
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -832,23 +842,47 @@ export default function VerCaso() {
           </Card>
         )}
 
-        {caso.estado === 'rechazado' && (
-          <Card className="border-destructive/30 bg-destructive/5">
+        {/* Si es médico normal y el caso fue resuelto (aceptado o rechazado) por médico jefe */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
+         userRole === 'medico' && 
+         caso.medico_jefe_id && 
+         caso.medico_tratante_id === user?.id && (
+          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
-              <CardTitle className="text-destructive">Ley No Aplicada</CardTitle>
+              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+              </CardTitle>
               <CardDescription>
-                Un médico jefe determinó que este caso no aplica para la ley de urgencia.
+                {caso.estado === 'aceptado' 
+                  ? 'Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.'
+                  : 'Un médico jefe determinó que este caso no aplica para la ley de urgencia.'}
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button
+                size="lg"
+                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                className="w-full"
+              >
+                <Mail className="w-5 h-5 mr-2" />
+                Enviar Correo a Paciente
+              </Button>
+            </CardContent>
           </Card>
         )}
 
-        {caso.estado === 'aceptado' && (
-          <Card className="border-crm/30 bg-crm/5">
+        {/* Si es médico jefe o el caso fue resuelto sin intervención de médico jefe */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
+         (userRole === 'medico_jefe' || !caso.medico_jefe_id) && (
+          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
-              <CardTitle className="text-crm">Ley Aplicada</CardTitle>
+              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+              </CardTitle>
               <CardDescription>
-                Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.
+                {caso.estado === 'aceptado' 
+                  ? 'Se ha aplicado la ley de urgencia a este caso.'
+                  : 'Se determinó que este caso no aplica para la ley de urgencia.'}
               </CardDescription>
             </CardHeader>
           </Card>
