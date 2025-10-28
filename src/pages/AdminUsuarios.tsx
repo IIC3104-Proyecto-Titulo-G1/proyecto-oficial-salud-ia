@@ -81,10 +81,15 @@ export default function AdminUsuarios() {
     setLoading(false);
   };
 
-  const handleOpenDialog = (user?: Usuario) => {
-    if (user) {
-      // Navegar a la vista de edición
-      navigate(`/admin/usuario/${user.id}`);
+  const handleOpenDialog = (usuarioEditar?: Usuario) => {
+    if (usuarioEditar) {
+      // Si es el usuario actual, redirigir a perfil
+      if (usuarioEditar.id === user?.id) {
+        navigate('/admin/perfil');
+      } else {
+        // Navegar a la vista de edición de otro usuario
+        navigate(`/admin/usuario/${usuarioEditar.id}`);
+      }
     } else {
       // Crear nuevo usuario - mantener el modal
       setEditingUser(null);
@@ -415,7 +420,9 @@ export default function AdminUsuarios() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <CardTitle className="mb-2">{usuario.nombre}</CardTitle>
+                        <CardTitle className="mb-2">
+                          {usuario.id === user?.id ? 'Tú' : usuario.nombre}
+                        </CardTitle>
                         <CardDescription>{usuario.email}</CardDescription>
                         <div className="flex gap-2 mt-2">
                           {getRoleBadge(usuario.rol)}
