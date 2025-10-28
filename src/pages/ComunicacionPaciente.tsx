@@ -73,12 +73,12 @@ export default function ComunicacionPaciente() {
       // Obtener el caso para verificar su estado
       const { data: casoActual } = await supabase
         .from('casos')
-        .select('estado, medico_jefe_id')
+        .select('estado, medico_jefe_id, medico_tratante_id')
         .eq('id', id)
         .single();
 
-      // Si el caso está derivado y el médico jefe no está asignado, asignarlo
-      if (casoActual?.estado === 'derivado' && !casoActual.medico_jefe_id) {
+      // Si es médico jefe y el caso no tiene medico_jefe_id asignado, asignarlo
+      if (userRole === 'medico_jefe' && !casoActual.medico_jefe_id) {
         const { error: assignError } = await supabase
           .from('casos')
           .update({ medico_jefe_id: user?.id })
