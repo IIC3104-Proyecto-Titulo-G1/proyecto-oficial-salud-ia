@@ -269,12 +269,14 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <NotificationBell />
-              <Avatar className="h-10 w-10 border-2 border-crm/20">
-                <AvatarImage src={userRoleData?.imagen || ''} alt={userRoleData?.nombre} />
-                <AvatarFallback className="bg-crm/10 text-crm">
-                  {userRoleData?.nombre?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon className="h-5 w-5" />}
-                </AvatarFallback>
-              </Avatar>
+              <button onClick={() => navigate('/perfil')} className="cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar className="h-10 w-10 border-2 border-crm/20">
+                  <AvatarImage src={userRoleData?.imagen || ''} alt={userRoleData?.nombre} />
+                  <AvatarFallback className="bg-crm/10 text-crm">
+                    {userRoleData?.nombre?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || <UserIcon className="h-5 w-5" />}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
               {userRole === 'admin' && (
                 <Button
                   variant="outline"
