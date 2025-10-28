@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.update-user-email]
 verify_jwt = true
+
+[functions.send-patient-email]
+verify_jwt = true

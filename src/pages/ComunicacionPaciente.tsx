@@ -131,6 +131,30 @@ export default function ComunicacionPaciente() {
 
       if (updateError) throw updateError;
 
+      // Si se debe enviar el correo, llamar al edge function
+      if (enviar) {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke(
+          'send-patient-email',
+          {
+            body: {
+              to: emailPaciente,
+              patientName: caso!.nombre_paciente,
+              diagnosis: caso!.diagnostico_principal,
+              result: sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado',
+              explanation: sugerencia?.explicacion || '',
+              additionalComment: comentarioAdicional || undefined,
+            },
+          }
+        );
+
+        if (emailError) {
+          console.error('Error al enviar correo:', emailError);
+          throw new Error('No se pudo enviar el correo electrónico');
+        }
+
+        console.log('Email enviado:', emailData);
+      }
+
       // Registrar comunicación
       const { error: comunicacionError } = await supabase
         .from('comunicaciones_paciente')
