@@ -74,10 +74,12 @@ export default function Dashboard() {
     }
 
     loadCasos();
+  }, [user, userRole, navigate, loadCasos, toast]);
 
-    // Filtrar por caso si viene desde notificación
+  // Efecto separado para manejar el filtrado desde notificaciones
+  useEffect(() => {
     const casoId = searchParams.get('caso');
-    if (casoId) {
+    if (casoId && casos.length > 0) {
       const caso = casos.find(c => c.id === casoId);
       if (caso) {
         setSearchTerm(caso.nombre_paciente);
@@ -85,7 +87,7 @@ export default function Dashboard() {
       // Limpiar el parámetro de la URL
       setSearchParams({});
     }
-  }, [user, userRole, navigate, loadCasos, toast, searchParams, casos, setSearchParams]);
+  }, [searchParams, casos.length]);
 
   const handleSignOut = async () => {
     await signOut();
