@@ -558,6 +558,26 @@ export default function VerCaso() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+        {/* Mensaje de Caso Derivado para médicos normales */}
+        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+              <CardDescription className="text-amber-700">
+                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
+              </CardDescription>
+            </CardHeader>
+            {resolucionInfo && (
+              <CardContent>
+                <div className="bg-white rounded-lg p-4 border border-amber-200">
+                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
+                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
+
         {/* Datos del Paciente */}
         <Card>
           <CardHeader>
@@ -827,25 +847,6 @@ export default function VerCaso() {
               </CardContent>
             </Card>
           </>
-        )}
-
-        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardHeader>
-              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
-              <CardDescription className="text-amber-700">
-                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
-              </CardDescription>
-            </CardHeader>
-            {resolucionInfo && (
-              <CardContent>
-                <div className="bg-white rounded-lg p-4 border border-amber-200">
-                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
-                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
-                </div>
-              </CardContent>
-            )}
-          </Card>
         )}
 
         {/* Si es médico normal y el caso fue resuelto (aceptado o rechazado) por médico jefe */}
