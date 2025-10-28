@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, LogOut, Users, User as UserIcon, FileText, Search } from 'lucide-react';
+import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -33,15 +34,26 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
+  const [openDateFilter, setOpenDateFilter] = useState(false);
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos';
+  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '';
+
+  // Establecer fecha de término por defecto a hoy
+  useEffect(() => {
+    if (userRole === 'medico_jefe' && !fechaFin) {
+      const hoy = new Date().toISOString().split('T')[0];
+      setFechaFin(hoy);
+    }
+  }, [userRole]);
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
@@ -145,7 +157,7 @@ export default function Dashboard() {
   // Resetear a la primera página cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, estadoFiltro]);
+  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin]);
 
   const filteredCasos = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -155,6 +167,22 @@ export default function Dashboard() {
 
       if (!matchesEstado) {
         return false;
+      }
+
+      // Filtro por fecha
+      const casoFecha = new Date(caso.fecha_creacion);
+      if (fechaInicio) {
+        const fechaInicioDate = new Date(fechaInicio);
+        if (casoFecha < fechaInicioDate) {
+          return false;
+        }
+      }
+      if (fechaFin) {
+        const fechaFinDate = new Date(fechaFin);
+        fechaFinDate.setHours(23, 59, 59, 999); // Incluir todo el día
+        if (casoFecha > fechaFinDate) {
+          return false;
+        }
       }
 
       if (!normalizedSearch) {
@@ -167,7 +195,7 @@ export default function Dashboard() {
 
       return hayCoincidencia;
     });
-  }, [casos, estadoFiltro, searchTerm]);
+  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin]);
 
   // Calcular casos paginados
   const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
@@ -486,6 +514,56 @@ export default function Dashboard() {
                 <SelectItem value="derivado">Derivado</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Filtros de fecha solo para médicos jefe */}
+            {userRole === 'medico_jefe' && (
+              <Popover open={openDateFilter} onOpenChange={setOpenDateFilter}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Filtrar por fecha
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto" align="start">
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-center block">Fecha inicio</label>
+                      <Input
+                        type="date"
+                        value={fechaInicio}
+                        onChange={(event) => setFechaInicio(event.target.value)}
+                        className="w-[200px] text-center"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-center block">Fecha término</label>
+                      <Input
+                        type="date"
+                        value={fechaFin}
+                        onChange={(event) => setFechaFin(event.target.value)}
+                        className="w-[200px] text-center"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFechaInicio('');
+                          setFechaFin('');
+                        }}
+                        disabled={!fechaInicio && !fechaFin}
+                      >
+                        Limpiar
+                      </Button>
+                      <Button size="sm" onClick={() => setOpenDateFilter(false)}>
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-sm text-crm">
@@ -502,6 +580,8 @@ export default function Dashboard() {
               onClick={() => {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
+                setFechaInicio('');
+                setFechaFin('');
                 setCurrentPage(1);
               }}
               disabled={!filtrosActivos}
