@@ -72,6 +72,13 @@ export function NotificationBell() {
   const handleNotificationClick = async (notificacion: Notificacion) => {
     // Marcar como leída
     if (!notificacion.leido) {
+      // Actualizar estado local inmediatamente
+      setNotificaciones(prev => 
+        prev.map(n => n.id === notificacion.id ? { ...n, leido: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+
+      // Actualizar en la base de datos
       await supabase
         .from('notificaciones')
         .update({ 
