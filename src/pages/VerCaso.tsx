@@ -359,7 +359,13 @@ export default function VerCaso() {
   };
 
   const handleRechazarSugerencia = () => {
-    setShowRejectModal(true);
+    // Si es médico jefe, ir directo a comunicación con paciente
+    if (userRole === 'medico_jefe') {
+      navigate(`/caso/${id}/comunicacion`);
+    } else {
+      // Si es médico normal, mostrar modal para derivar
+      setShowRejectModal(true);
+    }
   };
 
   const handleConfirmReject = async () => {
