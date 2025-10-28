@@ -60,12 +60,20 @@ export default function Dashboard() {
       setCasos(data || []);
       
       // Cargar información de médicos solo si es médico jefe
+      console.log('🔍 userRole:', userRole);
+      console.log('🔍 Cantidad de casos:', data?.length);
+      
       if (userRole === 'medico_jefe' && data && data.length > 0) {
         const medicoIds = [...new Set(data.map(caso => caso.medico_tratante_id))];
+        console.log('🔍 IDs de médicos únicos:', medicoIds);
+        
         const { data: medicosInfo, error: medicosError } = await supabase
           .from('user_roles')
           .select('user_id, nombre, imagen')
           .in('user_id', medicoIds);
+        
+        console.log('🔍 Información de médicos:', medicosInfo);
+        console.log('🔍 Error al cargar médicos:', medicosError);
         
         if (!medicosError && medicosInfo) {
           const medicosMap: Record<string, MedicoData> = {};
@@ -75,6 +83,7 @@ export default function Dashboard() {
               imagen: medico.imagen,
             };
           });
+          console.log('🔍 Mapa de médicos:', medicosMap);
           setMedicosData(medicosMap);
         }
       }
