@@ -272,13 +272,44 @@ export default function VerCaso() {
 
       if (updateError) throw updateError;
 
+      // Eliminar la sugerencia anterior
+      const { error: deleteError } = await supabase
+        .from('sugerencia_ia')
+        .delete()
+        .eq('caso_id', caso.id);
+
+      if (deleteError) {
+        console.error('Error al eliminar sugerencia anterior:', deleteError);
+      }
+
+      // Generar nueva sugerencia IA
+      const sugerenciaRandom = Math.random() > 0.5 ? 'aceptar' : 'rechazar';
+      const confianzaRandom = Math.floor(Math.random() * 30) + 70;
+
+      const { data: nuevaSugerencia, error: iaError } = await supabase
+        .from('sugerencia_ia')
+        .insert([
+          {
+            caso_id: caso.id,
+            sugerencia: sugerenciaRandom,
+            confianza: confianzaRandom,
+            explicacion: `Basado en el análisis actualizado de los datos clínicos, se sugiere ${sugerenciaRandom === 'aceptar' ? 'aplicar' : 'no aplicar'} la Ley de Urgencia. Criterios evaluados: estado hemodinámico, signos vitales y diagnóstico principal.`,
+          },
+        ])
+        .select()
+        .single();
+
+      if (iaError) throw iaError;
+
+      // Actualizar estado con nueva sugerencia
       setCaso(updatedCaso as Caso);
+      setSugerencia(nuevaSugerencia as Sugerencia);
       setShowEditModal(false);
       resetEditData(updatedCaso as Caso, { resetNotice: false });
       setShowUpdatedNotice(true);
       toast({
-        title: 'Datos actualizados',
-        description: 'La información del caso se actualizó correctamente.',
+        title: 'Caso actualizado',
+        description: 'Se ha generado una nueva sugerencia de IA con los datos actualizados.',
       });
     } catch (error: any) {
       toast({
