@@ -509,8 +509,8 @@ export default function Dashboard() {
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="aceptado">Aceptado</SelectItem>
-                <SelectItem value="rechazado">Rechazado</SelectItem>
+                <SelectItem value="aceptado">Aplica ley</SelectItem>
+                <SelectItem value="rechazado">No aplica ley</SelectItem>
                 <SelectItem value="derivado">Derivado</SelectItem>
               </SelectContent>
             </Select>
