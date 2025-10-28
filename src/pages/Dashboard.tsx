@@ -18,6 +18,12 @@ interface Caso {
   diagnostico_principal: string;
   estado: 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
   fecha_creacion: string;
+  medico_tratante_id: string;
+}
+
+interface MedicoData {
+  nombre: string;
+  imagen: string | null;
 }
 
 type EstadoFiltro = 'todos' | 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
@@ -29,6 +35,7 @@ export default function Dashboard() {
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
@@ -51,10 +58,30 @@ export default function Dashboard() {
       });
     } else {
       setCasos(data || []);
+      
+      // Cargar información de médicos solo si es médico jefe
+      if (userRole === 'medico_jefe' && data && data.length > 0) {
+        const medicoIds = [...new Set(data.map(caso => caso.medico_tratante_id))];
+        const { data: medicosInfo, error: medicosError } = await supabase
+          .from('user_roles')
+          .select('user_id, nombre, imagen')
+          .in('user_id', medicoIds);
+        
+        if (!medicosError && medicosInfo) {
+          const medicosMap: Record<string, MedicoData> = {};
+          medicosInfo.forEach(medico => {
+            medicosMap[medico.user_id] = {
+              nombre: medico.nombre,
+              imagen: medico.imagen,
+            };
+          });
+          setMedicosData(medicosMap);
+        }
+      }
     }
 
     setLoading(false);
-  }, [toast]);
+  }, [toast, userRole]);
 
   useEffect(() => {
     if (!user) {
@@ -560,12 +587,42 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    <Badge 
-                      variant={getEstadoBadgeVariant(caso.estado)}
-                      className={getEstadoBadgeClassName(caso.estado)}
-                    >
-                      {getEstadoLabel(caso.estado)}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-3">
+                      <Badge 
+                        variant={getEstadoBadgeVariant(caso.estado)}
+                        className={getEstadoBadgeClassName(caso.estado)}
+                      >
+                        {getEstadoLabel(caso.estado)}
+                      </Badge>
+                      
+                      {/* Mostrar información del médico solo para médicos jefe */}
+                      {userRole === 'medico_jefe' && medicosData[caso.medico_tratante_id] && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Avatar className="h-6 w-6 border border-border">
+                            <AvatarImage 
+                              src={medicosData[caso.medico_tratante_id].imagen || ''} 
+                              alt={medicosData[caso.medico_tratante_id].nombre} 
+                            />
+                            <AvatarFallback className="bg-muted text-[10px]">
+                              {medicosData[caso.medico_tratante_id].nombre
+                                ?.split(' ')
+                                .map(n => n[0])
+                                .join('')
+                                .toUpperCase()
+                                .slice(0, 2) || '??'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>
+                            Ingresado por:{' '}
+                            <span className="font-medium text-foreground">
+                              {caso.medico_tratante_id === user?.id 
+                                ? 'usted' 
+                                : medicosData[caso.medico_tratante_id].nombre}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
