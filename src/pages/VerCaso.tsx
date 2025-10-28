@@ -899,14 +899,15 @@ export default function VerCaso() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Editar datos del caso</DialogTitle>
             <DialogDescription>
               Actualiza la información del paciente y sus signos vitales. Se aplican las mismas validaciones que al crear un caso.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-5" onSubmit={handleSaveEdit}>
+          <form className="flex flex-col flex-1 overflow-hidden" onSubmit={handleSaveEdit}>
+          <div className="overflow-y-auto flex-1 pr-2 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="edit-nombre">Nombre completo *</Label>
@@ -1068,8 +1069,9 @@ export default function VerCaso() {
                 )}
               </div>
             </div>
+          </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 mt-4">
               <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={editSaving}>
                 Cancelar
               </Button>
