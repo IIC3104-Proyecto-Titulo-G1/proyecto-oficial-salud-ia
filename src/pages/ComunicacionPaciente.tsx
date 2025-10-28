@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,8 @@ interface Sugerencia {
 
 export default function ComunicacionPaciente() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [caso, setCaso] = useState<Caso | null>(null);
@@ -33,6 +34,8 @@ export default function ComunicacionPaciente() {
   const [sending, setSending] = useState(false);
   const [emailPaciente, setEmailPaciente] = useState('');
   const [comentarioAdicional, setComentarioAdicional] = useState('');
+  // Leer la acción desde los parámetros de la URL (aceptar/rechazar)
+  const accionMedico = (searchParams.get('accion') as 'aceptar' | 'rechazar') || 'aceptar';
 
   useEffect(() => {
     loadData();
@@ -84,6 +87,10 @@ export default function ComunicacionPaciente() {
         if (assignError) throw assignError;
       }
 
+      // Determinar el resultado final basado en la acción del médico
+      const resultadoFinal = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+      const estadoFinal = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+
       // Verificar si ya existe una resolución previa
       const { data: resolucionExistente } = await supabase
         .from('resolucion_caso')
@@ -93,46 +100,64 @@ export default function ComunicacionPaciente() {
 
       if (resolucionExistente) {
         // Si ya existe, actualizar la resolución
+        const updateData: any = {
+          fecha_decision_medico: new Date().toISOString(),
+        };
+
+        if (userRole === 'medico_jefe') {
+          updateData.decision_final = resultadoFinal;
+          updateData.comentario_final = comentarioAdicional;
+          updateData.fecha_decision_medico_jefe = new Date().toISOString();
+        } else {
+          updateData.decision_medico = resultadoFinal;
+          updateData.comentario_medico = comentarioAdicional;
+          updateData.decision_final = resultadoFinal;
+          updateData.comentario_final = comentarioAdicional;
+        }
+
         const { error: updateResolucionError } = await supabase
           .from('resolucion_caso')
-          .update({
-            decision_medico: 'aceptado',
-            comentario_medico: comentarioAdicional,
-            decision_final: 'aceptado',
-            comentario_final: comentarioAdicional,
-            fecha_decision_medico: new Date().toISOString(),
-          })
+          .update(updateData)
           .eq('caso_id', id);
 
         if (updateResolucionError) throw updateResolucionError;
       } else {
         // Si no existe, crear nueva resolución
+        const insertData: any = {
+          caso_id: id,
+          decision_medico: resultadoFinal,
+          comentario_medico: comentarioAdicional,
+          fecha_decision_medico: new Date().toISOString(),
+        };
+
+        if (userRole === 'medico_jefe') {
+          insertData.decision_final = resultadoFinal;
+          insertData.comentario_final = comentarioAdicional;
+          insertData.fecha_decision_medico_jefe = new Date().toISOString();
+        } else {
+          insertData.decision_final = resultadoFinal;
+          insertData.comentario_final = comentarioAdicional;
+        }
+
         const { error: resolucionError } = await supabase
           .from('resolucion_caso')
-          .insert([
-            {
-              caso_id: id,
-              decision_medico: 'aceptado',
-              comentario_medico: comentarioAdicional,
-              decision_final: 'aceptado',
-              comentario_final: comentarioAdicional,
-              fecha_decision_medico: new Date().toISOString(),
-            },
-          ]);
+          .insert([insertData]);
 
         if (resolucionError) throw resolucionError;
       }
 
-      // Actualizar estado del caso a aceptado
+      // Actualizar estado del caso
       const { error: updateError } = await supabase
         .from('casos')
-        .update({ estado: 'aceptado' })
+        .update({ estado: estadoFinal })
         .eq('id', id);
 
       if (updateError) throw updateError;
 
       // Si se debe enviar el correo, llamar al edge function
       if (enviar) {
+        const resultadoEmail = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+        
         const { data: emailData, error: emailError } = await supabase.functions.invoke(
           'send-patient-email',
           {
@@ -140,7 +165,7 @@ export default function ComunicacionPaciente() {
               to: emailPaciente,
               patientName: caso!.nombre_paciente,
               diagnosis: caso!.diagnostico_principal,
-              result: sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado',
+              result: resultadoEmail,
               explanation: sugerencia?.explicacion || '',
               additionalComment: comentarioAdicional || undefined,
             },
@@ -164,12 +189,14 @@ export default function ComunicacionPaciente() {
       }
 
       // Registrar comunicación
+      const resultadoComunicacion = accionMedico === 'aceptar' ? 'aceptado' : 'rechazado';
+      
       const { error: comunicacionError } = await supabase
         .from('comunicaciones_paciente')
         .insert([
           {
             caso_id: id,
-            resultado: sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado',
+            resultado: resultadoComunicacion,
             explicacion: `${sugerencia?.explicacion}\n\n${comentarioAdicional}`,
             enviada: enviar,
             fecha_envio: enviar ? new Date().toISOString() : null,
@@ -206,8 +233,9 @@ export default function ComunicacionPaciente() {
     );
   }
 
-  const resultado = sugerencia.sugerencia === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
-  const resultadoColor = sugerencia.sugerencia === 'aceptar' ? 'text-crm' : 'text-destructive';
+  // El resultado final depende de la acción del médico, no de la sugerencia de IA
+  const resultado = accionMedico === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
+  const resultadoColor = accionMedico === 'aceptar' ? 'text-crm' : 'text-destructive';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -276,7 +304,7 @@ export default function ComunicacionPaciente() {
               </p>
 
               <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
-                sugerencia.sugerencia === 'aceptar' ? 'border-success' : 'border-destructive'
+                accionMedico === 'aceptar' ? 'border-success' : 'border-destructive'
               }`}>
                 <p className="font-semibold text-lg mb-2">
                   Resultado: <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>

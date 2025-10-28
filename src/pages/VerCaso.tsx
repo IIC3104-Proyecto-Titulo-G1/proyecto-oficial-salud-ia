@@ -355,13 +355,13 @@ export default function VerCaso() {
   };
 
   const handleAceptarSugerencia = () => {
-    navigate(`/caso/${id}/comunicacion`);
+    navigate(`/caso/${id}/comunicacion?accion=aceptar`);
   };
 
   const handleRechazarSugerencia = () => {
-    // Si es médico jefe, ir directo a comunicación con paciente
+    // Si es médico jefe, ir directo a comunicación con paciente para rechazar
     if (userRole === 'medico_jefe') {
-      navigate(`/caso/${id}/comunicacion`);
+      navigate(`/caso/${id}/comunicacion?accion=rechazar`);
     } else {
       // Si es médico normal, mostrar modal para derivar
       setShowRejectModal(true);
