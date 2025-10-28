@@ -51,6 +51,8 @@ export default function ComunicacionPaciente() {
       .from('sugerencia_ia')
       .select('sugerencia, explicacion')
       .eq('caso_id', id)
+      .order('fecha_procesamiento', { ascending: false })
+      .limit(1)
       .single();
 
     if (casoData) {
