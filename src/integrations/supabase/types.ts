@@ -317,7 +317,7 @@ export type Database = {
       estado_caso: "pendiente" | "aceptado" | "rechazado" | "derivado"
       resultado_comunicacion: "aceptado" | "rechazado"
       sugerencia_tipo: "aceptar" | "rechazar" | "incierto"
-      tipo_notificacion: "caso_derivado"
+      tipo_notificacion: "caso_derivado" | "caso_resuelto"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -450,7 +450,7 @@ export const Constants = {
       estado_caso: ["pendiente", "aceptado", "rechazado", "derivado"],
       resultado_comunicacion: ["aceptado", "rechazado"],
       sugerencia_tipo: ["aceptar", "rechazar", "incierto"],
-      tipo_notificacion: ["caso_derivado"],
+      tipo_notificacion: ["caso_derivado", "caso_resuelto"],
     },
   },
 } as const
