@@ -354,17 +354,41 @@ export default function VerCaso() {
     }
   };
 
-  const handleAceptarSugerencia = () => {
-    navigate(`/caso/${id}/comunicacion?accion=aceptar`);
+  // Handler para aplicar la ley (resultado final: ley aplicada)
+  const handleAplicarLey = () => {
+    // Si la IA sugiere aplicar la ley, estamos de acuerdo -> ir a comunicación
+    // Si la IA sugiere NO aplicar la ley, estamos en desacuerdo -> derivar o modal
+    if (sugerencia?.sugerencia === 'aceptar') {
+      // Coincidimos con la IA, ir directo a comunicación
+      navigate(`/caso/${id}/comunicacion?accion=aceptar`);
+    } else {
+      // No coincidimos con la IA
+      if (userRole === 'medico_jefe') {
+        // Médico jefe decide directamente
+        navigate(`/caso/${id}/comunicacion?accion=rechazar`);
+      } else {
+        // Médico normal, mostrar modal para derivar
+        setShowRejectModal(true);
+      }
+    }
   };
 
-  const handleRechazarSugerencia = () => {
-    // Si es médico jefe, ir directo a comunicación con paciente para rechazar
-    if (userRole === 'medico_jefe') {
-      navigate(`/caso/${id}/comunicacion?accion=rechazar`);
+  // Handler para NO aplicar la ley (resultado final: ley no aplicada)
+  const handleNoAplicarLey = () => {
+    // Si la IA sugiere NO aplicar la ley, estamos de acuerdo -> ir a comunicación
+    // Si la IA sugiere aplicar la ley, estamos en desacuerdo -> derivar o modal
+    if (sugerencia?.sugerencia === 'rechazar') {
+      // Coincidimos con la IA, ir directo a comunicación
+      navigate(`/caso/${id}/comunicacion?accion=aceptar`);
     } else {
-      // Si es médico normal, mostrar modal para derivar
-      setShowRejectModal(true);
+      // No coincidimos con la IA
+      if (userRole === 'medico_jefe') {
+        // Médico jefe decide directamente
+        navigate(`/caso/${id}/comunicacion?accion=rechazar`);
+      } else {
+        // Médico normal, mostrar modal para derivar
+        setShowRejectModal(true);
+      }
     }
   };
 
@@ -664,20 +688,20 @@ export default function VerCaso() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   size="lg"
-                  onClick={handleAceptarSugerencia}
+                  onClick={handleAplicarLey}
                   className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
-                  Aceptar Sugerencia
+                  Aplicar Ley
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={handleRechazarSugerencia}
+                  onClick={handleNoAplicarLey}
                   className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
                 >
                   <XCircle className="w-5 h-5 mr-2" />
-                  Rechazar Sugerencia
+                  No Aplicar Ley
                 </Button>
               </div>
             </CardContent>
@@ -696,20 +720,20 @@ export default function VerCaso() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   size="lg"
-                  onClick={handleAceptarSugerencia}
+                  onClick={handleAplicarLey}
                   className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
-                  Volver a Aceptar
+                  Aplicar Ley
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={handleRechazarSugerencia}
+                  onClick={handleNoAplicarLey}
                   className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
                 >
                   <XCircle className="w-5 h-5 mr-2" />
-                  Cambiar a Rechazar
+                  No Aplicar Ley
                 </Button>
               </div>
             </CardContent>
@@ -766,20 +790,20 @@ export default function VerCaso() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Button
                     size="lg"
-                    onClick={handleAceptarSugerencia}
+                    onClick={handleAplicarLey}
                     className="w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30"
                   >
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Aceptar Sugerencia
+                    Aplicar Ley
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
-                    onClick={handleRechazarSugerencia}
+                    onClick={handleNoAplicarLey}
                     className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
                   >
                     <XCircle className="w-5 h-5 mr-2" />
-                    Rechazar Definitivamente
+                    No Aplicar Ley
                   </Button>
                 </div>
               </CardContent>
@@ -1014,12 +1038,9 @@ export default function VerCaso() {
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rechazar Sugerencia de IA</DialogTitle>
+            <DialogTitle>Derivar a Médico Jefe</DialogTitle>
             <DialogDescription>
-              {userRole === 'medico_jefe' 
-                ? 'Al rechazar la sugerencia como médico jefe, el caso será marcado como rechazado definitivamente.'
-                : 'Al rechazar la sugerencia, el caso será derivado automáticamente al pool de médicos jefe.'}
-              {' '}Por favor, ingrese una justificación.
+              Como tu decisión es opuesta a la sugerencia de la inteligencia artificial, el caso será derivado a un médico jefe para su verificación. Por favor, ingrese una justificación.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
