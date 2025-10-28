@@ -312,7 +312,7 @@ export default function Dashboard() {
       {/* Main Content con diseño moderno */}
       <main className="container mx-auto px-6 py-10 max-w-7xl">
         {/* Stats Cards Grid mejorado */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
           {/* Total Casos */}
           <Card 
             className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
@@ -386,31 +386,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Ley Aplicada */}
-          <Card 
-            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-            onClick={() => handleCardClick('aceptado')}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
-                  <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
-                  Aplicada
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
-                <p className="text-4xl font-bold text-foreground">
-                  {casosPorEstado.aceptado}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Ley No Aplicada */}
           <Card 
@@ -433,6 +409,32 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-muted-foreground mb-1">Ley No Aplicada</p>
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.rechazado}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ley Aplicada */}
+          <Card 
+            className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+            onClick={() => handleCardClick('aceptado')}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
+                  <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
+                  Aplicada
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
+                <p className="text-4xl font-bold text-foreground">
+                  {casosPorEstado.aceptado}
                 </p>
               </div>
             </CardContent>
