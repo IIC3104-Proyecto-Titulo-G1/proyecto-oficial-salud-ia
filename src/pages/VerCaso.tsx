@@ -174,37 +174,36 @@ export default function VerCaso() {
         .from('resolucion_caso')
         .select('comentario_medico, decision_final, comentario_final')
         .eq('caso_id', id)
-        .single();
+        .maybeSingle();
 
       setResolucionInfo(resolucionData);
 
-      // Si fue derivado, cargar info del médico jefe
+      // Cargar info del médico tratante que cerró el caso (siempre)
+      const { data: medicoTratanteData, error: medicoTratanteError } = await supabase
+        .from('user_roles')
+        .select('nombre, imagen')
+        .eq('user_id', casoData.medico_tratante_id)
+        .maybeSingle();
+
+      if (medicoTratanteError) {
+        console.error('Error al cargar médico tratante:', medicoTratanteError);
+      }
+
+      setMedicoInfo(medicoTratanteData);
+
+      // Si fue derivado, también cargar info del médico jefe
       if (casoData?.medico_jefe_id) {
-        const { data: medicoJefeData } = await supabase
+        const { data: medicoJefeData, error: medicoJefeError } = await supabase
           .from('user_roles')
           .select('nombre, imagen')
           .eq('user_id', casoData.medico_jefe_id)
-          .single();
+          .maybeSingle();
+
+        if (medicoJefeError) {
+          console.error('Error al cargar médico jefe:', medicoJefeError);
+        }
 
         setMedicoJefeInfo(medicoJefeData);
-        
-        // También cargar info del médico tratante
-        const { data: medicoData } = await supabase
-          .from('user_roles')
-          .select('nombre, imagen')
-          .eq('user_id', casoData.medico_tratante_id)
-          .single();
-        
-        setMedicoInfo(medicoData);
-      } else {
-        // Si no fue derivado, cargar info del médico tratante que cerró el caso
-        const { data: medicoData } = await supabase
-          .from('user_roles')
-          .select('nombre, imagen')
-          .eq('user_id', casoData.medico_tratante_id)
-          .single();
-        
-        setMedicoInfo(medicoData);
       }
     }
 
