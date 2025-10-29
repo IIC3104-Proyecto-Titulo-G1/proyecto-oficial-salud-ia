@@ -15,6 +15,8 @@ interface Caso {
   nombre_paciente: string;
   email_paciente: string;
   diagnostico_principal: string;
+  estado: string;
+  medico_jefe_id?: string;
 }
 
 interface Sugerencia {
@@ -46,7 +48,7 @@ export default function ComunicacionPaciente() {
 
     const { data: casoData } = await supabase
       .from('casos')
-      .select('id, nombre_paciente, email_paciente, diagnostico_principal')
+      .select('id, nombre_paciente, email_paciente, diagnostico_principal, estado, medico_jefe_id')
       .eq('id', id)
       .single();
 
@@ -56,7 +58,7 @@ export default function ComunicacionPaciente() {
       .eq('caso_id', id)
       .order('fecha_procesamiento', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     // Cargar comunicación previa si existe
     const { data: comunicacionPrevia } = await supabase
@@ -107,14 +109,21 @@ export default function ComunicacionPaciente() {
         if (assignError) throw assignError;
       }
 
-      // Determinar el resultado final basado en la acción del médico y la sugerencia de IA
+      // Determinar el resultado final
       let resultadoFinal: 'aceptado' | 'rechazado';
-      if (accionMedico === 'aceptar') {
-        // Médico acepta la sugerencia de IA
-        resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado';
+      
+      // Si el caso ya está cerrado, usar el estado del caso directamente
+      if (casoActual.estado === 'aceptado' || casoActual.estado === 'rechazado') {
+        resultadoFinal = casoActual.estado as 'aceptado' | 'rechazado';
       } else {
-        // Médico rechaza la sugerencia de IA (hace lo opuesto)
-        resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'rechazado' : 'aceptado';
+        // Si no está cerrado, determinar basado en la acción del médico y la sugerencia de IA
+        if (accionMedico === 'aceptar') {
+          // Médico acepta la sugerencia de IA
+          resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado';
+        } else {
+          // Médico rechaza la sugerencia de IA (hace lo opuesto)
+          resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'rechazado' : 'aceptado';
+        }
       }
       const estadoFinal = resultadoFinal;
 
@@ -173,13 +182,15 @@ export default function ComunicacionPaciente() {
         if (resolucionError) throw resolucionError;
       }
 
-      // Actualizar estado del caso
-      const { error: updateError } = await supabase
-        .from('casos')
-        .update({ estado: estadoFinal })
-        .eq('id', id);
+      // Actualizar estado del caso solo si no está cerrado
+      if (casoActual.estado !== 'aceptado' && casoActual.estado !== 'rechazado') {
+        const { error: updateError } = await supabase
+          .from('casos')
+          .update({ estado: estadoFinal })
+          .eq('id', id);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      }
 
       // Si se debe enviar el correo, llamar al edge function
       if (enviar) {
@@ -252,7 +263,7 @@ export default function ComunicacionPaciente() {
   };
 
 
-  if (loading || !caso || !sugerencia) {
+  if (loading || !caso) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Cargando...</p>
@@ -260,17 +271,24 @@ export default function ComunicacionPaciente() {
     );
   }
 
-  // El resultado final depende de si el médico acepta o rechaza la sugerencia de IA
-  // Si acepta la sugerencia: resultado = sugerencia de IA
-  // Si rechaza la sugerencia: resultado = opuesto a la sugerencia de IA
+  // Determinar el resultado para mostrar en la previsualización
   let resultado: string;
-  if (accionMedico === 'aceptar') {
-    // Médico acepta la sugerencia de IA
-    resultado = sugerencia.sugerencia === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
+  
+  // Si el caso ya está cerrado, usar el estado del caso
+  if (caso.estado === 'aceptado' || caso.estado === 'rechazado') {
+    resultado = caso.estado === 'aceptado' ? 'ACTIVADA' : 'NO ACTIVADA';
+  } else if (sugerencia) {
+    // Si no está cerrado, calcular basado en acción y sugerencia
+    if (accionMedico === 'aceptar') {
+      resultado = sugerencia.sugerencia === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
+    } else {
+      resultado = sugerencia.sugerencia === 'aceptar' ? 'NO ACTIVADA' : 'ACTIVADA';
+    }
   } else {
-    // Médico rechaza la sugerencia de IA (hace lo opuesto)
-    resultado = sugerencia.sugerencia === 'aceptar' ? 'NO ACTIVADA' : 'ACTIVADA';
+    // Fallback si no hay sugerencia
+    resultado = 'NO ACTIVADA';
   }
+  
   const resultadoColor = resultado === 'ACTIVADA' ? 'text-crm' : 'text-destructive';
 
   return (
@@ -360,7 +378,7 @@ export default function ComunicacionPaciente() {
 
               <div>
                 <p className="font-semibold mb-2">Explicación del Análisis:</p>
-                <p className="text-sm text-muted-foreground">{sugerencia.explicacion}</p>
+                <p className="text-sm text-muted-foreground">{sugerencia?.explicacion || 'Análisis realizado por el equipo médico.'}</p>
               </div>
 
               <div className="space-y-2">
