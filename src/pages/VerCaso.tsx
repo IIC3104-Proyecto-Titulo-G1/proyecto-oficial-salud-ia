@@ -610,47 +610,40 @@ export default function VerCaso() {
 
       if (updateError) throw updateError;
 
-      // Si tenemos una sugerencia original, asegurarnos de que existe en la BD
+      // Restaurar la sugerencia original: eliminar TODAS las sugerencias y crear una nueva con los datos originales
       if (originalSugerenciaData) {
-        // Verificar si la sugerencia original todavía existe
-        const { data: sugerenciaExiste } = await supabase
-          .from('sugerencia_ia')
-          .select('id')
-          .eq('id', originalSugerenciaData.id)
-          .maybeSingle();
-
-        if (!sugerenciaExiste) {
-          // Si no existe, recrearla
-          const { error: insertError } = await supabase
-            .from('sugerencia_ia')
-            .insert([{
-              id: originalSugerenciaData.id,
-              caso_id: id,
-              sugerencia: originalSugerenciaData.sugerencia,
-              confianza: originalSugerenciaData.confianza,
-              explicacion: originalSugerenciaData.explicacion,
-            }]);
-
-          if (insertError) {
-            console.error('Error al restaurar sugerencia original:', insertError);
-          }
-        }
-
-        // Eliminar todas las sugerencias EXCEPTO la original
-        const { error: deleteError } = await supabase
+        // Primero, eliminar TODAS las sugerencias del caso
+        const { error: deleteAllError } = await supabase
           .from('sugerencia_ia')
           .delete()
-          .eq('caso_id', id)
-          .neq('id', originalSugerenciaData.id);
+          .eq('caso_id', id);
 
-        if (deleteError) {
-          console.error('Error al eliminar sugerencias nuevas:', deleteError);
+        if (deleteAllError) {
+          console.error('Error al eliminar todas las sugerencias:', deleteAllError);
         }
+
+        // Luego, crear una nueva sugerencia con los datos originales
+        const { data: nuevaSugerencia, error: insertError } = await supabase
+          .from('sugerencia_ia')
+          .insert([{
+            caso_id: id,
+            sugerencia: originalSugerenciaData.sugerencia,
+            confianza: originalSugerenciaData.confianza,
+            explicacion: originalSugerenciaData.explicacion,
+          }])
+          .select()
+          .single();
+
+        if (insertError) {
+          throw new Error('Error al restaurar la sugerencia original: ' + insertError.message);
+        }
+
+        // Actualizar el estado con la nueva sugerencia creada
+        setSugerencia(nuevaSugerencia);
       }
 
-      // Actualizar estados con datos originales
+      // Actualizar estados con datos restaurados
       setCaso(restoredCaso as Caso);
-      setSugerencia(originalSugerenciaData);
       setShowReopenCase(false);
       setShowUpdatedNotice(false);
       
