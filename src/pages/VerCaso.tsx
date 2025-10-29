@@ -34,6 +34,7 @@ interface Caso {
 }
 
 interface Sugerencia {
+  id: string;
   sugerencia: 'aceptar' | 'rechazar' | 'incierto';
   confianza: number;
   explicacion: string;
@@ -89,6 +90,11 @@ export default function VerCaso() {
   });
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [showUpdatedNotice, setShowUpdatedNotice] = useState(false);
+  
+  // Estados para guardar datos originales en casos cerrados
+  const [originalCasoData, setOriginalCasoData] = useState<Caso | null>(null);
+  const [originalSugerenciaData, setOriginalSugerenciaData] = useState<Sugerencia | null>(null);
+  const [isCancelingEdit, setIsCancelingEdit] = useState(false);
 
   useEffect(() => {
     loadCaso();
@@ -194,6 +200,13 @@ export default function VerCaso() {
 
     setCaso(casoData);
     setSugerencia(sugerenciaData);
+    
+    // Si el caso está cerrado y no tenemos datos originales guardados, guardarlos
+    if ((casoData?.estado === 'aceptado' || casoData?.estado === 'rechazado') && !originalCasoData) {
+      setOriginalCasoData(casoData);
+      setOriginalSugerenciaData(sugerenciaData);
+    }
+    
     setLoading(false);
   };
 
@@ -567,6 +580,70 @@ export default function VerCaso() {
     }
   };
 
+  // Handler para cancelar la edición y restaurar datos originales
+  const handleCancelEdit = async () => {
+    if (!originalCasoData || !id) return;
+    
+    setIsCancelingEdit(true);
+    
+    try {
+      // Restaurar los datos del caso a los valores originales
+      const { data: restoredCaso, error: updateError } = await supabase
+        .from('casos')
+        .update({
+          nombre_paciente: originalCasoData.nombre_paciente,
+          edad_paciente: originalCasoData.edad_paciente,
+          sexo_paciente: originalCasoData.sexo_paciente,
+          email_paciente: originalCasoData.email_paciente,
+          diagnostico_principal: originalCasoData.diagnostico_principal,
+          sintomas: originalCasoData.sintomas,
+          historia_clinica: originalCasoData.historia_clinica,
+          presion_arterial: originalCasoData.presion_arterial,
+          frecuencia_cardiaca: originalCasoData.frecuencia_cardiaca,
+          temperatura: originalCasoData.temperatura,
+          saturacion_oxigeno: originalCasoData.saturacion_oxigeno,
+          frecuencia_respiratoria: originalCasoData.frecuencia_respiratoria,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Eliminar todas las sugerencias creadas después de la original
+      if (originalSugerenciaData) {
+        const { error: deleteError } = await supabase
+          .from('sugerencia_ia')
+          .delete()
+          .eq('caso_id', id)
+          .neq('id', originalSugerenciaData.id);
+
+        if (deleteError) {
+          console.error('Error al eliminar sugerencias nuevas:', deleteError);
+        }
+      }
+
+      // Actualizar estados con datos originales
+      setCaso(restoredCaso as Caso);
+      setSugerencia(originalSugerenciaData);
+      setShowReopenCase(false);
+      setShowUpdatedNotice(false);
+      
+      toast({
+        title: 'Edición cancelada',
+        description: 'Se han restaurado los datos originales del caso.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error al cancelar edición',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCancelingEdit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -906,6 +983,18 @@ export default function VerCaso() {
                   No Aplicar Ley
                 </Button>
               </div>
+              {/* Botón para cancelar edición en casos cerrados que han sido reabiertos */}
+              {(caso.estado === 'aceptado' || caso.estado === 'rechazado') && showReopenCase && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isCancelingEdit}
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                >
+                  {isCancelingEdit ? 'Cancelando...' : 'Cancelar Edición'}
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
