@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit, Mail } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit, Mail, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Caso {
   id: string;
@@ -710,14 +711,30 @@ export default function VerCaso() {
          caso.medico_tratante_id === user?.id && (
           <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
-              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
-              </CardTitle>
-              <CardDescription>
-                {caso.estado === 'aceptado' 
-                  ? 'Ha aplicado definitivamente la ley de urgencia a este caso.'
-                  : 'Ha determinado que este caso no aplica para la ley de urgencia.'}
-              </CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                    {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+                  </CardTitle>
+                  <CardDescription>
+                    {caso.estado === 'aceptado' 
+                      ? 'Ha aplicado definitivamente la ley de urgencia a este caso.'
+                      : 'Ha determinado que este caso no aplica para la ley de urgencia.'}
+                  </CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors cursor-help">
+                        <Info className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>El caso se encuentra cerrado. La edición de los casos cerrados solo está permitida para médicos jefe.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {resolucionInfo?.comentario_final && (
@@ -745,15 +762,31 @@ export default function VerCaso() {
          caso.medico_tratante_id === user?.id && (
           <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
-              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                {caso.estado === 'aceptado' ? 'Ley Aplicada por Médico Jefe' : 'Ley No Aplicada por Médico Jefe'}
-              </CardTitle>
-              <CardDescription>
-                {medicoJefeInfo && `Dr(a). ${medicoJefeInfo.nombre} ha `}
-                {caso.estado === 'aceptado' 
-                  ? 'aplicado definitivamente la ley de urgencia a este caso.'
-                  : 'determinado que este caso no aplica para la ley de urgencia.'}
-              </CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                    {caso.estado === 'aceptado' ? 'Ley Aplicada por Médico Jefe' : 'Ley No Aplicada por Médico Jefe'}
+                  </CardTitle>
+                  <CardDescription>
+                    {medicoJefeInfo && `Dr(a). ${medicoJefeInfo.nombre} ha `}
+                    {caso.estado === 'aceptado' 
+                      ? 'aplicado definitivamente la ley de urgencia a este caso.'
+                      : 'determinado que este caso no aplica para la ley de urgencia.'}
+                  </CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors cursor-help">
+                        <Info className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>El caso se encuentra cerrado. La edición de los casos cerrados solo está permitida para médicos jefe.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {resolucionInfo?.comentario_medico && (
