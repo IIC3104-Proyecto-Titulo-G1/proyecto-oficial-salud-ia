@@ -62,14 +62,11 @@ export default function ComunicacionPaciente() {
       .limit(1)
       .maybeSingle();
 
-    // Cargar comunicación previa si existe
-    const { data: comunicacionPrevia } = await supabase
-      .from('comunicaciones_paciente')
-      .select('explicacion, enviada')
+    // Cargar resolución para precargar comentario del médico
+    const { data: resolucionData } = await supabase
+      .from('resolucion_caso')
+      .select('comentario_final, comentario_medico')
       .eq('caso_id', id)
-      .eq('enviada', true)
-      .order('fecha_envio', { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (casoData) {
@@ -78,13 +75,13 @@ export default function ComunicacionPaciente() {
     }
     setSugerencia(sugerenciaData);
     
-    // Si hay comunicación previa, pre-cargar el comentario adicional
-    if (comunicacionPrevia?.explicacion) {
-      const lineas = comunicacionPrevia.explicacion.split('\n\n');
-      if (lineas.length > 1) {
-        // La última parte es el comentario adicional
-        setComentarioAdicional(lineas[lineas.length - 1]);
-      }
+    // Precargar comentario desde resolucion_caso
+    if (resolucionData?.comentario_final) {
+      // Si ya hay una resolución final guardada, usarla
+      setComentarioAdicional(resolucionData.comentario_final);
+    } else if (resolucionData?.comentario_medico) {
+      // Si solo hay comentario del médico tratante, usarlo
+      setComentarioAdicional(resolucionData.comentario_medico);
     }
     
     setLoading(false);
@@ -143,28 +140,25 @@ export default function ComunicacionPaciente() {
         .maybeSingle();
 
       if (resolucionExistente) {
-        // Si ya existe, actualizar la resolución
-        const updateData: any = {
-          fecha_decision_medico: new Date().toISOString(),
-        };
+        // Si ya existe, actualizar solo el comentario del email si cambió
+        const updateData: any = {};
 
-        if (userRole === 'medico_jefe') {
-          updateData.decision_final = resultadoFinal;
-          updateData.comentario_final = comentarioAdicional;
-          updateData.fecha_decision_medico_jefe = new Date().toISOString();
-        } else {
-          updateData.decision_medico = resultadoFinal;
+        // Solo actualizar si no es médico jefe o si el comentario cambió
+        if (userRole !== 'medico_jefe') {
           updateData.comentario_medico = comentarioAdicional;
-          updateData.decision_final = resultadoFinal;
-          updateData.comentario_final = comentarioAdicional;
+          updateData.decision_medico = resultadoFinal;
+          updateData.fecha_decision_medico = new Date().toISOString();
         }
 
-        const { error: updateResolucionError } = await supabase
-          .from('resolucion_caso')
-          .update(updateData)
-          .eq('caso_id', id);
+        // Solo actualizar si hay cambios
+        if (Object.keys(updateData).length > 0) {
+          const { error: updateResolucionError } = await supabase
+            .from('resolucion_caso')
+            .update(updateData)
+            .eq('caso_id', id);
 
-        if (updateResolucionError) throw updateResolucionError;
+          if (updateResolucionError) throw updateResolucionError;
+        }
       } else {
         // Si no existe, crear nueva resolución
         const insertData: any = {

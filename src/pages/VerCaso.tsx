@@ -75,6 +75,9 @@ export default function VerCaso() {
   const [editSaving, setEditSaving] = useState(false);
   const [justificacion, setJustificacion] = useState('');
   const [processingDecision, setProcessingDecision] = useState(false);
+  const [showExplicacionModal, setShowExplicacionModal] = useState(false);
+  const [explicacionDecision, setExplicacionDecision] = useState('');
+  const [decisionTemporal, setDecisionTemporal] = useState<'aplicar' | 'rechazar' | null>(null);
   const [editData, setEditData] = useState({
     nombre_paciente: '',
     edad_paciente: '',
@@ -442,18 +445,20 @@ export default function VerCaso() {
 
   // Handler para aplicar la ley (resultado final: ley aplicada)
   const handleAplicarLey = () => {
-    // Siempre ir a comunicación con accion=aplicar
-    // Esto indicará que el médico quiere aplicar la ley, independientemente de la sugerencia IA
+    // Si es médico jefe en caso derivado o editado, pedir explicación primero
+    if (userRole === 'medico_jefe' && (caso?.estado === 'derivado' || caso?.estado === 'aceptado' || caso?.estado === 'rechazado')) {
+      setDecisionTemporal('aplicar');
+      setShowExplicacionModal(true);
+      return;
+    }
+
+    // Flujo normal para médicos o casos pendientes
     if (sugerencia?.sugerencia === 'aceptar') {
-      // Coincidimos con la IA
       navigate(`/caso/${id}/comunicacion?accion=aceptar&decision=aplicar`);
     } else {
-      // No coincidimos con la IA
       if (userRole === 'medico_jefe') {
-        // Médico jefe decide directamente aplicar la ley
         navigate(`/caso/${id}/comunicacion?accion=rechazar&decision=aplicar`);
       } else {
-        // Médico normal: derivar
         setShowRejectModal(true);
       }
     }
@@ -461,20 +466,82 @@ export default function VerCaso() {
 
   // Handler para NO aplicar la ley (resultado final: ley no aplicada)
   const handleNoAplicarLey = () => {
-    // Siempre ir a comunicación con decision=rechazar
-    // Esto indicará que el médico NO quiere aplicar la ley, independientemente de la sugerencia IA
+    // Si es médico jefe en caso derivado o editado, pedir explicación primero
+    if (userRole === 'medico_jefe' && (caso?.estado === 'derivado' || caso?.estado === 'aceptado' || caso?.estado === 'rechazado')) {
+      setDecisionTemporal('rechazar');
+      setShowExplicacionModal(true);
+      return;
+    }
+
+    // Flujo normal para médicos o casos pendientes
     if (sugerencia?.sugerencia === 'rechazar') {
-      // Coincidimos con la IA
       navigate(`/caso/${id}/comunicacion?accion=aceptar&decision=rechazar`);
     } else {
-      // No coincidimos con la IA
       if (userRole === 'medico_jefe') {
-        // Médico jefe decide directamente NO aplicar la ley
         navigate(`/caso/${id}/comunicacion?accion=rechazar&decision=rechazar`);
       } else {
-        // Médico normal: derivar
         setShowRejectModal(true);
       }
+    }
+  };
+
+  // Handler para confirmar explicación y continuar al email
+  const handleConfirmExplicacion = async () => {
+    if (!decisionTemporal) return;
+
+    setProcessingDecision(true);
+
+    try {
+      // Guardar la explicación en resolucion_caso
+      const { data: resolucionExistente } = await supabase
+        .from('resolucion_caso')
+        .select('*')
+        .eq('caso_id', id)
+        .maybeSingle();
+
+      const resultadoFinal = decisionTemporal === 'aplicar' ? 'aceptado' : 'rechazado';
+
+      if (resolucionExistente) {
+        await supabase
+          .from('resolucion_caso')
+          .update({
+            decision_final: resultadoFinal,
+            comentario_final: explicacionDecision.trim() || null,
+            fecha_decision_medico_jefe: new Date().toISOString(),
+          })
+          .eq('caso_id', id);
+      } else {
+        await supabase
+          .from('resolucion_caso')
+          .insert([
+            {
+              caso_id: id,
+              decision_final: resultadoFinal,
+              comentario_final: explicacionDecision.trim() || null,
+              fecha_decision_medico_jefe: new Date().toISOString(),
+            },
+          ]);
+      }
+
+      // Asignar médico jefe si no está asignado
+      if (!caso?.medico_jefe_id) {
+        await supabase
+          .from('casos')
+          .update({ medico_jefe_id: user?.id })
+          .eq('id', id);
+      }
+
+      // Navegar a comunicación
+      const accion = sugerencia?.sugerencia === (decisionTemporal === 'aplicar' ? 'aceptar' : 'rechazar') ? 'aceptar' : 'rechazar';
+      navigate(`/caso/${id}/comunicacion?accion=${accion}&decision=${decisionTemporal}`);
+    } catch (error: any) {
+      toast({
+        title: 'Error al guardar explicación',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessingDecision(false);
     }
   };
 
@@ -1369,6 +1436,46 @@ export default function VerCaso() {
               disabled={processingDecision}
             >
               {processingDecision ? 'Procesando...' : 'Confirmar Rechazo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Explicación de Decisión (Médico Jefe) */}
+      <Dialog open={showExplicacionModal} onOpenChange={setShowExplicacionModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Explicación de Decisión</DialogTitle>
+            <DialogDescription>
+              Por favor, explique brevemente su decisión sobre {decisionTemporal === 'aplicar' ? 'aplicar' : 'no aplicar'} la ley de urgencia.
+              Esta explicación será visible en la resolución final del caso (opcional).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="explicacion">Explicación (Opcional)</Label>
+              <Textarea
+                id="explicacion"
+                value={explicacionDecision}
+                onChange={(e) => setExplicacionDecision(e.target.value)}
+                rows={4}
+                placeholder="Explique los motivos de su decisión..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowExplicacionModal(false);
+                setExplicacionDecision('');
+                setDecisionTemporal(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmExplicacion} disabled={processingDecision}>
+              {processingDecision ? 'Procesando...' : 'Continuar'}
             </Button>
           </DialogFooter>
         </DialogContent>
