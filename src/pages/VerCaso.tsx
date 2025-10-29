@@ -926,19 +926,29 @@ export default function VerCaso() {
               )}
               {resolucionInfo?.comentario_final && (
                 <div className="bg-white rounded-lg p-4 border border-muted">
-                  <p className="text-sm font-medium mb-2">Resolución final:</p>
+                  <p className="text-sm font-medium mb-2">Resolución Final:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
                 </div>
               )}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => setShowReopenCase(true)}
-                className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
-              >
-                <Edit className="w-5 h-5 mr-2" />
-                Editar Caso
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  size="lg"
+                  onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                  className="w-full"
+                >
+                  <Mail className="w-5 h-5 mr-2" />
+                  Enviar Correo a Paciente
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setShowReopenCase(true)}
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                >
+                  <Edit className="w-5 h-5 mr-2" />
+                  Editar Caso
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
