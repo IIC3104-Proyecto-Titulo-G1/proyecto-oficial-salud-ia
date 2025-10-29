@@ -168,6 +168,7 @@ export type Database = {
       resolucion_caso: {
         Row: {
           caso_id: string
+          comentario_email: string | null
           comentario_final: string | null
           comentario_medico: string | null
           decision_final:
@@ -180,6 +181,7 @@ export type Database = {
         }
         Insert: {
           caso_id: string
+          comentario_email?: string | null
           comentario_final?: string | null
           comentario_medico?: string | null
           decision_final?:
@@ -192,6 +194,7 @@ export type Database = {
         }
         Update: {
           caso_id?: string
+          comentario_email?: string | null
           comentario_final?: string | null
           comentario_medico?: string | null
           decision_final?:
