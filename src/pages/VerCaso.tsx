@@ -161,31 +161,35 @@ export default function VerCaso() {
       setResolucionInfo(resolucionData);
     }
 
-    // Si el caso fue cerrado y derivado, cargar info del médico jefe y la resolución completa
-    if ((casoData?.estado === 'aceptado' || casoData?.estado === 'rechazado') && casoData?.medico_jefe_id) {
-      const { data: medicoJefeData } = await supabase
-        .from('user_roles')
-        .select('nombre, imagen')
-        .eq('user_id', casoData.medico_jefe_id)
-        .single();
-
+    // Si el caso fue cerrado, cargar la resolución
+    if (casoData?.estado === 'aceptado' || casoData?.estado === 'rechazado') {
       const { data: resolucionData } = await supabase
         .from('resolucion_caso')
         .select('comentario_medico, decision_final, comentario_final')
         .eq('caso_id', id)
         .single();
 
-      setMedicoJefeInfo(medicoJefeData);
       setResolucionInfo(resolucionData);
-      
-      // También cargar info del médico tratante
-      const { data: medicoData } = await supabase
-        .from('user_roles')
-        .select('nombre, imagen')
-        .eq('user_id', casoData.medico_tratante_id)
-        .single();
-      
-      setMedicoInfo(medicoData);
+
+      // Si fue derivado, cargar info del médico jefe
+      if (casoData?.medico_jefe_id) {
+        const { data: medicoJefeData } = await supabase
+          .from('user_roles')
+          .select('nombre, imagen')
+          .eq('user_id', casoData.medico_jefe_id)
+          .single();
+
+        setMedicoJefeInfo(medicoJefeData);
+        
+        // También cargar info del médico tratante
+        const { data: medicoData } = await supabase
+          .from('user_roles')
+          .select('nombre, imagen')
+          .eq('user_id', casoData.medico_tratante_id)
+          .single();
+        
+        setMedicoInfo(medicoData);
+      }
     }
 
     setCaso(casoData);
@@ -617,6 +621,41 @@ export default function VerCaso() {
                 </div>
               </CardContent>
             )}
+          </Card>
+        )}
+
+        {/* Caso cerrado sin derivar - Para médicos normales */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
+         userRole === 'medico' && 
+         !caso.medico_jefe_id && 
+         caso.medico_tratante_id === user?.id && (
+          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
+            <CardHeader>
+              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+              </CardTitle>
+              <CardDescription>
+                {caso.estado === 'aceptado' 
+                  ? 'Ha aplicado definitivamente la ley de urgencia a este caso.'
+                  : 'Ha determinado que este caso no aplica para la ley de urgencia.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {resolucionInfo?.comentario_final && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Resolución Final:</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
+                </div>
+              )}
+              <Button
+                size="lg"
+                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                className="w-full"
+              >
+                <Mail className="w-5 h-5 mr-2" />
+                Enviar Correo a Paciente
+              </Button>
+            </CardContent>
           </Card>
         )}
 
