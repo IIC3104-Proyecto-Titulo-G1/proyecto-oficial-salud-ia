@@ -46,6 +46,13 @@ interface MedicoInfo {
 
 interface ResolucionInfo {
   comentario_medico: string;
+  decision_final?: 'aceptado' | 'rechazado';
+  comentario_final?: string;
+}
+
+interface MedicoJefeInfo {
+  nombre: string;
+  imagen: string | null;
 }
 
 export default function VerCaso() {
@@ -56,10 +63,13 @@ export default function VerCaso() {
   const [caso, setCaso] = useState<Caso | null>(null);
   const [sugerencia, setSugerencia] = useState<Sugerencia | null>(null);
   const [medicoInfo, setMedicoInfo] = useState<MedicoInfo | null>(null);
+  const [medicoJefeInfo, setMedicoJefeInfo] = useState<MedicoJefeInfo | null>(null);
   const [resolucionInfo, setResolucionInfo] = useState<ResolucionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditWarning, setShowEditWarning] = useState(false);
+  const [showReopenCase, setShowReopenCase] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [justificacion, setJustificacion] = useState('');
   const [processingDecision, setProcessingDecision] = useState(false);
@@ -149,6 +159,33 @@ export default function VerCaso() {
 
       setMedicoInfo(medicoData);
       setResolucionInfo(resolucionData);
+    }
+
+    // Si el caso fue cerrado y derivado, cargar info del médico jefe y la resolución completa
+    if ((casoData?.estado === 'aceptado' || casoData?.estado === 'rechazado') && casoData?.medico_jefe_id) {
+      const { data: medicoJefeData } = await supabase
+        .from('user_roles')
+        .select('nombre, imagen')
+        .eq('user_id', casoData.medico_jefe_id)
+        .single();
+
+      const { data: resolucionData } = await supabase
+        .from('resolucion_caso')
+        .select('comentario_medico, decision_final, comentario_final')
+        .eq('caso_id', id)
+        .single();
+
+      setMedicoJefeInfo(medicoJefeData);
+      setResolucionInfo(resolucionData);
+      
+      // También cargar info del médico tratante
+      const { data: medicoData } = await supabase
+        .from('user_roles')
+        .select('nombre, imagen')
+        .eq('user_id', casoData.medico_tratante_id)
+        .single();
+      
+      setMedicoInfo(medicoData);
     }
 
     setCaso(casoData);
@@ -250,6 +287,11 @@ export default function VerCaso() {
   const handleEditChange = (field: keyof typeof editData, value: string) => {
     setEditData((prev) => ({ ...prev, [field]: value }));
     setEditErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handleConfirmEditWithWarning = () => {
+    setShowEditWarning(false);
+    setShowEditModal(true);
   };
 
   const handleSaveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -578,7 +620,7 @@ export default function VerCaso() {
           </Card>
         )}
 
-        {/* Ley Aplicada / No Aplicada - Para médicos normales en casos resueltos */}
+        {/* Caso cerrado derivado - Para médicos normales */}
         {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
          userRole === 'medico' && 
          caso.medico_jefe_id && 
@@ -586,15 +628,28 @@ export default function VerCaso() {
           <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
               <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+                {caso.estado === 'aceptado' ? 'Ley Aplicada por Médico Jefe' : 'Ley No Aplicada por Médico Jefe'}
               </CardTitle>
               <CardDescription>
+                {medicoJefeInfo && `Dr(a). ${medicoJefeInfo.nombre} ha `}
                 {caso.estado === 'aceptado' 
-                  ? 'Un médico jefe ha aplicado definitivamente la ley de urgencia a este caso.'
-                  : 'Un médico jefe determinó que este caso no aplica para la ley de urgencia.'}
+                  ? 'aplicado definitivamente la ley de urgencia a este caso.'
+                  : 'determinado que este caso no aplica para la ley de urgencia.'}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {resolucionInfo?.comentario_medico && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Razón de Derivación (su comentario):</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_medico}</p>
+                </div>
+              )}
+              {resolucionInfo?.comentario_final && medicoJefeInfo && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Resolución Final de Dr(a). {medicoJefeInfo.nombre}:</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
+                </div>
+              )}
               <Button
                 size="lg"
                 onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
@@ -654,22 +709,20 @@ export default function VerCaso() {
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
               </div>
-              {/* Mostrar botón de editar solo si:
-                  - Es médico jefe, O
-                  - Es médico normal y el caso está pendiente, O
-                  - Es médico normal y el caso está aceptado (y no derivado/resuelto por médico jefe) */}
-              {(userRole === 'medico_jefe' || 
-                (userRole === 'medico' && caso.estado === 'pendiente') ||
-                (userRole === 'medico' && caso.estado === 'aceptado' && !caso.medico_jefe_id)) && (
+              {/* Mostrar botón de editar datos solo si:
+                  - El caso NO está cerrado (rechazado/aceptado), O
+                  - Es médico jefe y el caso está reabierto (showReopenCase) */}
+              {((caso.estado === 'pendiente' || caso.estado === 'derivado' || 
+                (userRole === 'medico_jefe' && showReopenCase)) && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowEditModal(true)}
+                  onClick={() => setShowEditWarning(true)}
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
                 </Button>
-              )}
+              ))}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -771,14 +824,16 @@ export default function VerCaso() {
           </CardContent>
         </Card>
 
-        {/* Acciones para casos pendientes */}
-        {caso.estado === 'pendiente' && (
+        {/* Acciones para casos pendientes o derivados */}
+        {(caso.estado === 'pendiente' || 
+          (caso.estado === 'derivado' && userRole === 'medico_jefe') ||
+          (userRole === 'medico_jefe' && showReopenCase)) && (
           <Card>
             <CardHeader>
               <CardTitle>Decisión del Médico</CardTitle>
               <CardDescription>
                 {userRole === 'medico_jefe' 
-                  ? 'Como médico jefe, puedes retomar este caso y tomar la decisión final.'
+                  ? 'Como médico jefe, puede tomar la decisión final sobre este caso.'
                   : 'Revise la sugerencia de IA y tome una decisión sobre el caso'}
               </CardDescription>
             </CardHeader>
@@ -809,94 +864,66 @@ export default function VerCaso() {
           </Card>
         )}
 
-        {caso.estado === 'aceptado' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Modificar Decisión</CardTitle>
-              <CardDescription>
-                Este caso ya fue aceptado anteriormente. Puede modificar la decisión si es necesario.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button
-                  size="lg"
-                  onClick={handleAplicarLey}
-                  className={sugerencia?.sugerencia === 'aceptar' 
-                    ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
-                    : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
-                >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Aplicar Ley
-                </Button>
-                <Button
-                  size="lg"
-                  onClick={handleNoAplicarLey}
-                  className={sugerencia?.sugerencia === 'rechazar'
-                    ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
-                    : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
-                >
-                  <XCircle className="w-5 h-5 mr-2" />
-                  No Aplicar Ley
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {caso.estado === 'derivado' && userRole === 'medico_jefe' && (
-          <Card>
-              <CardHeader>
-                <CardTitle>Decisión del Médico Jefe</CardTitle>
-                <CardDescription>
-                  Este caso fue derivado por un médico tratante. Tome la decisión final.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button
-                    size="lg"
-                    onClick={handleAplicarLey}
-                    className={sugerencia?.sugerencia === 'aceptar' 
-                      ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" 
-                      : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}
-                  >
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Aplicar Ley
-                  </Button>
-                  <Button
-                    size="lg"
-                    onClick={handleNoAplicarLey}
-                    className={sugerencia?.sugerencia === 'rechazar'
-                      ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30"
-                      : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}
-                  >
-                    <XCircle className="w-5 h-5 mr-2" />
-                    No Aplicar Ley
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-        )}
-
-
-        {/* Si es médico jefe o el caso fue resuelto sin intervención de médico jefe */}
+        {/* Casos cerrados - Solo médico jefe puede reabrir */}
         {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
-         (userRole === 'medico_jefe' || !caso.medico_jefe_id) && (
+         userRole === 'medico_jefe' && !showReopenCase && (
           <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
               <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
                 {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
               </CardTitle>
               <CardDescription>
-                {caso.estado === 'aceptado' 
-                  ? 'Se ha aplicado la ley de urgencia a este caso.'
-                  : 'Se determinó que este caso no aplica para la ley de urgencia.'}
+                {caso.medico_jefe_id && medicoJefeInfo
+                  ? `Dr(a). ${medicoJefeInfo.nombre} ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia para este caso.`
+                  : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
               </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-4">
+              {resolucionInfo?.comentario_medico && caso.medico_jefe_id && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Razón de derivación del médico tratante:</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_medico}</p>
+                </div>
+              )}
+              {resolucionInfo?.comentario_final && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Resolución final:</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
+                </div>
+              )}
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setShowReopenCase(true)}
+                className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+              >
+                <Edit className="w-5 h-5 mr-2" />
+                Editar Caso
+              </Button>
+            </CardContent>
           </Card>
         )}
       </main>
+
+      {/* Modal de advertencia antes de editar */}
+      <Dialog open={showEditWarning} onOpenChange={setShowEditWarning}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Deseas editar los datos del caso?</DialogTitle>
+            <DialogDescription>
+              Se generará una nueva sugerencia de la IA, reemplazando la anterior. ¿Deseas continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditWarning(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmEditWithWarning}>
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de edición */}
       <Dialog
