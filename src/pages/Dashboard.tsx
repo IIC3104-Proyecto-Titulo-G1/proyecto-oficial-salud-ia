@@ -56,13 +56,13 @@ export default function Dashboard() {
   const { toast } = useToast();
   const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '');
 
-  // Establecer fecha de término por defecto a hoy
+  // Establecer fecha de término por defecto a hoy para todos los médicos
   useEffect(() => {
-    if (userRole === 'medico_jefe' && !fechaFin) {
+    if ((userRole === 'medico' || userRole === 'medico_jefe') && !fechaFin) {
       const hoy = new Date().toISOString().split('T')[0];
       setFechaFin(hoy);
     }
-  }, [userRole]);
+  }, [userRole, fechaFin]);
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
@@ -651,8 +651,8 @@ export default function Dashboard() {
               </Select>
             )}
 
-            {/* Filtros de fecha solo para médicos jefe */}
-            {userRole === 'medico_jefe' && (
+            {/* Filtros de fecha para todos los médicos */}
+            {(userRole === 'medico' || userRole === 'medico_jefe') && (
               <Popover open={openDateFilter} onOpenChange={setOpenDateFilter}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2">
@@ -686,7 +686,8 @@ export default function Dashboard() {
                         size="sm"
                         onClick={() => {
                           setFechaInicio('');
-                          setFechaFin('');
+                          const hoy = new Date().toISOString().split('T')[0];
+                          setFechaFin(hoy);
                         }}
                         disabled={!fechaInicio && !fechaFin}
                       >
@@ -717,7 +718,8 @@ export default function Dashboard() {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
                 setFechaInicio('');
-                setFechaFin('');
+                const hoy = new Date().toISOString().split('T')[0];
+                setFechaFin(hoy);
                 setFiltroMedico('todos');
                 setCurrentPage(1);
               }}
