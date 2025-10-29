@@ -703,26 +703,6 @@ export default function VerCaso() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
-        {/* Mensaje de Caso Derivado para médicos normales */}
-        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardHeader>
-              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
-              <CardDescription className="text-amber-700">
-                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
-              </CardDescription>
-            </CardHeader>
-            {resolucionInfo && (
-              <CardContent>
-                <div className="bg-white rounded-lg p-4 border border-amber-200">
-                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
-                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        )}
-
         {/* Caso cerrado sin derivar - Para médicos normales */}
         {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
          userRole === 'medico' && 
@@ -805,6 +785,76 @@ export default function VerCaso() {
                 Enviar Correo a Paciente
               </Button>
             </CardContent>
+          </Card>
+        )}
+
+        {/* Casos cerrados - Solo médico jefe puede reabrir */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
+         userRole === 'medico_jefe' && !showReopenCase && (
+          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
+            <CardHeader>
+              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
+                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+              </CardTitle>
+              <CardDescription>
+                {caso.medico_jefe_id && medicoJefeInfo
+                  ? `Dr(a). ${medicoJefeInfo.nombre} ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia para este caso.`
+                  : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {resolucionInfo?.comentario_medico && caso.medico_jefe_id && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Razón de derivación del médico tratante:</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_medico}</p>
+                </div>
+              )}
+              {resolucionInfo?.comentario_final && (
+                <div className="bg-white rounded-lg p-4 border border-muted">
+                  <p className="text-sm font-medium mb-2">Resolución Final:</p>
+                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  size="lg"
+                  onClick={() => navigate(`/caso/${id}/comunicacion`)}
+                  className="w-full"
+                >
+                  <Mail className="w-5 h-5 mr-2" />
+                  Enviar Correo a Paciente
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setShowReopenCase(true)}
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                >
+                  <Edit className="w-5 h-5 mr-2" />
+                  Editar Caso
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mensaje de Caso Derivado para médicos normales */}
+        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
+              <CardDescription className="text-amber-700">
+                Este caso ha sido derivado al pool de médicos jefe y ya no puede ser modificado por el médico tratante.
+              </CardDescription>
+            </CardHeader>
+            {resolucionInfo && (
+              <CardContent>
+                <div className="bg-white rounded-lg p-4 border border-amber-200">
+                  <p className="text-sm font-medium text-amber-900 mb-2">Razón de Derivación:</p>
+                  <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
+                </div>
+              </CardContent>
+            )}
           </Card>
         )}
 
