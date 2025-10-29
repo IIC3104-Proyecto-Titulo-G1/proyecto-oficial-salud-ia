@@ -1020,7 +1020,8 @@ export default function VerCaso() {
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Datos del paciente</h2>
                 <CardTitle>{caso.nombre_paciente}</CardTitle>
                 <CardDescription>
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
