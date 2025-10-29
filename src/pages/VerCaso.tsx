@@ -946,7 +946,7 @@ export default function VerCaso() {
                   size="lg"
                   variant="outline"
                   onClick={() => setShowReopenCase(true)}
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700"
                 >
                   <Edit className="w-5 h-5 mr-2" />
                   Editar Caso
@@ -1180,7 +1180,7 @@ export default function VerCaso() {
                   variant="outline"
                   onClick={handleCancelEdit}
                   disabled={isCancelingEdit}
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700"
                 >
                   {isCancelingEdit ? 'Cancelando...' : 'Cancelar Edición'}
                 </Button>
