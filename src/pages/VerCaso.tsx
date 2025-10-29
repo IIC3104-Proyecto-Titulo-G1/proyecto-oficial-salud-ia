@@ -777,7 +777,7 @@ export default function VerCaso() {
                   </CardTitle>
                   <CardDescription>
                     {medicoJefeInfo?.nombre 
-                      ? `Dr(a). ${medicoJefeInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.`
+                      ? `Dr(a). ${medicoJefeInfo.nombre} decidió que ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} la ley de urgencia para este caso.`
                       : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
                   </CardDescription>
                 </div>
