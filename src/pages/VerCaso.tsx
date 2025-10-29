@@ -725,10 +725,9 @@ export default function VerCaso() {
                     {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
                   </CardTitle>
                   <CardDescription>
-                    {medicoInfo && `Dr(a). ${medicoInfo.nombre} ha `}
-                    {caso.estado === 'aceptado' 
-                      ? 'determinado que este caso aplica para la ley de urgencia.'
-                      : 'determinado que este caso no aplica para la ley de urgencia.'}
+                    {medicoInfo?.nombre 
+                      ? `Dr(a). ${medicoInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.`
+                      : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
                   </CardDescription>
                 </div>
                 <TooltipProvider>
@@ -777,10 +776,9 @@ export default function VerCaso() {
                     {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
                   </CardTitle>
                   <CardDescription>
-                    {medicoJefeInfo && `Dr(a). ${medicoJefeInfo.nombre} ha `}
-                    {caso.estado === 'aceptado' 
-                      ? 'determinado que este caso aplica para la ley de urgencia.'
-                      : 'determinado que este caso no aplica para la ley de urgencia.'}
+                    {medicoJefeInfo?.nombre 
+                      ? `Dr(a). ${medicoJefeInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.`
+                      : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
                   </CardDescription>
                 </div>
                 <TooltipProvider>
