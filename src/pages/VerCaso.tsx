@@ -204,6 +204,23 @@ export default function VerCaso() {
         }
 
         setMedicoJefeInfo(medicoJefeData);
+
+        // Fallback para médicos tratantes: obtener nombre desde notificación del caso resuelto
+        if (!medicoJefeData && userRole === 'medico') {
+          const { data: notif } = await supabase
+            .from('notificaciones')
+            .select('mensaje')
+            .eq('usuario_id', user?.id)
+            .eq('caso_id', id)
+            .eq('tipo', 'caso_resuelto')
+            .order('fecha_creacion', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const nombre = notif?.mensaje?.match(/Doctor\(a\)\s+(.+?)\s+ha\s/i)?.[1] || null;
+          if (nombre) {
+            setMedicoJefeInfo({ nombre, imagen: null });
+          }
+        }
       }
     }
 
