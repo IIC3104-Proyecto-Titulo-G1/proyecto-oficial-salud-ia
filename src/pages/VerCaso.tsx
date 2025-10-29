@@ -773,7 +773,7 @@ export default function VerCaso() {
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                    {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
+                    {caso.estado === 'aceptado' ? 'Ley Aplicada por Médico Jefe' : 'Ley No Aplicada por Médico Jefe'}
                   </CardTitle>
                   <CardDescription>
                     {medicoJefeInfo?.nombre 
