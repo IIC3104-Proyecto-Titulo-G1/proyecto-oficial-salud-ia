@@ -734,14 +734,6 @@ export default function VerCaso() {
                 <Mail className="w-5 h-5 mr-2" />
                 Enviar Correo a Paciente
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEditWarning(true)}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar Caso
-              </Button>
             </CardContent>
           </Card>
         )}
@@ -905,11 +897,8 @@ export default function VerCaso() {
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
               </div>
-              {/* Mostrar botón de editar datos solo si:
-                  - El caso NO está cerrado (rechazado/aceptado), O
-                  - Es médico jefe y el caso está reabierto (showReopenCase) */}
-              {((caso.estado === 'pendiente' || caso.estado === 'derivado' || 
-                (userRole === 'medico_jefe' && showReopenCase)) && (
+              {/* Mostrar botón de editar datos solo para médico jefe */}
+              {userRole === 'medico_jefe' && (caso.estado === 'pendiente' || caso.estado === 'derivado' || showReopenCase) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -918,7 +907,7 @@ export default function VerCaso() {
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
                 </Button>
-              ))}
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
