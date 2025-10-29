@@ -1074,55 +1074,6 @@ export default function VerCaso() {
           </Card>
         )}
 
-        {/* Casos cerrados - Solo médico jefe puede reabrir */}
-        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && 
-         userRole === 'medico_jefe' && !showReopenCase && (
-          <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
-            <CardHeader>
-              <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
-                {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
-              </CardTitle>
-              <CardDescription>
-                {caso.medico_jefe_id && medicoJefeInfo
-                  ? `Dr(a). ${medicoJefeInfo.nombre} ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia para este caso.`
-                  : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {resolucionInfo?.comentario_medico && caso.medico_jefe_id && (
-                <div className="bg-white rounded-lg p-4 border border-muted">
-                  <p className="text-sm font-medium mb-2">Razón de derivación del médico tratante:</p>
-                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_medico}</p>
-                </div>
-              )}
-              {resolucionInfo?.comentario_final && (
-                <div className="bg-white rounded-lg p-4 border border-muted">
-                  <p className="text-sm font-medium mb-2">Resolución Final:</p>
-                  <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button
-                  size="lg"
-                  onClick={() => navigate(`/caso/${id}/comunicacion`)}
-                  className="w-full"
-                >
-                  <Mail className="w-5 h-5 mr-2" />
-                  Enviar Correo a Paciente
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => setShowReopenCase(true)}
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
-                >
-                  <Edit className="w-5 h-5 mr-2" />
-                  Editar Caso
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </main>
 
       {/* Modal de advertencia antes de editar */}
