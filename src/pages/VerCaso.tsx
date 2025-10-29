@@ -265,9 +265,12 @@ export default function VerCaso() {
     }
 
     const email = editData.email_paciente.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      errors.email_paciente = 'Ingresa un correo electrónico válido.';
+    // Si se ingresa un email, debe ser válido, pero el campo es opcional
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        errors.email_paciente = 'Ingresa un correo electrónico válido.';
+      }
     }
 
     const diagnostico = editData.diagnostico_principal.trim();
@@ -377,7 +380,7 @@ export default function VerCaso() {
           nombre_paciente: nombreValue,
           edad_paciente: edadValue,
           sexo_paciente: sexoValue,
-          email_paciente: emailValue,
+          email_paciente: emailValue || null,
           diagnostico_principal: diagnosticoValue,
           sintomas: sintomasValue || null,
           historia_clinica: historiaValue || null,
@@ -946,7 +949,7 @@ export default function VerCaso() {
                   size="lg"
                   variant="outline"
                   onClick={() => setShowReopenCase(true)}
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700"
                 >
                   <Edit className="w-5 h-5 mr-2" />
                   Editar Caso
@@ -1017,7 +1020,8 @@ export default function VerCaso() {
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Datos del paciente</h2>
                 <CardTitle>{caso.nombre_paciente}</CardTitle>
                 <CardDescription>
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
@@ -1180,7 +1184,7 @@ export default function VerCaso() {
                   variant="outline"
                   onClick={handleCancelEdit}
                   disabled={isCancelingEdit}
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700"
                 >
                   {isCancelingEdit ? 'Cancelando...' : 'Cancelar Edición'}
                 </Button>
@@ -1276,7 +1280,7 @@ export default function VerCaso() {
                 )}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="edit-email">Correo electrónico *</Label>
+                <Label htmlFor="edit-email">Correo electrónico</Label>
                 <Input
                   id="edit-email"
                   type="email"

@@ -56,13 +56,13 @@ export default function Dashboard() {
   const { toast } = useToast();
   const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '');
 
-  // Establecer fecha de término por defecto a hoy
+  // Establecer fecha de término por defecto a hoy para todos los médicos
   useEffect(() => {
-    if (userRole === 'medico_jefe' && !fechaFin) {
+    if ((userRole === 'medico' || userRole === 'medico_jefe') && !fechaFin) {
       const hoy = new Date().toISOString().split('T')[0];
       setFechaFin(hoy);
     }
-  }, [userRole]);
+  }, [userRole, fechaFin]);
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
@@ -131,7 +131,8 @@ export default function Dashboard() {
     }
 
     loadCasos();
-  }, [user, userRole, navigate, loadCasos, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, userRole]);
 
   // Efecto separado para manejar el filtrado desde notificaciones
   useEffect(() => {
@@ -152,6 +153,9 @@ export default function Dashboard() {
   };
 
   const handleDeleteCaso = (casoId: string) => {
+    // Evitar abrir el modal si ya está abierto o hay una eliminación en progreso
+    if (showDeleteModal || isDeleting) return;
+    
     setDeletingCasoId(casoId);
     setShowDeleteModal(true);
     setDeletePassword('');
@@ -159,7 +163,7 @@ export default function Dashboard() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deletingCasoId || !user?.email) return;
+    if (!deletingCasoId || !user?.email || isDeleting) return;
     
     setDeleteError('');
     setIsDeleting(true);
@@ -210,16 +214,37 @@ export default function Dashboard() {
 
       if (casoError) throw casoError;
 
+      // Guardar referencia al caso eliminado antes de actualizar el estado
+      const casoEliminado = casos.find((c) => c.id === deletingCasoId);
+
+      // Eliminar el caso del estado local sin recargar la página
+      setCasos((prevCasos) => prevCasos.filter((caso) => caso.id !== deletingCasoId));
+      
+      // Si es médico jefe, limpiar datos del médico si ya no tiene más casos
+      if (userRole === 'medico_jefe' && casoEliminado) {
+        // Verificar si hay más casos del mismo médico tratante después de la eliminación
+        const quedanCasosDelMedico = casos.some(
+          (c) => c.id !== deletingCasoId && c.medico_tratante_id === casoEliminado.medico_tratante_id
+        );
+        if (!quedanCasosDelMedico && medicosData[casoEliminado.medico_tratante_id]) {
+          setMedicosData((prev) => {
+            const nuevo = { ...prev };
+            delete nuevo[casoEliminado.medico_tratante_id];
+            return nuevo;
+          });
+        }
+      }
+
+      // Cerrar modal y limpiar estado
+      setShowDeleteModal(false);
+      setDeletingCasoId(null);
+      setDeletePassword('');
+      setDeleteError('');
+
       toast({
         title: 'Caso eliminado',
         description: 'El caso ha sido eliminado exitosamente',
       });
-
-      // Recargar casos
-      await loadCasos();
-      setShowDeleteModal(false);
-      setDeletingCasoId(null);
-      setDeletePassword('');
     } catch (error: any) {
       toast({
         title: 'Error al eliminar',
@@ -626,8 +651,8 @@ export default function Dashboard() {
               </Select>
             )}
 
-            {/* Filtros de fecha solo para médicos jefe */}
-            {userRole === 'medico_jefe' && (
+            {/* Filtros de fecha para todos los médicos */}
+            {(userRole === 'medico' || userRole === 'medico_jefe') && (
               <Popover open={openDateFilter} onOpenChange={setOpenDateFilter}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2">
@@ -661,7 +686,8 @@ export default function Dashboard() {
                         size="sm"
                         onClick={() => {
                           setFechaInicio('');
-                          setFechaFin('');
+                          const hoy = new Date().toISOString().split('T')[0];
+                          setFechaFin(hoy);
                         }}
                         disabled={!fechaInicio && !fechaFin}
                       >
@@ -692,7 +718,8 @@ export default function Dashboard() {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
                 setFechaInicio('');
-                setFechaFin('');
+                const hoy = new Date().toISOString().split('T')[0];
+                setFechaFin(hoy);
                 setFiltroMedico('todos');
                 setCurrentPage(1);
               }}
@@ -762,6 +789,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Paciente</p>
                           <h3 className="text-xl font-bold group-hover:text-primary transition-colors mb-2 truncate text-foreground">
                             {caso.nombre_paciente}
                           </h3>
@@ -953,7 +981,20 @@ export default function Dashboard() {
       </main>
 
       {/* Modal de confirmación de eliminación */}
-      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+      <Dialog 
+        open={showDeleteModal} 
+        onOpenChange={(open) => {
+          // Evitar cambios de estado durante una eliminación en progreso
+          if (!open && !isDeleting) {
+            setShowDeleteModal(false);
+            setDeletePassword('');
+            setDeleteError('');
+            setDeletingCasoId(null);
+          } else if (open && !isDeleting) {
+            setShowDeleteModal(true);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Eliminación</DialogTitle>

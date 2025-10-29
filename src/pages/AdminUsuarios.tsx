@@ -331,13 +331,13 @@ export default function AdminUsuarios() {
               <CardContent>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-col sm:flex-row gap-3 w-full">
-                    <div className="relative sm:max-w-sm w-full">
+                    <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
                         placeholder="Buscar por nombre, email, hospital o especialidad"
-                        className="pl-10"
+                        className="pl-10 w-full"
                       />
                     </div>
                     <Select value={rolFiltro} onValueChange={(value) => setRolFiltro(value as RolFiltro)}>

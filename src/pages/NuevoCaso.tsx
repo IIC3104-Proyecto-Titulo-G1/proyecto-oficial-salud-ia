@@ -26,8 +26,11 @@ const formSchema = z.object({
   sexo: z.string().min(1, 'Selecciona el sexo del paciente'),
   email_paciente: z.string()
     .trim()
-    .email('Ingresa un correo electrónico válido')
-    .max(255, 'El correo no puede exceder 255 caracteres'),
+    .max(255, 'El correo no puede exceder 255 caracteres')
+    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: 'Ingresa un correo electrónico válido',
+    })
+    .optional(),
   diagnostico_principal: z.string()
     .trim()
     .min(10, 'El diagnóstico debe tener al menos 10 caracteres'),
@@ -183,7 +186,7 @@ export default function NuevoCaso() {
             nombre_paciente: formData.nombre_paciente,
             edad_paciente: parseInt(formData.edad),
             sexo_paciente: formData.sexo,
-            email_paciente: emailValue,
+            email_paciente: emailValue || null,
             diagnostico_principal: formData.diagnostico_principal,
             sintomas: formData.sintomas,
             historia_clinica: formData.historia_clinica,
@@ -316,7 +319,7 @@ export default function NuevoCaso() {
                     {errors.sexo && <p className="text-sm text-destructive">{errors.sexo}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email_paciente">Email *</Label>
+                    <Label htmlFor="email_paciente">Email</Label>
                     <Input
                       id="email_paciente"
                       name="email_paciente"
