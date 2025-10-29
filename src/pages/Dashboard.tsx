@@ -7,11 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar } from 'lucide-react';
+import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Caso {
   id: string;
@@ -41,6 +44,11 @@ export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
   const [openDateFilter, setOpenDateFilter] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletingCasoId, setDeletingCasoId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
@@ -141,6 +149,86 @@ export default function Dashboard() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const handleDeleteCaso = (casoId: string) => {
+    setDeletingCasoId(casoId);
+    setShowDeleteModal(true);
+    setDeletePassword('');
+    setDeleteError('');
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingCasoId || !user?.email) return;
+    
+    setDeleteError('');
+    setIsDeleting(true);
+
+    try {
+      // Verificar la contraseña del usuario
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: deletePassword,
+      });
+
+      if (signInError) {
+        setDeleteError('Contraseña incorrecta');
+        setIsDeleting(false);
+        return;
+      }
+
+      // Eliminar el caso y todos sus datos relacionados
+      // Primero eliminar sugerencias IA
+      const { error: sugerenciaError } = await supabase
+        .from('sugerencia_ia')
+        .delete()
+        .eq('caso_id', deletingCasoId);
+
+      if (sugerenciaError) throw sugerenciaError;
+
+      // Eliminar comunicaciones
+      const { error: comunicacionesError } = await supabase
+        .from('comunicaciones_paciente')
+        .delete()
+        .eq('caso_id', deletingCasoId);
+
+      if (comunicacionesError) throw comunicacionesError;
+
+      // Eliminar resolución
+      const { error: resolucionError } = await supabase
+        .from('resolucion_caso')
+        .delete()
+        .eq('caso_id', deletingCasoId);
+
+      if (resolucionError) throw resolucionError;
+
+      // Finalmente eliminar el caso
+      const { error: casoError } = await supabase
+        .from('casos')
+        .delete()
+        .eq('id', deletingCasoId);
+
+      if (casoError) throw casoError;
+
+      toast({
+        title: 'Caso eliminado',
+        description: 'El caso ha sido eliminado exitosamente',
+      });
+
+      // Recargar casos
+      await loadCasos();
+      setShowDeleteModal(false);
+      setDeletingCasoId(null);
+      setDeletePassword('');
+    } catch (error: any) {
+      toast({
+        title: 'Error al eliminar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleCardClick = (estado: EstadoFiltro) => {
@@ -707,12 +795,29 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-3">
-                      <Badge 
-                        variant={getEstadoBadgeVariant(caso.estado)}
-                        className={getEstadoBadgeClassName(caso.estado)}
-                      >
-                        {getEstadoLabel(caso.estado)}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={getEstadoBadgeVariant(caso.estado)}
+                          className={getEstadoBadgeClassName(caso.estado)}
+                        >
+                          {getEstadoLabel(caso.estado)}
+                        </Badge>
+                        
+                        {/* Botón de eliminar solo para médico jefe */}
+                        {userRole === 'medico_jefe' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCaso(caso.id);
+                            }}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                       
                       {/* Mostrar información del médico solo para médicos jefe */}
                       {userRole === 'medico_jefe' && medicosData[caso.medico_tratante_id] && (
@@ -846,6 +951,64 @@ export default function Dashboard() {
           </>
         )}
       </main>
+
+      {/* Modal de confirmación de eliminación */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+            <DialogDescription>
+              Esta acción es irreversible. Se eliminará el caso y todos sus datos relacionados (sugerencias, comunicaciones y resoluciones).
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {deleteError && (
+              <Alert variant="destructive">
+                <AlertDescription>{deleteError}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="delete-password">Ingrese su contraseña para confirmar</Label>
+              <Input
+                id="delete-password"
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Contraseña"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && deletePassword) {
+                    handleConfirmDelete();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeletePassword('');
+                setDeleteError('');
+                setDeletingCasoId(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={!deletePassword || isDeleting}
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar Caso'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
