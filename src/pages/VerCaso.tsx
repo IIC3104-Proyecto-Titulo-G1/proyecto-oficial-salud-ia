@@ -147,7 +147,7 @@ export default function VerCaso() {
       .eq('caso_id', id)
       .order('fecha_procesamiento', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     // Si el caso está derivado, cargar info del médico que lo derivó y la resolución
     if (casoData?.estado === 'derivado') {
@@ -610,8 +610,33 @@ export default function VerCaso() {
 
       if (updateError) throw updateError;
 
-      // Eliminar todas las sugerencias creadas después de la original
+      // Si tenemos una sugerencia original, asegurarnos de que existe en la BD
       if (originalSugerenciaData) {
+        // Verificar si la sugerencia original todavía existe
+        const { data: sugerenciaExiste } = await supabase
+          .from('sugerencia_ia')
+          .select('id')
+          .eq('id', originalSugerenciaData.id)
+          .maybeSingle();
+
+        if (!sugerenciaExiste) {
+          // Si no existe, recrearla
+          const { error: insertError } = await supabase
+            .from('sugerencia_ia')
+            .insert([{
+              id: originalSugerenciaData.id,
+              caso_id: id,
+              sugerencia: originalSugerenciaData.sugerencia,
+              confianza: originalSugerenciaData.confianza,
+              explicacion: originalSugerenciaData.explicacion,
+            }]);
+
+          if (insertError) {
+            console.error('Error al restaurar sugerencia original:', insertError);
+          }
+        }
+
+        // Eliminar todas las sugerencias EXCEPTO la original
         const { error: deleteError } = await supabase
           .from('sugerencia_ia')
           .delete()
@@ -652,12 +677,17 @@ export default function VerCaso() {
     );
   }
 
-  if (!caso || !sugerencia) {
+  if (!caso) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Caso no encontrado</p>
       </div>
     );
+  }
+
+  // Permitir vista incluso sin sugerencia (casos muy antiguos o con errores)
+  if (!sugerencia) {
+    console.warn('Caso sin sugerencia de IA:', id);
   }
 
   return (
@@ -904,51 +934,53 @@ export default function VerCaso() {
         </Card>
 
         {/* Resultado IA */}
-        <Card className="border-2 border-crm/30">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Sugerencia de IA</CardTitle>
-              <Badge
-                variant={sugerencia.sugerencia === 'aceptar' ? 'default' : 'destructive'}
-                className="text-base px-4 py-1"
-              >
-                {sugerencia.sugerencia === 'aceptar' ? (
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                ) : (
-                  <XCircle className="w-4 h-4 mr-2" />
-                )}
-                {sugerencia.sugerencia === 'aceptar' ? 'Aplica Ley de Urgencia' : 'No Aplica Ley de Urgencia'}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">Nivel de Confianza</p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
-                  <div
-                    className="bg-crm h-full transition-all"
-                    style={{ width: `${sugerencia.confianza}%` }}
-                  />
-                </div>
-                <span className="text-xl font-bold text-crm">{sugerencia.confianza}%</span>
+        {sugerencia && (
+          <Card className="border-2 border-crm/30">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl">Sugerencia de IA</CardTitle>
+                <Badge
+                  variant={sugerencia.sugerencia === 'aceptar' ? 'default' : 'destructive'}
+                  className="text-base px-4 py-1"
+                >
+                  {sugerencia.sugerencia === 'aceptar' ? (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  ) : (
+                    <XCircle className="w-4 h-4 mr-2" />
+                  )}
+                  {sugerencia.sugerencia === 'aceptar' ? 'Aplica Ley de Urgencia' : 'No Aplica Ley de Urgencia'}
+                </Badge>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Nivel de Confianza</p>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-crm h-full transition-all"
+                      style={{ width: `${sugerencia.confianza}%` }}
+                    />
+                  </div>
+                  <span className="text-xl font-bold text-crm">{sugerencia.confianza}%</span>
+                </div>
+              </div>
 
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
-                <div>
-                  <p className="font-medium mb-2">Explicación del Análisis</p>
-                  <p className="text-sm text-muted-foreground">{sugerencia.explicacion}</p>
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
+                  <div>
+                    <p className="font-medium mb-2">Explicación del Análisis</p>
+                    <p className="text-sm text-muted-foreground">{sugerencia.explicacion}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Acciones para casos pendientes o derivados */}
-        {(caso.estado === 'pendiente' || 
+        {sugerencia && (caso.estado === 'pendiente' ||
           (caso.estado === 'derivado' && userRole === 'medico_jefe') ||
           (userRole === 'medico_jefe' && showReopenCase)) && (
           <Card>
