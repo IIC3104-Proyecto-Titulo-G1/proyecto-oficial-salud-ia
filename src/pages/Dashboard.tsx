@@ -789,6 +789,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Paciente</p>
                           <h3 className="text-xl font-bold group-hover:text-primary transition-colors mb-2 truncate text-foreground">
                             {caso.nombre_paciente}
                           </h3>
