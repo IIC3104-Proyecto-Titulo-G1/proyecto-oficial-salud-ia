@@ -38,6 +38,8 @@ export default function ComunicacionPaciente() {
   const [comentarioAdicional, setComentarioAdicional] = useState('');
   // Leer la acción desde los parámetros de la URL (aceptar/rechazar)
   const accionMedico = (searchParams.get('accion') as 'aceptar' | 'rechazar') || 'aceptar';
+  // Leer la decisión real del médico (aplicar/rechazar) - esto se usa cuando editan y presionan un botón
+  const decisionMedico = searchParams.get('decision') as 'aplicar' | 'rechazar' | null;
 
   useEffect(() => {
     loadData();
@@ -109,14 +111,20 @@ export default function ComunicacionPaciente() {
         if (assignError) throw assignError;
       }
 
-      // Determinar el resultado final
+      // Determinar el resultado final basado en:
+      // 1. Si hay decisionMedico (el médico presionó "Aplicar Ley" o "No Aplicar Ley")
+      // 2. Si el caso ya está cerrado, usar el estado del caso
+      // 3. Si no, usar la acción del médico y sugerencia de IA
       let resultadoFinal: 'aceptado' | 'rechazado';
       
-      // Si el caso ya está cerrado, usar el estado del caso directamente
-      if (casoActual.estado === 'aceptado' || casoActual.estado === 'rechazado') {
+      if (decisionMedico) {
+        // El médico acaba de presionar un botón de decisión
+        resultadoFinal = decisionMedico === 'aplicar' ? 'aceptado' : 'rechazado';
+      } else if (casoActual.estado === 'aceptado' || casoActual.estado === 'rechazado') {
+        // Caso cerrado: usar el estado del caso (cuando presionan "Enviar Correo" sin nueva decisión)
         resultadoFinal = casoActual.estado as 'aceptado' | 'rechazado';
       } else {
-        // Si no está cerrado, determinar basado en la acción del médico y la sugerencia de IA
+        // Caso abierto: determinar basado en la acción del médico y la sugerencia de IA
         if (accionMedico === 'aceptar') {
           // Médico acepta la sugerencia de IA
           resultadoFinal = sugerencia?.sugerencia === 'aceptar' ? 'aceptado' : 'rechazado';
@@ -182,8 +190,10 @@ export default function ComunicacionPaciente() {
         if (resolucionError) throw resolucionError;
       }
 
-      // Actualizar estado del caso solo si no está cerrado
-      if (casoActual.estado !== 'aceptado' && casoActual.estado !== 'rechazado') {
+      // Actualizar estado del caso si:
+      // 1. Se tomó una nueva decisión (decisionMedico existe), O
+      // 2. El caso no está cerrado
+      if (decisionMedico || (casoActual.estado !== 'aceptado' && casoActual.estado !== 'rechazado')) {
         const { error: updateError } = await supabase
           .from('casos')
           .update({ estado: estadoFinal })
@@ -274,8 +284,11 @@ export default function ComunicacionPaciente() {
   // Determinar el resultado para mostrar en la previsualización
   let resultado: string;
   
-  // Si el caso ya está cerrado, usar el estado del caso
-  if (caso.estado === 'aceptado' || caso.estado === 'rechazado') {
+  if (decisionMedico) {
+    // Si hay una decisión nueva del médico, usarla
+    resultado = decisionMedico === 'aplicar' ? 'ACTIVADA' : 'NO ACTIVADA';
+  } else if (caso.estado === 'aceptado' || caso.estado === 'rechazado') {
+    // Si el caso ya está cerrado, usar el estado del caso
     resultado = caso.estado === 'aceptado' ? 'ACTIVADA' : 'NO ACTIVADA';
   } else if (sugerencia) {
     // Si no está cerrado, calcular basado en acción y sugerencia

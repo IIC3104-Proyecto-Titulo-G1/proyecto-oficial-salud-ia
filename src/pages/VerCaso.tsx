@@ -403,19 +403,18 @@ export default function VerCaso() {
 
   // Handler para aplicar la ley (resultado final: ley aplicada)
   const handleAplicarLey = () => {
-    // Si la IA sugiere aplicar la ley, estamos de acuerdo -> ir a comunicación
-    // Si la IA sugiere NO aplicar la ley, estamos en desacuerdo -> derivar o modal
+    // Siempre ir a comunicación con accion=aplicar
+    // Esto indicará que el médico quiere aplicar la ley, independientemente de la sugerencia IA
     if (sugerencia?.sugerencia === 'aceptar') {
-      // Coincidimos con la IA, ir directo a comunicación (médico puede editar caso)
-      navigate(`/caso/${id}/comunicacion?accion=aceptar`);
+      // Coincidimos con la IA
+      navigate(`/caso/${id}/comunicacion?accion=aceptar&decision=aplicar`);
     } else {
       // No coincidimos con la IA
       if (userRole === 'medico_jefe') {
-        // Médico jefe decide directamente
-        navigate(`/caso/${id}/comunicacion?accion=rechazar`);
+        // Médico jefe decide directamente aplicar la ley
+        navigate(`/caso/${id}/comunicacion?accion=rechazar&decision=aplicar`);
       } else {
-        // Médico normal: si sigue la sugerencia inversa, puede editar (como médico jefe)
-        // Si rechaza la sugerencia, muestra modal para derivar
+        // Médico normal: derivar
         setShowRejectModal(true);
       }
     }
@@ -423,18 +422,18 @@ export default function VerCaso() {
 
   // Handler para NO aplicar la ley (resultado final: ley no aplicada)
   const handleNoAplicarLey = () => {
-    // Si la IA sugiere NO aplicar la ley, estamos de acuerdo -> ir a comunicación
-    // Si la IA sugiere aplicar la ley, estamos en desacuerdo -> derivar o modal
+    // Siempre ir a comunicación con decision=rechazar
+    // Esto indicará que el médico NO quiere aplicar la ley, independientemente de la sugerencia IA
     if (sugerencia?.sugerencia === 'rechazar') {
-      // Coincidimos con la IA, ir directo a comunicación (médico puede editar caso)
-      navigate(`/caso/${id}/comunicacion?accion=aceptar`);
+      // Coincidimos con la IA
+      navigate(`/caso/${id}/comunicacion?accion=aceptar&decision=rechazar`);
     } else {
       // No coincidimos con la IA
       if (userRole === 'medico_jefe') {
-        // Médico jefe decide directamente
-        navigate(`/caso/${id}/comunicacion?accion=rechazar`);
+        // Médico jefe decide directamente NO aplicar la ley
+        navigate(`/caso/${id}/comunicacion?accion=rechazar&decision=rechazar`);
       } else {
-        // Médico normal: muestra modal para derivar
+        // Médico normal: derivar
         setShowRejectModal(true);
       }
     }
@@ -649,11 +648,19 @@ export default function VerCaso() {
               )}
               <Button
                 size="lg"
-                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                onClick={() => navigate(`/caso/${id}/comunicacion`)}
                 className="w-full"
               >
                 <Mail className="w-5 h-5 mr-2" />
                 Enviar Correo a Paciente
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEditWarning(true)}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar Caso
               </Button>
             </CardContent>
           </Card>
@@ -691,7 +698,7 @@ export default function VerCaso() {
               )}
               <Button
                 size="lg"
-                onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                onClick={() => navigate(`/caso/${id}/comunicacion`)}
                 className="w-full"
               >
                 <Mail className="w-5 h-5 mr-2" />
@@ -933,7 +940,7 @@ export default function VerCaso() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   size="lg"
-                  onClick={() => navigate(`/caso/${id}/comunicacion?accion=aceptar`)}
+                  onClick={() => navigate(`/caso/${id}/comunicacion`)}
                   className="w-full"
                 >
                   <Mail className="w-5 h-5 mr-2" />
