@@ -265,9 +265,12 @@ export default function VerCaso() {
     }
 
     const email = editData.email_paciente.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      errors.email_paciente = 'Ingresa un correo electrónico válido.';
+    // Si se ingresa un email, debe ser válido, pero el campo es opcional
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        errors.email_paciente = 'Ingresa un correo electrónico válido.';
+      }
     }
 
     const diagnostico = editData.diagnostico_principal.trim();
@@ -377,7 +380,7 @@ export default function VerCaso() {
           nombre_paciente: nombreValue,
           edad_paciente: edadValue,
           sexo_paciente: sexoValue,
-          email_paciente: emailValue,
+          email_paciente: emailValue || null,
           diagnostico_principal: diagnosticoValue,
           sintomas: sintomasValue || null,
           historia_clinica: historiaValue || null,
@@ -1276,7 +1279,7 @@ export default function VerCaso() {
                 )}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="edit-email">Correo electrónico *</Label>
+                <Label htmlFor="edit-email">Correo electrónico</Label>
                 <Input
                   id="edit-email"
                   type="email"
