@@ -925,14 +925,57 @@ export default function VerCaso() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {resolucionInfo?.comentario_medico && caso.medico_jefe_id && (
+              {resolucionInfo?.comentario_medico && caso.medico_jefe_id && medicoInfo && (
                 <div className="bg-white rounded-lg p-4 border border-muted">
-                  <p className="text-sm font-medium mb-2">Razón de derivación del médico tratante:</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    {medicoInfo.imagen ? (
+                      <img
+                        src={medicoInfo.imagen}
+                        alt={medicoInfo.nombre}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-lg font-semibold text-primary">
+                          {medicoInfo.nombre.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium">Dr(a). {medicoInfo.nombre}</p>
+                      <p className="text-sm text-muted-foreground">Médico Tratante</p>
+                    </div>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm font-medium">
+                      Opinión: {resolucionInfo.decision_medico === 'aplicar_ley' ? 'Aplicar ley' : 'No aplicar ley'}
+                    </p>
+                  </div>
+                  <p className="text-sm font-medium mb-2">Razón de derivación:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_medico}</p>
                 </div>
               )}
-              {resolucionInfo?.comentario_final && (
+              {resolucionInfo?.comentario_final && medicoJefeInfo && (
                 <div className="bg-white rounded-lg p-4 border border-muted">
+                  <div className="flex items-center gap-3 mb-3">
+                    {medicoJefeInfo.imagen ? (
+                      <img
+                        src={medicoJefeInfo.imagen}
+                        alt={medicoJefeInfo.nombre}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-lg font-semibold text-primary">
+                          {medicoJefeInfo.nombre.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium">Dr(a). {medicoJefeInfo.nombre}</p>
+                      <p className="text-sm text-muted-foreground">Médico Jefe</p>
+                    </div>
+                  </div>
                   <p className="text-sm font-medium mb-2">Resolución Final:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
                 </div>
