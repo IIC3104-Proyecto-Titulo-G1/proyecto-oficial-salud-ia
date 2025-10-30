@@ -48,6 +48,7 @@ interface MedicoInfo {
 
 interface ResolucionInfo {
   comentario_medico: string;
+  decision_medico?: 'aplicar_ley' | 'no_aplicar_ley';
   decision_final?: 'aceptado' | 'rechazado';
   comentario_final?: string;
 }
@@ -1008,8 +1009,13 @@ export default function VerCaso() {
                   <p className="text-sm text-amber-700">Médico Tratante</p>
                 </div>
               </div>
+              <div className="mb-2">
+                <p className="text-sm font-medium text-amber-900">
+                  Opinión médico tratante: {resolucionInfo.decision_medico === 'aplicar_ley' ? 'Aplicar ley' : 'No aplicar ley'}
+                </p>
+              </div>
               <div className="bg-white rounded-lg p-4 border border-amber-200">
-                <p className="text-sm font-medium text-amber-900 mb-2">Razón del Rechazo:</p>
+                <p className="text-sm font-medium text-amber-900 mb-2">Razón:</p>
                 <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
               </div>
             </CardContent>
