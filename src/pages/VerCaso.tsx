@@ -793,12 +793,13 @@ export default function VerCaso() {
                       <p className="text-sm text-muted-foreground">Médico Tratante</p>
                     </div>
                   </div>
-                  <div className="mb-2">
-                    <p className="text-sm font-medium">
-                      Opinión: {resolucionInfo.decision_medico === 'aplicar_ley' ? 'Aplicar ley' : 'No aplicar ley'}
-                    </p>
+                  <div className="mb-3">
+                    <p className="text-sm font-medium mb-2">Opinión médico tratante:</p>
+                    <Badge variant={resolucionInfo.decision_medico === 'aplicar_ley' ? 'default' : 'destructive'} className="text-xs">
+                      {resolucionInfo.decision_medico === 'aplicar_ley' ? 'Aplicar ley' : 'No aplicar ley'}
+                    </Badge>
                   </div>
-                  <p className="text-sm font-medium mb-2">Razón:</p>
+                  <p className="text-sm font-medium mb-2">Explicación:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_medico}</p>
                 </div>}
               {resolucionInfo?.comentario_final && medicoJefeInfo && <div className="bg-white rounded-lg p-4 border border-muted">
@@ -813,7 +814,13 @@ export default function VerCaso() {
                       <p className="text-sm text-muted-foreground">Médico Jefe</p>
                     </div>
                   </div>
-                  <p className="text-sm font-medium mb-2">Resolución Final:</p>
+                  <div className="mb-3">
+                    <p className="text-sm font-medium mb-2">Resolución Final:</p>
+                    <Badge variant={caso.estado === 'aceptado' ? 'default' : 'destructive'} className="text-xs">
+                      {caso.estado === 'aceptado' ? 'Aplicar ley' : 'No aplicar ley'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium mb-2">Explicación:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
                 </div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -865,13 +872,14 @@ export default function VerCaso() {
                   <p className="text-sm text-amber-700">Médico Tratante</p>
                 </div>
               </div>
-              <div className="mb-2">
-                <p className="text-sm font-medium text-amber-900">
-                  Opinión médico tratante: {resolucionInfo.decision_medico === 'aplicar_ley' ? 'Aplicar ley' : 'No aplicar ley'}
-                </p>
+              <div className="mb-3">
+                <p className="text-sm font-medium text-amber-900 mb-2">Opinión médico tratante:</p>
+                <Badge variant={resolucionInfo.decision_medico === 'aplicar_ley' ? 'default' : 'destructive'} className="text-xs">
+                  {resolucionInfo.decision_medico === 'aplicar_ley' ? 'Aplicar ley' : 'No aplicar ley'}
+                </Badge>
               </div>
               <div className="bg-white rounded-lg p-4 border border-amber-200">
-                <p className="text-sm font-medium text-amber-900 mb-2">Razón:</p>
+                <p className="text-sm font-medium text-amber-900 mb-2">Explicación:</p>
                 <p className="text-sm text-amber-800">{resolucionInfo.comentario_medico}</p>
               </div>
             </CardContent>
