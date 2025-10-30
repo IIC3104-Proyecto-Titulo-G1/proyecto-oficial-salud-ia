@@ -869,7 +869,7 @@ export default function Dashboard() {
                             <span className="font-medium text-foreground">
                               {caso.medico_tratante_id === user?.id 
                                 ? 'usted' 
-                                : medicosData[caso.medico_tratante_id].nombre}
+                                : `Dr(a). ${medicosData[caso.medico_tratante_id].nombre}`}
                             </span>
                           </span>
                         </div>
