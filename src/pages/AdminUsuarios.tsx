@@ -426,7 +426,7 @@ export default function AdminUsuarios() {
                         <CardDescription>{usuario.email}</CardDescription>
                         <div className="flex gap-2 mt-2">
                           {getRoleBadge(usuario.rol)}
-                          {usuario.especialidad && (
+                          {usuario.rol !== 'admin' && usuario.especialidad && (
                             <Badge variant="outline">{usuario.especialidad}</Badge>
                           )}
                         </div>
