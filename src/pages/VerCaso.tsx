@@ -789,7 +789,7 @@ export default function VerCaso() {
                         </span>
                       </div>}
                     <div>
-                      <p className="font-medium">Dr(a). {medicoInfo.nombre}</p>
+                      <p className="font-medium">{medicoInfo.nombre}</p>
                       <p className="text-sm text-muted-foreground">Médico Tratante</p>
                     </div>
                   </div>
@@ -810,7 +810,7 @@ export default function VerCaso() {
                         </span>
                       </div>}
                     <div>
-                      <p className="font-medium">Dr(a). {medicoJefeInfo.nombre}</p>
+                      <p className="font-medium">{medicoJefeInfo.nombre}</p>
                       <p className="text-sm text-muted-foreground">Médico Jefe</p>
                     </div>
                   </div>
@@ -868,7 +868,7 @@ export default function VerCaso() {
                     </span>
                   </div>}
                 <div>
-                  <p className="font-medium text-amber-900">Dr(a). {medicoInfo.nombre}</p>
+                  <p className="font-medium text-amber-900">{medicoInfo.nombre}</p>
                   <p className="text-sm text-amber-700">Médico Tratante</p>
                 </div>
               </div>
