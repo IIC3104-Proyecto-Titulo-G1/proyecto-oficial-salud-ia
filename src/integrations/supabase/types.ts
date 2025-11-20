@@ -19,7 +19,7 @@ export type Database = {
           descripcion_adicional: string | null
           diagnostico_principal: string
           edad_paciente: number
-          email_paciente: string
+          email_paciente: string | null
           estado: Database["public"]["Enums"]["estado_caso"] | null
           fecha_actualizacion: string | null
           fecha_analisis_ia: string | null
@@ -41,7 +41,7 @@ export type Database = {
           descripcion_adicional?: string | null
           diagnostico_principal: string
           edad_paciente: number
-          email_paciente: string
+          email_paciente?: string | null
           estado?: Database["public"]["Enums"]["estado_caso"] | null
           fecha_actualizacion?: string | null
           fecha_analisis_ia?: string | null
@@ -63,7 +63,7 @@ export type Database = {
           descripcion_adicional?: string | null
           diagnostico_principal?: string
           edad_paciente?: number
-          email_paciente?: string
+          email_paciente?: string | null
           estado?: Database["public"]["Enums"]["estado_caso"] | null
           fecha_actualizacion?: string | null
           fecha_analisis_ia?: string | null

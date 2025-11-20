@@ -896,8 +896,8 @@ export default function VerCaso() {
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
               </div>
-              {/* Mostrar botón de editar datos solo para médico jefe */}
-              {userRole === 'medico_jefe' && (caso.estado === 'pendiente' || caso.estado === 'derivado' || showReopenCase) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
+              {/* Botón de editar: casos pendientes (cualquier médico), derivados/cerrados (solo médico jefe) */}
+              {(caso.estado === 'pendiente' || (userRole === 'medico_jefe' && (caso.estado === 'derivado' || showReopenCase))) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
                 </Button>}
