@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar, Trash2 } from 'lucide-react';
-import { getDoctorPrefix } from '@/lib/utils';
+import { getDoctorPrefix, consoleLogDebugger } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [filtroMedico, setFiltroMedico] = useState('todos');
+  const [filtroCasoId, setFiltroCasoId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
@@ -51,12 +52,13 @@ export default function Dashboard() {
   const [deletingCasoId, setDeletingCasoId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const filtroDesdeNotificacion = useRef(false);
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '');
+  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '') || filtroCasoId !== null;
 
   // Establecer fecha de término por defecto a hoy para todos los médicos
   useEffect(() => {
@@ -83,20 +85,20 @@ export default function Dashboard() {
       setCasos(data || []);
       
       // Cargar información de médicos solo si es médico jefe
-      console.log('🔍 userRole:', userRole);
-      console.log('🔍 Cantidad de casos:', data?.length);
+      consoleLogDebugger('🔍 userRole:', userRole);
+      consoleLogDebugger('🔍 Cantidad de casos:', data?.length);
       
       if (userRole === 'medico_jefe' && data && data.length > 0) {
         const medicoIds = [...new Set(data.map(caso => caso.medico_tratante_id))];
-        console.log('🔍 IDs de médicos únicos:', medicoIds);
+        consoleLogDebugger('🔍 IDs de médicos únicos:', medicoIds);
         
         const { data: medicosInfo, error: medicosError } = await supabase
           .from('user_roles')
           .select('user_id, nombre, imagen, genero')
           .in('user_id', medicoIds);
         
-        console.log('🔍 Información de médicos:', medicosInfo);
-        console.log('🔍 Error al cargar médicos:', medicosError);
+        consoleLogDebugger('🔍 Información de médicos:', medicosInfo);
+        consoleLogDebugger('🔍 Error al cargar médicos:', medicosError);
         
         if (!medicosError && medicosInfo) {
           const medicosMap: Record<string, MedicoData> = {};
@@ -107,7 +109,7 @@ export default function Dashboard() {
               genero: medico.genero,
             };
           });
-          console.log('🔍 Mapa de médicos:', medicosMap);
+          consoleLogDebugger('🔍 Mapa de médicos:', medicosMap);
           setMedicosData(medicosMap);
         }
       }
@@ -143,12 +145,30 @@ export default function Dashboard() {
     if (casoId && casos.length > 0) {
       const caso = casos.find(c => c.id === casoId);
       if (caso) {
+        // Marcar que el filtro viene de una notificación
+        filtroDesdeNotificacion.current = true;
+        // Filtrar por ID del caso en lugar de nombre
+        setFiltroCasoId(casoId);
+        // También establecer el nombre en el searchTerm para que se muestre en el input
         setSearchTerm(caso.nombre_paciente);
+        // Limpiar el parámetro de la URL después de procesarlo
+        setSearchParams({});
+        // Resetear el flag después de un pequeño delay para permitir que los otros efectos se ejecuten
+        setTimeout(() => {
+          filtroDesdeNotificacion.current = false;
+        }, 100);
       }
-      // Limpiar el parámetro de la URL
-      setSearchParams({});
     }
-  }, [searchParams, casos.length]);
+  }, [searchParams, casos.length, setSearchParams]);
+
+  // Limpiar el filtro por ID cuando se modifique cualquier otro filtro manualmente
+  useEffect(() => {
+    // Solo limpiar si el cambio NO viene de una notificación
+    if (filtroCasoId && !filtroDesdeNotificacion.current) {
+      setFiltroCasoId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -280,6 +300,11 @@ export default function Dashboard() {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return casos.filter((caso) => {
+      // Si hay un filtro por ID de caso, solo mostrar ese caso
+      if (filtroCasoId) {
+        return caso.id === filtroCasoId;
+      }
+
       const matchesEstado = estadoFiltro === 'todos' || caso.estado === estadoFiltro;
 
       if (!matchesEstado) {
@@ -317,7 +342,7 @@ export default function Dashboard() {
 
       return hayCoincidencia;
     });
-  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin, filtroMedico]);
+  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin, filtroMedico, filtroCasoId]);
 
   // Calcular casos paginados
   const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
@@ -724,6 +749,7 @@ export default function Dashboard() {
                 const hoy = new Date().toISOString().split('T')[0];
                 setFechaFin(hoy);
                 setFiltroMedico('todos');
+                setFiltroCasoId(null);
                 setCurrentPage(1);
               }}
               disabled={!filtrosActivos}
@@ -773,6 +799,7 @@ export default function Dashboard() {
                   setFechaInicio('');
                   setFechaFin('');
                   setFiltroMedico('todos');
+                  setFiltroCasoId(null);
                 }}
                 className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm"
               >
@@ -1059,3 +1086,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

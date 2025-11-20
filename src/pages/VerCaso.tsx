@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit, Mail, Info } from 'lucide-react';
-import { getDoctorPrefix } from '@/lib/utils';
+import { getDoctorPrefix, consoleLogDebugger } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -176,7 +176,7 @@ export default function VerCaso() {
         error: medicoTratanteError
       } = await supabase.from('user_roles').select('nombre, imagen, genero').eq('user_id', casoData.medico_tratante_id).maybeSingle();
       if (medicoTratanteError) {
-        console.error('Error al cargar médico tratante:', medicoTratanteError);
+        consoleLogDebugger('Error al cargar médico tratante:', medicoTratanteError);
       }
       setMedicoInfo(medicoTratanteData);
 
@@ -187,7 +187,7 @@ export default function VerCaso() {
           error: medicoJefeError
         } = await supabase.from('user_roles').select('nombre, imagen, genero').eq('user_id', casoData.medico_jefe_id).maybeSingle();
         if (medicoJefeError) {
-          console.error('Error al cargar médico jefe:', medicoJefeError);
+          consoleLogDebugger('Error al cargar médico jefe:', medicoJefeError);
         }
         setMedicoJefeInfo(medicoJefeData);
 
@@ -358,7 +358,7 @@ export default function VerCaso() {
         error: deleteError
       } = await supabase.from('sugerencia_ia').delete().eq('caso_id', caso.id);
       if (deleteError) {
-        console.error('Error al eliminar sugerencia anterior:', deleteError);
+        consoleLogDebugger('Error al eliminar sugerencia anterior:', deleteError);
       }
 
       // Generar nueva sugerencia IA
@@ -625,7 +625,7 @@ export default function VerCaso() {
           error: deleteAllError
         } = await supabase.from('sugerencia_ia').delete().eq('caso_id', id);
         if (deleteAllError) {
-          console.error('Error al eliminar todas las sugerencias:', deleteAllError);
+          consoleLogDebugger('Error al eliminar todas las sugerencias:', deleteAllError);
         }
 
         // Luego, crear una nueva sugerencia con los datos originales
@@ -677,7 +677,7 @@ export default function VerCaso() {
 
   // Permitir vista incluso sin sugerencia (casos muy antiguos o con errores)
   if (!sugerencia) {
-    console.warn('Caso sin sugerencia de IA:', id);
+    consoleLogDebugger('Caso sin sugerencia de IA:', id);
   }
   return <div className="min-h-screen bg-muted/30">
       <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
