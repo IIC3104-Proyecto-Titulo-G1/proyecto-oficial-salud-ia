@@ -198,7 +198,7 @@ export default function VerCaso() {
           } = await supabase.from('notificaciones').select('mensaje').eq('usuario_id', user?.id).eq('caso_id', id).eq('tipo', 'caso_resuelto').order('fecha_creacion', {
             ascending: false
           }).limit(1).maybeSingle();
-          const nombre = notif?.mensaje?.match(/Doctor\(a\)\s+(.+?)\s+ha\s/i)?.[1] || null;
+          const nombre = notif?.mensaje?.match(/(?:Dr\.|Dra\.|Dr\(a\)\.)\s+(.+?)\s+ha\s/i)?.[1] || null;
           if (nombre) {
             setMedicoJefeInfo({
               nombre,
