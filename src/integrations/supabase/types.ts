@@ -309,6 +309,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_doctor_prefix: { Args: { p_genero: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
