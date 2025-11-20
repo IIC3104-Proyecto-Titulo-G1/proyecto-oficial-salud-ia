@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Edit, Mail, Info } from 'lucide-react';
+import { getDoctorPrefix } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,7 @@ interface Sugerencia {
 interface MedicoInfo {
   nombre: string;
   imagen: string | null;
+  genero?: string | null;
 }
 interface ResolucionInfo {
   comentario_medico: string;
@@ -51,6 +53,7 @@ interface ResolucionInfo {
 interface MedicoJefeInfo {
   nombre: string;
   imagen: string | null;
+  genero?: string | null;
 }
 export default function VerCaso() {
   const {
@@ -152,7 +155,7 @@ export default function VerCaso() {
     if (casoData?.estado === 'derivado') {
       const {
         data: medicoData
-      } = await supabase.from('user_roles').select('nombre, imagen').eq('user_id', casoData.medico_tratante_id).single();
+      } = await supabase.from('user_roles').select('nombre, imagen, genero').eq('user_id', casoData.medico_tratante_id).single();
       const {
         data: resolucionData
       } = await supabase.from('resolucion_caso').select('comentario_medico').eq('caso_id', id).single();
@@ -171,7 +174,7 @@ export default function VerCaso() {
       const {
         data: medicoTratanteData,
         error: medicoTratanteError
-      } = await supabase.from('user_roles').select('nombre, imagen').eq('user_id', casoData.medico_tratante_id).maybeSingle();
+      } = await supabase.from('user_roles').select('nombre, imagen, genero').eq('user_id', casoData.medico_tratante_id).maybeSingle();
       if (medicoTratanteError) {
         console.error('Error al cargar médico tratante:', medicoTratanteError);
       }
@@ -182,7 +185,7 @@ export default function VerCaso() {
         const {
           data: medicoJefeData,
           error: medicoJefeError
-        } = await supabase.from('user_roles').select('nombre, imagen').eq('user_id', casoData.medico_jefe_id).maybeSingle();
+        } = await supabase.from('user_roles').select('nombre, imagen, genero').eq('user_id', casoData.medico_jefe_id).maybeSingle();
         if (medicoJefeError) {
           console.error('Error al cargar médico jefe:', medicoJefeError);
         }
@@ -699,7 +702,7 @@ export default function VerCaso() {
                     {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
                   </CardTitle>
                   <CardDescription>
-                    {medicoInfo?.nombre ? `Dr(a). ${medicoInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.` : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
+                    {medicoInfo?.nombre ? `${getDoctorPrefix(medicoInfo.genero)} ${medicoInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.` : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
                   </CardDescription>
                 </div>
                 <TooltipProvider>
@@ -737,7 +740,7 @@ export default function VerCaso() {
                     {caso.estado === 'aceptado' ? 'Ley Aplicada por Médico Jefe' : 'Ley No Aplicada por Médico Jefe'}
                   </CardTitle>
                   <CardDescription>
-                    {medicoJefeInfo?.nombre ? `Dr(a). ${medicoJefeInfo.nombre} decidió que ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} la ley de urgencia para este caso.` : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
+                    {medicoJefeInfo?.nombre ? `${getDoctorPrefix(medicoJefeInfo.genero)} ${medicoJefeInfo.nombre} decidió que ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} la ley de urgencia para este caso.` : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
                   </CardDescription>
                 </div>
                 <TooltipProvider>
@@ -777,7 +780,7 @@ export default function VerCaso() {
                 {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
               </CardTitle>
               <CardDescription>
-                {caso.medico_jefe_id && medicoJefeInfo ? `Dr(a). ${medicoJefeInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.` : medicoInfo ? `Dr(a). ${medicoInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.` : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
+                {caso.medico_jefe_id && medicoJefeInfo ? `${getDoctorPrefix(medicoJefeInfo.genero)} ${medicoJefeInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.` : medicoInfo ? `${getDoctorPrefix(medicoInfo.genero)} ${medicoInfo.nombre} ha determinado que este caso ${caso.estado === 'aceptado' ? 'aplica' : 'no aplica'} para la ley de urgencia.` : `Se ${caso.estado === 'aceptado' ? 'aplicó' : 'no aplicó'} la ley de urgencia a este caso.`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
