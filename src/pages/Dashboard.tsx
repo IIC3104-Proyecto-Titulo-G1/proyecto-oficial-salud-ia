@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar, Trash2 } from 'lucide-react';
+import { getDoctorPrefix } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +29,7 @@ interface Caso {
 interface MedicoData {
   nombre: string;
   imagen: string | null;
+  genero?: string | null;
 }
 
 type EstadoFiltro = 'todos' | 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
@@ -90,7 +92,7 @@ export default function Dashboard() {
         
         const { data: medicosInfo, error: medicosError } = await supabase
           .from('user_roles')
-          .select('user_id, nombre, imagen')
+          .select('user_id, nombre, imagen, genero')
           .in('user_id', medicoIds);
         
         console.log('🔍 Información de médicos:', medicosInfo);
@@ -102,6 +104,7 @@ export default function Dashboard() {
             medicosMap[medico.user_id] = {
               nombre: medico.nombre,
               imagen: medico.imagen,
+              genero: medico.genero,
             };
           });
           console.log('🔍 Mapa de médicos:', medicosMap);
@@ -872,7 +875,7 @@ export default function Dashboard() {
                             <span className="font-medium text-foreground">
                               {caso.medico_tratante_id === user?.id 
                                 ? 'usted' 
-                                : `Dr(a). ${medicosData[caso.medico_tratante_id].nombre}`}
+                                : `${getDoctorPrefix(medicosData[caso.medico_tratante_id].genero)} ${medicosData[caso.medico_tratante_id].nombre}`}
                             </span>
                           </span>
                         </div>
