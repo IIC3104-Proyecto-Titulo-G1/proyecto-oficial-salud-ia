@@ -256,6 +256,7 @@ export type Database = {
           especialidad: string | null
           fecha_actualizacion: string | null
           fecha_creacion: string | null
+          genero: string | null
           hospital: string | null
           id: string
           imagen: string | null
@@ -270,6 +271,7 @@ export type Database = {
           especialidad?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
+          genero?: string | null
           hospital?: string | null
           id?: string
           imagen?: string | null
@@ -284,6 +286,7 @@ export type Database = {
           especialidad?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
+          genero?: string | null
           hospital?: string | null
           id?: string
           imagen?: string | null

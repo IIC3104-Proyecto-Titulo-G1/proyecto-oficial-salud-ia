@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Upload, User, X } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function AdminPerfil() {
     hospital: '',
     especialidad: '',
     telefono: '',
+    genero: 'masculino',
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -58,6 +60,7 @@ export default function AdminPerfil() {
         hospital: userRoleData.hospital || '',
         especialidad: userRoleData.especialidad || '',
         telefono: userRoleData.telefono || '',
+        genero: userRoleData.genero || 'masculino',
       });
       if (userRoleData.imagen) {
         setImagePreview(userRoleData.imagen);
@@ -282,6 +285,7 @@ export default function AdminPerfil() {
           hospital: perfilData.hospital || null,
           especialidad: perfilData.especialidad || null,
           telefono: perfilData.telefono || null,
+          genero: perfilData.genero,
           imagen: imageUrl,
         })
         .eq('user_id', user.id);
@@ -484,21 +488,36 @@ export default function AdminPerfil() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="perfil-telefono">Teléfono</Label>
-                    <Input
-                      id="perfil-telefono"
-                      value={perfilData.telefono}
-                      onChange={(e) => handleFormChange('telefono', e.target.value)}
-                      placeholder="Ej: +56912345678"
-                      className={errors.telefono ? 'border-destructive' : ''}
-                    />
-                    {errors.telefono && (
-                      <p className="text-sm text-destructive">{errors.telefono}</p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      Formato chileno: +56912345678, 912345678 o 12345678
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="perfil-telefono">Teléfono</Label>
+                      <Input
+                        id="perfil-telefono"
+                        value={perfilData.telefono}
+                        onChange={(e) => handleFormChange('telefono', e.target.value)}
+                        placeholder="Ej: +56912345678"
+                        className={errors.telefono ? 'border-destructive' : ''}
+                      />
+                      {errors.telefono && (
+                        <p className="text-sm text-destructive">{errors.telefono}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="perfil-genero">Género *</Label>
+                      <Select
+                        value={perfilData.genero}
+                        onValueChange={(value) => handleFormChange('genero', value)}
+                      >
+                        <SelectTrigger id="perfil-genero">
+                          <SelectValue placeholder="Selecciona tu género" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="prefiero_no_responder">Prefiero no responder</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
