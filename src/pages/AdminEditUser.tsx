@@ -39,6 +39,7 @@ export default function AdminEditUser() {
     hospital: '',
     especialidad: '',
     telefono: '',
+    genero: 'masculino',
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -92,6 +93,7 @@ export default function AdminEditUser() {
         hospital: data.hospital || '',
         especialidad: data.especialidad || '',
         telefono: data.telefono || '',
+        genero: data.genero || 'masculino',
       });
 
       if (data.imagen) {
@@ -357,6 +359,7 @@ export default function AdminEditUser() {
           hospital: formData.hospital || null,
           especialidad: formData.especialidad || null,
           telefono: formData.telefono || null,
+          genero: formData.genero,
           role: formData.rol,
           imagen: imageUrl,
         })
@@ -566,26 +569,40 @@ export default function AdminEditUser() {
                       {errors.telefono && (
                         <p className="text-sm text-destructive">{errors.telefono}</p>
                       )}
-                      <p className="text-sm text-muted-foreground">
-                        Formato chileno: +56912345678, 912345678 o 12345678
-                      </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="rol">Rol *</Label>
+                      <Label htmlFor="genero">Género *</Label>
                       <Select
-                        value={formData.rol}
-                        onValueChange={(value: any) => handleFormChange('rol', value)}
+                        value={formData.genero}
+                        onValueChange={(value) => handleFormChange('genero', value)}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
+                        <SelectTrigger id="genero">
+                          <SelectValue placeholder="Selecciona el género" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                          <SelectItem value="medico">Médico</SelectItem>
-                          <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="prefiero_no_responder">Prefiero no responder</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rol">Rol *</Label>
+                    <Select
+                      value={formData.rol}
+                      onValueChange={(value: any) => handleFormChange('rol', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="medico">Médico</SelectItem>
+                        <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

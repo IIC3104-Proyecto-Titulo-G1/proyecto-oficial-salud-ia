@@ -44,6 +44,7 @@ export default function AdminUsuarios() {
     rol: 'medico' as 'admin' | 'medico' | 'medico_jefe',
     hospital: '',
     especialidad: '',
+    genero: 'masculino',
   });
 
   useEffect(() => {
@@ -100,6 +101,7 @@ export default function AdminUsuarios() {
         rol: 'medico',
         hospital: '',
         especialidad: '',
+        genero: 'masculino',
       });
       setShowDialog(true);
     }
@@ -152,6 +154,7 @@ export default function AdminUsuarios() {
               email: formData.email,
               hospital: formData.hospital,
               especialidad: formData.especialidad,
+              genero: formData.genero,
             },
           ]);
 
@@ -635,6 +638,22 @@ export default function AdminUsuarios() {
                 value={formData.especialidad}
                 onChange={(e) => setFormData({ ...formData, especialidad: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="genero">Género *</Label>
+              <Select
+                value={formData.genero}
+                onValueChange={(value) => setFormData({ ...formData, genero: value })}
+              >
+                <SelectTrigger id="genero">
+                  <SelectValue placeholder="Selecciona el género" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="femenino">Femenino</SelectItem>
+                  <SelectItem value="prefiero_no_responder">Prefiero no responder</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
