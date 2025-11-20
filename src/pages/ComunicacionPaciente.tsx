@@ -171,6 +171,7 @@ export default function ComunicacionPaciente() {
       // Actualizar estado del caso si:
       // 1. Se tomó una nueva decisión (decisionMedico existe), O
       // 2. El caso no está cerrado
+      let estadoCambio = false;
       if (decisionMedico || (casoActual.estado !== 'aceptado' && casoActual.estado !== 'rechazado')) {
         const { error: updateError } = await supabase
           .from('casos')
@@ -178,6 +179,44 @@ export default function ComunicacionPaciente() {
           .eq('id', id);
 
         if (updateError) throw updateError;
+        
+        // Marcar que el estado cambió
+        estadoCambio = true;
+      }
+
+      // Crear notificación para el médico tratante si es un caso derivado
+      if (estadoCambio && 
+          casoActual.medico_jefe_id && 
+          casoActual.medico_tratante_id && 
+          casoActual.medico_jefe_id !== casoActual.medico_tratante_id) {
+        
+        // Obtener información del médico jefe
+        const { data: medicoJefeData } = await supabase
+          .from('user_roles')
+          .select('nombre, genero')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (medicoJefeData) {
+          const prefijo = medicoJefeData.genero === 'femenino' ? 'Dra.' : 
+                         medicoJefeData.genero === 'masculino' ? 'Dr.' : 'Dr(a).';
+          
+          const titulo = estadoFinal === 'aceptado' ? 'Ley aplicada' : 'Ley no aplicada';
+          const mensaje = estadoFinal === 'aceptado' 
+            ? `${prefijo} ${medicoJefeData.nombre} ha aplicado la ley de urgencia al caso del paciente ${caso!.nombre_paciente}`
+            : `${prefijo} ${medicoJefeData.nombre} ha determinado que no aplica la ley de urgencia al caso del paciente ${caso!.nombre_paciente}`;
+
+          await supabase
+            .from('notificaciones')
+            .insert({
+              usuario_id: casoActual.medico_tratante_id,
+              caso_id: id,
+              tipo: 'caso_resuelto',
+              titulo,
+              mensaje,
+              leido: false,
+            });
+        }
       }
 
       // Si se debe enviar el correo, llamar al edge function
