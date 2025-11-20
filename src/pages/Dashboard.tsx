@@ -767,6 +767,9 @@ export default function Dashboard() {
                 onClick={() => {
                   setSearchTerm('');
                   setEstadoFiltro('todos');
+                  setFechaInicio('');
+                  setFechaFin('');
+                  setFiltroMedico('todos');
                 }}
                 className="border-crm/40 text-crm hover:bg-crm/10 hover:text-crm"
               >
