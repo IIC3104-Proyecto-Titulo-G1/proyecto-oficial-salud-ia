@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Mail, Send } from 'lucide-react';
+import { consoleLogDebugger } from '@/lib/utils';
 
 interface Caso {
   id: string;
@@ -201,19 +202,19 @@ export default function ComunicacionPaciente() {
         );
 
         if (emailError) {
-          console.error('Error al enviar correo:', emailError);
+          consoleLogDebugger('Error al enviar correo:', emailError);
           throw new Error('Error al conectar con el servicio de correo');
         }
 
         // Verificar si Resend rechazó el envío
         if (emailData && !emailData.success) {
-          console.error('Resend error:', emailData.error);
+          consoleLogDebugger('Resend error:', emailData.error);
           throw new Error(
             'Resend requiere verificar un dominio. Por ahora solo puedes enviar correos de prueba a: tallerintegraciong1@gmail.com'
           );
         }
 
-        console.log('Email enviado:', emailData);
+        consoleLogDebugger('Email enviado:', emailData);
       }
 
       // Registrar comunicación

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar, Trash2 } from 'lucide-react';
-import { getDoctorPrefix } from '@/lib/utils';
+import { getDoctorPrefix, consoleLogDebugger } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -83,20 +83,20 @@ export default function Dashboard() {
       setCasos(data || []);
       
       // Cargar información de médicos solo si es médico jefe
-      console.log('🔍 userRole:', userRole);
-      console.log('🔍 Cantidad de casos:', data?.length);
+      consoleLogDebugger('🔍 userRole:', userRole);
+      consoleLogDebugger('🔍 Cantidad de casos:', data?.length);
       
       if (userRole === 'medico_jefe' && data && data.length > 0) {
         const medicoIds = [...new Set(data.map(caso => caso.medico_tratante_id))];
-        console.log('🔍 IDs de médicos únicos:', medicoIds);
+        consoleLogDebugger('🔍 IDs de médicos únicos:', medicoIds);
         
         const { data: medicosInfo, error: medicosError } = await supabase
           .from('user_roles')
           .select('user_id, nombre, imagen, genero')
           .in('user_id', medicoIds);
         
-        console.log('🔍 Información de médicos:', medicosInfo);
-        console.log('🔍 Error al cargar médicos:', medicosError);
+        consoleLogDebugger('🔍 Información de médicos:', medicosInfo);
+        consoleLogDebugger('🔍 Error al cargar médicos:', medicosError);
         
         if (!medicosError && medicosInfo) {
           const medicosMap: Record<string, MedicoData> = {};
@@ -107,7 +107,7 @@ export default function Dashboard() {
               genero: medico.genero,
             };
           });
-          console.log('🔍 Mapa de médicos:', medicosMap);
+          consoleLogDebugger('🔍 Mapa de médicos:', medicosMap);
           setMedicosData(medicosMap);
         }
       }
