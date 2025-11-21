@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft } from 'lucide-react';
 import { z } from 'zod';
 
 // Schema de validación con zod
@@ -53,97 +54,262 @@ export default function NuevoCaso() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
+  const [evaluationMethod, setEvaluationMethod] = useState('rules');
+  const testDatasets = {
+    critico: {
+      // Identificación del episodio
+      episodio: 'EP-2024-TEST-001',
+      centro: 'Hospital Regional de Santiago',
+      fecha_ingreso: new Date().toISOString().slice(0, 16),
+
+      // Datos del paciente
+      nombre_paciente: 'Juan Carlos Pérez',
+      edad: '65',
+      sexo: 'M',
+      email_paciente: 'juan.perez@email.com',
+
+      // Diagnóstico
+      diagnostico_principal: 'Infarto agudo de miocardio con supradesnivel del segmento ST',
+      sintomas: 'Dolor torácico opresivo irradiado a brazo izquierdo, disnea, sudoración profusa',
+      historia_clinica: 'Paciente con antecedentes de hipertensión arterial y diabetes mellitus tipo 2',
+      descripcion_adicional: 'Paciente refiere dolor de inicio súbito hace 2 horas',
+
+      // Signos vitales
+      pa_sistolica: '85',
+      pa_diastolica: '55',
+      fc: '125',
+      fr: '22',
+      temperatura_c: '36.8',
+      sat_o2: '92',
+      glasgow: '14',
+
+      // Soporte respiratorio
+      fio2: '40',
+      fio2_ge_50: false,
+      vm: false,
+
+      // Antecedentes médicos
+      antecedentes_cardiacos: false,
+      antecedentes_diabeticos: true,
+      antecedentes_hta: true,
+
+      // Laboratorio
+      hb: '11.5',
+      creatinina: '1.2',
+      bun: '25',
+      sodio: '138',
+      potasio: '4.2',
+      troponinas_alteradas: true,
+
+      // Evaluaciones clínicas
+      triage: 'I',
+      tipo_cama: 'UCI',
+      ecg_alterado: true,
+      dreo: true,
+      dva: false,
+      compromiso_conciencia: false,
+      rnm_protocol_stroke: false,
+
+      // Procedimientos
+      pcr: false,
+      cirugia: false,
+      cirugia_same_day: false,
+      hemodinamia: true,
+      hemodinamia_same_day: true,
+      endoscopia: false,
+      endoscopia_same_day: false,
+      dialisis: false,
+      trombolisis: false,
+      trombolisis_same_day: false,
+      transfusiones: '0',
+    },
+    leve: {
+      // Identificación del episodio
+      episodio: 'EP-2024-TEST-002',
+      centro: 'Centro de Salud Familiar San Martín',
+      fecha_ingreso: new Date().toISOString().slice(0, 16),
+
+      // Datos del paciente
+      nombre_paciente: 'María López',
+      edad: '34',
+      sexo: 'F',
+      email_paciente: 'maria.lopez@email.com',
+
+      // Diagnóstico
+      diagnostico_principal: 'Gastroenteritis aguda',
+      sintomas: 'Dolor abdominal leve, náuseas, sin vómitos, sin fiebre',
+      historia_clinica: 'Sin antecedentes relevantes, cuadro de 12 horas',
+      descripcion_adicional: 'Hidratación oral conservada, estado general bueno',
+
+      // Signos vitales
+      pa_sistolica: '115',
+      pa_diastolica: '72',
+      fc: '82',
+      fr: '16',
+      temperatura_c: '36.7',
+      sat_o2: '98',
+      glasgow: '15',
+
+      // Soporte respiratorio
+      fio2: '',
+      fio2_ge_50: false,
+      vm: false,
+
+      // Antecedentes médicos
+      antecedentes_cardiacos: false,
+      antecedentes_diabeticos: false,
+      antecedentes_hta: false,
+
+      // Laboratorio
+      hb: '',
+      creatinina: '',
+      bun: '',
+      sodio: '',
+      potasio: '',
+      troponinas_alteradas: false,
+
+      // Evaluaciones clínicas
+      triage: 'IV',
+      tipo_cama: 'Ambulatoria',
+      ecg_alterado: false,
+      dreo: false,
+      dva: false,
+      compromiso_conciencia: false,
+      rnm_protocol_stroke: false,
+
+      // Procedimientos
+      pcr: false,
+      cirugia: false,
+      cirugia_same_day: false,
+      hemodinamia: false,
+      hemodinamia_same_day: false,
+      endoscopia: false,
+      endoscopia_same_day: false,
+      dialisis: false,
+      trombolisis: false,
+      trombolisis_same_day: false,
+      transfusiones: '0',
+    }
+  } as const;
   const [formData, setFormData] = useState({
+    // Identificación del episodio
+    episodio: '',
+    centro: '',
+    fecha_ingreso: '',
+
+    // Datos del paciente
     nombre_paciente: '',
     edad: '',
     sexo: '',
     email_paciente: '',
+
+    // Diagnóstico
     diagnostico_principal: '',
     sintomas: '',
     historia_clinica: '',
-    presion_arterial: '',
-    frecuencia_cardiaca: '',
-    temperatura: '',
-    saturacion_oxigeno: '',
-    frecuencia_respiratoria: '',
+    descripcion_adicional: '',
+
+    // Signos vitales básicos
+    pa_sistolica: '',
+    pa_diastolica: '',
+    fc: '',
+    fr: '',
+    temperatura_c: '',
+    sat_o2: '',
+    glasgow: '',
+
+    // Soporte respiratorio
+    fio2: '',
+    fio2_ge_50: false,
+    vm: false,
+
+    // Antecedentes médicos
+    antecedentes_cardiacos: false,
+    antecedentes_diabeticos: false,
+    antecedentes_hta: false,
+
+    // Laboratorio
+    hb: '',
+    creatinina: '',
+    bun: '',
+    sodio: '',
+    potasio: '',
+    troponinas_alteradas: false,
+
+    // Evaluaciones clínicas
+    triage: '',
+    tipo_cama: '',
+    ecg_alterado: false,
+    dreo: false,
+    dva: false,
+    compromiso_conciencia: false,
+    rnm_protocol_stroke: false,
+
+    // Procedimientos
+    pcr: false,
+    cirugia: false,
+    cirugia_same_day: false,
+    hemodinamia: false,
+    hemodinamia_same_day: false,
+    endoscopia: false,
+    endoscopia_same_day: false,
+    dialisis: false,
+    trombolisis: false,
+    trombolisis_same_day: false,
+    transfusiones: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const fillWithTestData = (datasetKey: keyof typeof testDatasets = 'critico') => {
+    const dataset = testDatasets[datasetKey];
+    setFormData(dataset);
+    toast({
+      title: 'Datos de prueba cargados',
+      description: `Se cargó el set: ${datasetKey === 'critico' ? 'Crítico (aplica)' : 'Leve (probable rechazo)'}`,
+    });
+  };
 
   const validateForm = () => {
     const validationErrors: Record<string, string> = {};
 
-    // Validar campos principales con zod
-    try {
-      formSchema.parse({
-        nombre_paciente: formData.nombre_paciente,
-        edad: Number(formData.edad),
-        sexo: formData.sexo,
-        email_paciente: formData.email_paciente,
-        diagnostico_principal: formData.diagnostico_principal,
-        sintomas: formData.sintomas,
-        historia_clinica: formData.historia_clinica,
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            validationErrors[err.path[0] as string] = err.message;
-          }
-        });
-      }
+    // Validaciones básicas requeridas
+    if (!formData.episodio.trim()) {
+      validationErrors.episodio = 'El ID del episodio es requerido';
+    }
+    if (!formData.centro.trim()) {
+      validationErrors.centro = 'El centro hospitalario es requerido';
+    }
+    if (!formData.nombre_paciente.trim() || formData.nombre_paciente.length < 4) {
+      validationErrors.nombre_paciente = 'El nombre debe tener al menos 4 caracteres';
+    }
+    if (!formData.edad || Number(formData.edad) <= 0 || Number(formData.edad) > 120) {
+      validationErrors.edad = 'Ingresa una edad válida entre 1 y 120 años';
+    }
+    if (!formData.sexo) {
+      validationErrors.sexo = 'Selecciona el sexo del paciente';
+    }
+    if (!formData.diagnostico_principal.trim() || formData.diagnostico_principal.length < 10) {
+      validationErrors.diagnostico_principal = 'El diagnóstico debe tener al menos 10 caracteres';
     }
 
-    // Validaciones adicionales para signos vitales (opcional)
-    const presion = formData.presion_arterial.trim();
-    if (presion) {
-      const match = presion.match(/^(\d{2,3})\/(\d{2,3})$/);
-      if (!match) {
-        validationErrors.presion_arterial = 'Usa el formato sistólica/diastólica (ej. 120/80).';
-      } else {
-        const sistolica = Number(match[1]);
-        const diastolica = Number(match[2]);
-        if (
-          sistolica < 70 ||
-          sistolica > 250 ||
-          diastolica < 40 ||
-          diastolica > 150 ||
-          diastolica >= sistolica
-        ) {
-          validationErrors.presion_arterial = 'Verifica que los valores estén dentro de un rango clínico válido.';
-        }
-      }
+    // Validaciones opcionales de rangos
+    if (formData.pa_sistolica && (Number(formData.pa_sistolica) < 70 || Number(formData.pa_sistolica) > 250)) {
+      validationErrors.pa_sistolica = 'Presión sistólica debe estar entre 70 y 250 mmHg';
     }
-
-    const frecuenciaCardiaca = formData.frecuencia_cardiaca.trim();
-    if (frecuenciaCardiaca) {
-      const valor = Number(frecuenciaCardiaca);
-      if (!Number.isInteger(valor) || valor < 30 || valor > 220) {
-        validationErrors.frecuencia_cardiaca = 'Ingresa pulsaciones entre 30 y 220 lpm.';
-      }
+    if (formData.pa_diastolica && (Number(formData.pa_diastolica) < 40 || Number(formData.pa_diastolica) > 150)) {
+      validationErrors.pa_diastolica = 'Presión diastólica debe estar entre 40 y 150 mmHg';
     }
-
-    const temperatura = formData.temperatura.trim();
-    if (temperatura) {
-      const valor = Number(temperatura);
-      if (Number.isNaN(valor) || valor < 30 || valor > 45) {
-        validationErrors.temperatura = 'Ingresa una temperatura entre 30 y 45 °C.';
-      }
+    if (formData.fc && (Number(formData.fc) < 30 || Number(formData.fc) > 220)) {
+      validationErrors.fc = 'Frecuencia cardíaca debe estar entre 30 y 220 lpm';
     }
-
-    const saturacion = formData.saturacion_oxigeno.trim();
-    if (saturacion) {
-      const valor = Number(saturacion);
-      if (!Number.isInteger(valor) || valor < 70 || valor > 100) {
-        validationErrors.saturacion_oxigeno = 'Ingresa un porcentaje entre 70% y 100%.';
-      }
+    if (formData.temperatura_c && (Number(formData.temperatura_c) < 30 || Number(formData.temperatura_c) > 45)) {
+      validationErrors.temperatura_c = 'Temperatura debe estar entre 30 y 45 °C';
     }
-
-    const frecuenciaRespiratoria = formData.frecuencia_respiratoria.trim();
-    if (frecuenciaRespiratoria) {
-      const valor = Number(frecuenciaRespiratoria);
-      if (!Number.isInteger(valor) || valor < 8 || valor > 40) {
-        validationErrors.frecuencia_respiratoria = 'Ingresa respiraciones entre 8 y 40 rpm.';
-      }
+    if (formData.sat_o2 && (Number(formData.sat_o2) < 70 || Number(formData.sat_o2) > 100)) {
+      validationErrors.sat_o2 = 'Saturación de oxígeno debe estar entre 70 y 100%';
+    }
+    if (formData.glasgow && (Number(formData.glasgow) < 3 || Number(formData.glasgow) > 15)) {
+      validationErrors.glasgow = 'Escala de Glasgow debe estar entre 3 y 15';
     }
 
     return validationErrors;
@@ -155,9 +321,259 @@ export default function NuevoCaso() {
     setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData({ ...formData, [name]: checked });
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value });
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const convertTriageToNumber = (triage: string | number | null | undefined): number | null => {
+    if (triage === null || triage === undefined || triage === '') return null;
+    if (typeof triage === 'number' && !Number.isNaN(triage)) return triage;
+
+    const map: Record<string, number> = {
+      I: 1,
+      II: 2,
+      III: 3,
+      IV: 4,
+      V: 5,
+    };
+
+    const normalized = map[String(triage).trim().toUpperCase()];
+    if (normalized) return normalized;
+
+    const numeric = Number(triage);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  const normalizeTransfusionFlag = (value: number | string | boolean | null | undefined): boolean => {
+    if (typeof value === 'boolean') return value;
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return false;
+    return numeric > 0;
+  };
+
+  const normalizeFechaIngreso = (fecha: string | null | undefined) => {
+    if (!fecha) return new Date().toISOString();
+    const parsed = new Date(fecha);
+    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  };
+
+  const performEvaluation = async (casoId: string, casoData: any, method: string) => {
+    let endpoint = '';
+    try {
+      const triageNumber = convertTriageToNumber(casoData.triage);
+      const fechaIngreso = normalizeFechaIngreso(casoData.fecha_ingreso);
+
+      // Preparar datos para la evaluación
+      const evaluationData = {
+        data: {
+          // Campos requeridos - asegurar que no estén vacíos
+          episodio: (casoData.episodio || `EP-${Date.now()}`).toString(),
+          centro: (casoData.centro || 'Centro sin especificar').toString(),
+          fecha_ingreso: fechaIngreso,
+          diagnostico: casoData.diagnostico_principal || 'Diagnóstico pendiente',
+
+          // Signos vitales
+          pa_sistolica: casoData.pa_sistolica ?? null,
+          pa_diastolica: casoData.pa_diastolica ?? null,
+          pa_media: casoData.pa_media ?? null,
+          fc: casoData.fc ?? null,
+          fr: casoData.fr ?? null,
+          temperatura_c: casoData.temperatura_c ?? null,
+          sat_o2: casoData.sat_o2 ?? null,
+          glasgow: casoData.glasgow ?? null,
+
+          // Soporte respiratorio
+          fio2: casoData.fio2 ?? null,
+          fio2_ge_50: casoData.fio2_ge_50 ?? false,
+          vm: casoData.vm ?? false,
+
+          // Antecedentes
+          antecedentes_cardiacos: casoData.antecedentes_cardiacos ?? false,
+          antecedentes_diabeticos: casoData.antecedentes_diabeticos ?? false,
+          antecedentes_hta: casoData.antecedentes_hta ?? false,
+
+          // Laboratorio
+          hb: casoData.hb ?? null,
+          creatinina: casoData.creatinina ?? null,
+          bun: casoData.bun ?? null,
+          sodio: casoData.sodio ?? null,
+          potasio: casoData.potasio ?? null,
+          troponinas_alteradas: casoData.troponinas_alteradas ?? false,
+
+          // Evaluaciones clínicas - CORREGIR TIPOS
+          triage: triageNumber,
+          tipo_cama: casoData.tipo_cama || null,
+          ecg_alterado: casoData.ecg_alterado ?? false,
+          dreo: casoData.dreo ?? false,
+          dva: casoData.dva ?? false,
+          compromiso_conciencia: casoData.compromiso_conciencia ?? false,
+          rnm_protocol_stroke: casoData.rnm_protocol_stroke ?? false,
+
+          // Procedimientos - CORREGIR TIPOS
+          pcr: casoData.pcr ? 1 : 0, // Backend espera número, no boolean
+          cirugia: casoData.cirugia ?? false,
+          cirugia_same_day: casoData.cirugia_same_day ?? false,
+          hemodinamia: casoData.hemodinamia ?? false,
+          hemodinamia_same_day: casoData.hemodinamia_same_day ?? false,
+          endoscopia: casoData.endoscopia ?? false,
+          endoscopia_same_day: casoData.endoscopia_same_day ?? false,
+          dialisis: casoData.dialisis ?? false,
+          trombolisis: casoData.trombolisis ?? false,
+          trombolisis_same_day: casoData.trombolisis_same_day ?? false,
+          transfusiones: normalizeTransfusionFlag(casoData.transfusiones), // Backend espera boolean
+        },
+        patient_type: 'adult',
+        provider: method === 'rules' ? undefined : method
+      };
+
+      if (method === 'rules') {
+        endpoint = '/api/emergency/evaluate';
+      } else if (method === 'grok' || method === 'openai' || method === 'gemini') {
+        endpoint = `/api/multi-llm/evaluate/${method}`;
+      } else {
+        throw new Error(`Método de evaluación no soportado: ${method}`);
+      }
+
+      const response = await fetch(`http://localhost:3001${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(evaluationData),
+      });
+
+      const responseText = await response.text();
+      let result;
+
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        throw new Error(`Error parsing response: ${responseText.substring(0, 200)}...`);
+      }
+
+      if (!response.ok) {
+        const errorMessage = result?.error || result?.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || result.message || 'Error en la evaluación');
+      }
+
+      // Guardar resultado en la base de datos
+      await saveEvaluationResult(casoId, result.result, method);
+
+      return { success: true, result: result.result };
+    } catch (error: any) {
+      console.error('Error en evaluación:', {
+        method,
+        endpoint,
+        error: error.message,
+        stack: error.stack
+      });
+      return { success: false, error: error.message };
+    }
+  };
+
+  const saveEvaluationResult = async (casoId: string, result: any, method: string) => {
+    try {
+      console.log('Guardando resultado:', { casoId, result, method });
+
+      let sugerencia: 'aceptar' | 'rechazar' | 'incierto' = 'incierto';
+      let confianza = 50;
+      let explicacion = '';
+
+      if (method === 'rules') {
+        // Resultado del motor de reglas
+        sugerencia = result.applies ? 'aceptar' : 'rechazar';
+        confianza = 95; // Reglas son determinísticas
+        explicacion = `🔧 Motor de Reglas: ${result.applies ? 'APLICA' : 'NO APLICA'} Ley de Urgencia.`;
+
+        if (result.evidence?.length) {
+          explicacion += ` Criterios cumplidos: ${result.evidence.join(', ')}.`;
+        }
+
+        if (result.rule_details?.score !== undefined) {
+          explicacion += ` Score: ${result.rule_details.score}.`;
+        }
+
+        if (result.rule_details?.triggered_rules?.length) {
+          explicacion += ` Reglas activadas: ${result.rule_details.triggered_rules.join(', ')}.`;
+        }
+      } else {
+        // Resultado de LLM
+        sugerencia = result.applies ? 'aceptar' : 'rechazar';
+        confianza = Math.round((result.confidence || 0.5) * 100);
+
+        explicacion = '';
+
+        if (result.reasoning) {
+          explicacion += `${result.reasoning.substring(0, 500)}${result.reasoning.length > 500 ? '...' : ''}`;
+        }
+
+        if (result.evidence?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Evidencias: ${result.evidence.join(', ')}.`;
+        }
+
+        if (result.risk_factors?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Factores de riesgo: ${result.risk_factors.join(', ')}.`;
+        }
+
+        if (result.recommendations?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Recomendaciones: ${result.recommendations.slice(0, 3).join(', ')}${result.recommendations.length > 3 ? '...' : ''}.`;
+        }
+
+        // Agregar información del proveedor si está disponible
+        if (result.provider_info) {
+          explicacion += `${explicacion ? ' ' : ''}Proveedor: ${result.provider_info.name || method}.`;
+        }
+      }
+
+      // Limitar la explicación a un tamaño razonable para la base de datos
+      if (explicacion.length > 1500) {
+        explicacion = explicacion.substring(0, 1500) + '...';
+      }
+
+      const insertData = {
+        caso_id: casoId,
+        sugerencia: sugerencia,
+        confianza: confianza,
+        explicacion: explicacion,
+      };
+
+      console.log('Insertando en sugerencia_ia:', insertData);
+
+      const { error } = await supabase
+        .from('sugerencia_ia')
+        .insert([insertData]);
+
+      if (error) {
+        console.error('Error de Supabase:', error);
+        throw error;
+      }
+
+      console.log('Resultado guardado exitosamente');
+    } catch (error: any) {
+      console.error('Error guardando resultado:', {
+        casoId,
+        method,
+        error: error.message,
+        details: error
+      });
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validar todo el formulario antes de enviar
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -172,62 +588,106 @@ export default function NuevoCaso() {
     setLoading(true);
 
     try {
-      const presionValue = formData.presion_arterial.trim();
-      const frecuenciaCardiacaValue = formData.frecuencia_cardiaca.trim();
-      const temperaturaValue = formData.temperatura.trim();
-      const saturacionValue = formData.saturacion_oxigeno.trim();
-      const frecuenciaRespiratoriaValue = formData.frecuencia_respiratoria.trim();
-      const emailValue = formData.email_paciente.trim();
+      const casoData = {
+        // Identificación
+        episodio: formData.episodio.trim() || null,
+        centro: formData.centro.trim() || null,
+        fecha_ingreso: formData.fecha_ingreso || null,
+
+        // Datos del paciente
+        nombre_paciente: formData.nombre_paciente.trim(),
+        edad_paciente: parseInt(formData.edad),
+        sexo_paciente: formData.sexo,
+        email_paciente: formData.email_paciente.trim() || null,
+
+        // Diagnóstico
+        diagnostico_principal: formData.diagnostico_principal.trim(),
+        sintomas: formData.sintomas.trim() || null,
+        historia_clinica: formData.historia_clinica.trim() || null,
+        descripcion_adicional: formData.descripcion_adicional.trim() || null,
+
+        // Signos vitales
+        pa_sistolica: formData.pa_sistolica ? parseInt(formData.pa_sistolica) : null,
+        pa_diastolica: formData.pa_diastolica ? parseInt(formData.pa_diastolica) : null,
+        pa_media: (formData.pa_sistolica && formData.pa_diastolica) ?
+          Math.round((parseInt(formData.pa_diastolica) * 2 + parseInt(formData.pa_sistolica)) / 3) : null,
+        fc: formData.fc ? parseInt(formData.fc) : null,
+        fr: formData.fr ? parseInt(formData.fr) : null,
+        temperatura_c: formData.temperatura_c ? parseFloat(formData.temperatura_c) : null,
+        sat_o2: formData.sat_o2 ? parseInt(formData.sat_o2) : null,
+        glasgow: formData.glasgow ? parseInt(formData.glasgow) : null,
+
+        // Soporte respiratorio
+        fio2: formData.fio2 ? parseInt(formData.fio2) : null,
+        fio2_ge_50: formData.fio2_ge_50,
+        vm: formData.vm,
+
+        // Antecedentes
+        antecedentes_cardiacos: formData.antecedentes_cardiacos,
+        antecedentes_diabeticos: formData.antecedentes_diabeticos,
+        antecedentes_hta: formData.antecedentes_hta,
+
+        // Laboratorio
+        hb: formData.hb ? parseFloat(formData.hb) : null,
+        creatinina: formData.creatinina ? parseFloat(formData.creatinina) : null,
+        bun: formData.bun ? parseFloat(formData.bun) : null,
+        sodio: formData.sodio ? parseFloat(formData.sodio) : null,
+        potasio: formData.potasio ? parseFloat(formData.potasio) : null,
+        troponinas_alteradas: formData.troponinas_alteradas,
+
+        // Evaluaciones clínicas
+        triage: formData.triage || null,
+        tipo_cama: formData.tipo_cama || null,
+        ecg_alterado: formData.ecg_alterado,
+        dreo: formData.dreo,
+        dva: formData.dva,
+        compromiso_conciencia: formData.compromiso_conciencia,
+        rnm_protocol_stroke: formData.rnm_protocol_stroke,
+
+        // Procedimientos
+        pcr: formData.pcr,
+        cirugia: formData.cirugia,
+        cirugia_same_day: formData.cirugia_same_day,
+        hemodinamia: formData.hemodinamia,
+        hemodinamia_same_day: formData.hemodinamia_same_day,
+        endoscopia: formData.endoscopia,
+        endoscopia_same_day: formData.endoscopia_same_day,
+        dialisis: formData.dialisis,
+        trombolisis: formData.trombolisis,
+        trombolisis_same_day: formData.trombolisis_same_day,
+        transfusiones: formData.transfusiones ? parseInt(formData.transfusiones) : null,
+
+        // Campos del sistema
+        medico_tratante_id: user?.id,
+        estado: 'pendiente',
+      };
 
       const { data: caso, error: casoError } = await supabase
         .from('casos')
-        .insert([
-          {
-            nombre_paciente: formData.nombre_paciente,
-            edad_paciente: parseInt(formData.edad),
-            sexo_paciente: formData.sexo,
-            email_paciente: emailValue || null,
-            diagnostico_principal: formData.diagnostico_principal,
-            sintomas: formData.sintomas,
-            historia_clinica: formData.historia_clinica,
-            presion_arterial: presionValue || null,
-            frecuencia_cardiaca: frecuenciaCardiacaValue ? parseInt(frecuenciaCardiacaValue) : null,
-            temperatura: temperaturaValue ? parseFloat(temperaturaValue) : null,
-            saturacion_oxigeno: saturacionValue ? parseInt(saturacionValue) : null,
-            frecuencia_respiratoria: frecuenciaRespiratoriaValue ? parseInt(frecuenciaRespiratoriaValue) : null,
-            medico_tratante_id: user?.id,
-            estado: 'pendiente',
-          },
-        ])
+        .insert([casoData])
         .select()
         .single();
 
       if (casoError) throw casoError;
 
-      // Generar sugerencia IA simulada
-      const sugerenciaRandom = Math.random() > 0.5 ? 'aceptar' : 'rechazar';
-      const confianzaRandom = Math.floor(Math.random() * 30) + 70;
+      // Realizar evaluación con el método seleccionado
+      const evaluationResult = await performEvaluation(caso.id, casoData, evaluationMethod);
 
-      const { error: iaError } = await supabase
-        .from('sugerencia_ia')
-        .insert([
-          {
-            caso_id: caso.id,
-            sugerencia: sugerenciaRandom,
-            confianza: confianzaRandom,
-            explicacion: `Basado en el análisis de los datos clínicos ingresados, se sugiere ${sugerenciaRandom === 'aceptar' ? 'aplicar' : 'no aplicar'} la Ley de Urgencia. Criterios evaluados: estado hemodinámico, signos vitales y diagnóstico principal.`,
-          },
-        ]);
-
-      if (iaError) throw iaError;
-
-      toast({
-        title: 'Caso creado exitosamente',
-        description: 'El análisis de IA se ha generado',
-      });
-      setErrors({});
-
-      navigate(`/caso/${caso.id}`);
+      if (evaluationResult.success) {
+        toast({
+          title: 'Caso creado y evaluado exitosamente',
+          description: `Evaluación completada con ${
+            evaluationMethod === 'rules' ? 'Motor de Reglas' :
+            evaluationMethod === 'grok' ? 'Grok' :
+            evaluationMethod === 'openai' ? 'OpenAI' :
+            evaluationMethod === 'gemini' ? 'Gemini' : 'IA'
+          }`,
+        });
+        setErrors({});
+        navigate(`/caso/${caso.id}`);
+      } else {
+        throw new Error(evaluationResult.error || 'Error en la evaluación');
+      }
     } catch (error: any) {
       toast({
         title: 'Error al crear caso',
@@ -238,6 +698,7 @@ export default function NuevoCaso() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -258,19 +719,85 @@ export default function NuevoCaso() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
         <Card>
           <CardHeader>
             <CardTitle>Datos del Paciente y Caso Clínico</CardTitle>
             <CardDescription>
-              Ingrese la información del paciente y los datos clínicos para evaluar la Ley de Urgencia
+              Complete la información del paciente y los datos clínicos para evaluar la Ley de Urgencia
             </CardDescription>
+            <div className="flex gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fillWithTestData('critico')}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                Llenar con datos de prueba (Crítico)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fillWithTestData('leve')}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                Llenar con datos de prueba (Leve)
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Identificación del Episodio */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Identificación del Episodio</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="episodio">ID del Episodio *</Label>
+                    <Input
+                      id="episodio"
+                      name="episodio"
+                      value={formData.episodio}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="EP-2024-001"
+                      className={errors.episodio ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.episodio && <p className="text-sm text-destructive">{errors.episodio}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="centro">Centro Hospitalario *</Label>
+                    <Input
+                      id="centro"
+                      name="centro"
+                      value={formData.centro}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="Hospital Regional de Santiago"
+                      className={errors.centro ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.centro && <p className="text-sm text-destructive">{errors.centro}</p>}
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="fecha_ingreso">Fecha y Hora de Ingreso</Label>
+                    <Input
+                      id="fecha_ingreso"
+                      name="fecha_ingreso"
+                      type="datetime-local"
+                      value={formData.fecha_ingreso}
+                      onChange={handleChange}
+                      disabled={loading}
+                      className={errors.fecha_ingreso ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.fecha_ingreso && <p className="text-sm text-destructive">{errors.fecha_ingreso}</p>}
+                  </div>
+                </div>
+              </div>
+
               {/* Datos del Paciente */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Datos del Paciente</h3>
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Datos del Paciente</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nombre_paciente">Nombre Completo *</Label>
@@ -301,10 +828,7 @@ export default function NuevoCaso() {
                     <Label htmlFor="sexo">Sexo *</Label>
                     <Select
                       value={formData.sexo}
-                      onValueChange={(value) => {
-                        setFormData({ ...formData, sexo: value });
-                        setErrors((prev) => ({ ...prev, sexo: '' }));
-                      }}
+                      onValueChange={(value) => handleSelectChange('sexo', value)}
                       disabled={loading}
                     >
                       <SelectTrigger className={errors.sexo ? 'border-destructive focus-visible:ring-destructive' : undefined}>
@@ -319,14 +843,15 @@ export default function NuevoCaso() {
                     {errors.sexo && <p className="text-sm text-destructive">{errors.sexo}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email_paciente">Email</Label>
+                    <Label htmlFor="email_paciente">Email del Paciente</Label>
                     <Input
                       id="email_paciente"
                       name="email_paciente"
-                      type="text"
+                      type="email"
                       value={formData.email_paciente}
                       onChange={handleChange}
                       disabled={loading}
+                      placeholder="paciente@email.com"
                       className={errors.email_paciente ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
                     {errors.email_paciente && <p className="text-sm text-destructive">{errors.email_paciente}</p>}
@@ -334,125 +859,569 @@ export default function NuevoCaso() {
                 </div>
               </div>
 
-              {/* Datos Clínicos */}
+              {/* Diagnóstico */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Datos Clínicos</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="diagnostico_principal">Diagnóstico Principal *</Label>
-                  <Input
-                    id="diagnostico_principal"
-                    name="diagnostico_principal"
-                    value={formData.diagnostico_principal}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className={errors.diagnostico_principal ? 'border-destructive focus-visible:ring-destructive' : undefined}
-                  />
-                  {errors.diagnostico_principal && <p className="text-sm text-destructive">{errors.diagnostico_principal}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sintomas">Síntomas *</Label>
-                  <Textarea
-                    id="sintomas"
-                    name="sintomas"
-                    value={formData.sintomas}
-                    onChange={handleChange}
-                    disabled={loading}
-                    rows={3}
-                    className={errors.sintomas ? 'border-destructive focus-visible:ring-destructive' : undefined}
-                  />
-                  {errors.sintomas && <p className="text-sm text-destructive">{errors.sintomas}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="historia_clinica">Historia Clínica *</Label>
-                  <Textarea
-                    id="historia_clinica"
-                    name="historia_clinica"
-                    value={formData.historia_clinica}
-                    onChange={handleChange}
-                    disabled={loading}
-                    rows={3}
-                    className={errors.historia_clinica ? 'border-destructive focus-visible:ring-destructive' : undefined}
-                  />
-                  {errors.historia_clinica && <p className="text-sm text-destructive">{errors.historia_clinica}</p>}
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Diagnóstico Clínico</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="diagnostico_principal">Diagnóstico Principal *</Label>
+                    <Input
+                      id="diagnostico_principal"
+                      name="diagnostico_principal"
+                      value={formData.diagnostico_principal}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="Infarto agudo de miocardio"
+                      className={errors.diagnostico_principal ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.diagnostico_principal && <p className="text-sm text-destructive">{errors.diagnostico_principal}</p>}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sintomas">Síntomas</Label>
+                      <Textarea
+                        id="sintomas"
+                        name="sintomas"
+                        value={formData.sintomas}
+                        onChange={handleChange}
+                        disabled={loading}
+                        rows={3}
+                        placeholder="Dolor torácico opresivo, disnea, sudoración..."
+                        className={errors.sintomas ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                      />
+                      {errors.sintomas && <p className="text-sm text-destructive">{errors.sintomas}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="historia_clinica">Historia Clínica</Label>
+                      <Textarea
+                        id="historia_clinica"
+                        name="historia_clinica"
+                        value={formData.historia_clinica}
+                        onChange={handleChange}
+                        disabled={loading}
+                        rows={3}
+                        placeholder="Antecedentes médicos relevantes..."
+                        className={errors.historia_clinica ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                      />
+                      {errors.historia_clinica && <p className="text-sm text-destructive">{errors.historia_clinica}</p>}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="descripcion_adicional">Descripción Adicional</Label>
+                    <Textarea
+                      id="descripcion_adicional"
+                      name="descripcion_adicional"
+                      value={formData.descripcion_adicional}
+                      onChange={handleChange}
+                      disabled={loading}
+                      rows={2}
+                      placeholder="Información adicional relevante..."
+                      className={errors.descripcion_adicional ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.descripcion_adicional && <p className="text-sm text-destructive">{errors.descripcion_adicional}</p>}
+                  </div>
                 </div>
               </div>
 
               {/* Signos Vitales */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Signos Vitales</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Signos Vitales</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="presion_arterial">Presión Arterial</Label>
+                    <Label htmlFor="pa_sistolica">PA Sistólica (mmHg)</Label>
                     <Input
-                      id="presion_arterial"
-                      name="presion_arterial"
-                      placeholder="120/80"
-                      value={formData.presion_arterial}
-                      onChange={handleChange}
-                      disabled={loading}
-                      className={errors.presion_arterial ? 'border-destructive focus-visible:ring-destructive' : undefined}
-                    />
-                    {errors.presion_arterial && <p className="text-sm text-destructive">{errors.presion_arterial}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="frecuencia_cardiaca">Frecuencia Cardíaca (lpm)</Label>
-                    <Input
-                      id="frecuencia_cardiaca"
-                      name="frecuencia_cardiaca"
+                      id="pa_sistolica"
+                      name="pa_sistolica"
                       type="number"
-                      value={formData.frecuencia_cardiaca}
+                      value={formData.pa_sistolica}
                       onChange={handleChange}
                       disabled={loading}
-                      className={errors.frecuencia_cardiaca ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                      placeholder="120"
+                      className={errors.pa_sistolica ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
-                    {errors.frecuencia_cardiaca && <p className="text-sm text-destructive">{errors.frecuencia_cardiaca}</p>}
+                    {errors.pa_sistolica && <p className="text-sm text-destructive">{errors.pa_sistolica}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="temperatura">Temperatura (°C)</Label>
+                    <Label htmlFor="pa_diastolica">PA Diastólica (mmHg)</Label>
                     <Input
-                      id="temperatura"
-                      name="temperatura"
+                      id="pa_diastolica"
+                      name="pa_diastolica"
+                      type="number"
+                      value={formData.pa_diastolica}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="80"
+                      className={errors.pa_diastolica ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.pa_diastolica && <p className="text-sm text-destructive">{errors.pa_diastolica}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fc">FC (lpm)</Label>
+                    <Input
+                      id="fc"
+                      name="fc"
+                      type="number"
+                      value={formData.fc}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="80"
+                      className={errors.fc ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.fc && <p className="text-sm text-destructive">{errors.fc}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fr">FR (rpm)</Label>
+                    <Input
+                      id="fr"
+                      name="fr"
+                      type="number"
+                      value={formData.fr}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="18"
+                      className={errors.fr ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                    />
+                    {errors.fr && <p className="text-sm text-destructive">{errors.fr}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="temperatura_c">Temperatura (°C)</Label>
+                    <Input
+                      id="temperatura_c"
+                      name="temperatura_c"
                       type="number"
                       step="0.1"
-                      value={formData.temperatura}
+                      value={formData.temperatura_c}
                       onChange={handleChange}
                       disabled={loading}
-                      className={errors.temperatura ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                      placeholder="36.5"
+                      className={errors.temperatura_c ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
-                    {errors.temperatura && <p className="text-sm text-destructive">{errors.temperatura}</p>}
+                    {errors.temperatura_c && <p className="text-sm text-destructive">{errors.temperatura_c}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="saturacion_oxigeno">Saturación de Oxígeno (%)</Label>
+                    <Label htmlFor="sat_o2">SatO2 (%)</Label>
                     <Input
-                      id="saturacion_oxigeno"
-                      name="saturacion_oxigeno"
+                      id="sat_o2"
+                      name="sat_o2"
                       type="number"
-                      value={formData.saturacion_oxigeno}
+                      value={formData.sat_o2}
                       onChange={handleChange}
                       disabled={loading}
-                      className={errors.saturacion_oxigeno ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                      placeholder="98"
+                      className={errors.sat_o2 ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
-                    {errors.saturacion_oxigeno && <p className="text-sm text-destructive">{errors.saturacion_oxigeno}</p>}
+                    {errors.sat_o2 && <p className="text-sm text-destructive">{errors.sat_o2}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="frecuencia_respiratoria">Frecuencia Respiratoria (rpm)</Label>
+                    <Label htmlFor="glasgow">Glasgow (3-15)</Label>
                     <Input
-                      id="frecuencia_respiratoria"
-                      name="frecuencia_respiratoria"
+                      id="glasgow"
+                      name="glasgow"
                       type="number"
-                      value={formData.frecuencia_respiratoria}
+                      min="3"
+                      max="15"
+                      value={formData.glasgow}
                       onChange={handleChange}
                       disabled={loading}
-                      className={errors.frecuencia_respiratoria ? 'border-destructive focus-visible:ring-destructive' : undefined}
+                      placeholder="15"
+                      className={errors.glasgow ? 'border-destructive focus-visible:ring-destructive' : undefined}
                     />
-                    {errors.frecuencia_respiratoria && <p className="text-sm text-destructive">{errors.frecuencia_respiratoria}</p>}
+                    {errors.glasgow && <p className="text-sm text-destructive">{errors.glasgow}</p>}
                   </div>
                 </div>
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                {loading ? 'Evaluando...' : 'Evaluar Ley de Urgencia'}
-              </Button>
+              {/* Soporte Respiratorio y Antecedentes */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-primary border-b pb-2">Soporte Respiratorio</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fio2">FiO2 (%)</Label>
+                      <Input
+                        id="fio2"
+                        name="fio2"
+                        type="number"
+                        min="21"
+                        max="100"
+                        value={formData.fio2}
+                        onChange={handleChange}
+                        disabled={loading}
+                        placeholder="21"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="fio2_ge_50"
+                          checked={formData.fio2_ge_50}
+                          onCheckedChange={(checked) => handleCheckboxChange('fio2_ge_50', checked as boolean)}
+                          disabled={loading}
+                        />
+                        <Label htmlFor="fio2_ge_50">FiO2 ≥ 50%</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="vm"
+                          checked={formData.vm}
+                          onCheckedChange={(checked) => handleCheckboxChange('vm', checked as boolean)}
+                          disabled={loading}
+                        />
+                        <Label htmlFor="vm">Ventilación Mecánica</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-primary border-b pb-2">Antecedentes Médicos</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="antecedentes_cardiacos"
+                        checked={formData.antecedentes_cardiacos}
+                        onCheckedChange={(checked) => handleCheckboxChange('antecedentes_cardiacos', checked as boolean)}
+                        disabled={loading}
+                      />
+                      <Label htmlFor="antecedentes_cardiacos">Cardiopatía Previa</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="antecedentes_diabeticos"
+                        checked={formData.antecedentes_diabeticos}
+                        onCheckedChange={(checked) => handleCheckboxChange('antecedentes_diabeticos', checked as boolean)}
+                        disabled={loading}
+                      />
+                      <Label htmlFor="antecedentes_diabeticos">Diabetes Mellitus</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="antecedentes_hta"
+                        checked={formData.antecedentes_hta}
+                        onCheckedChange={(checked) => handleCheckboxChange('antecedentes_hta', checked as boolean)}
+                        disabled={loading}
+                      />
+                      <Label htmlFor="antecedentes_hta">Hipertensión Arterial</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Laboratorio */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Laboratorio</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hb">Hemoglobina (g/dL)</Label>
+                    <Input
+                      id="hb"
+                      name="hb"
+                      type="number"
+                      step="0.1"
+                      value={formData.hb}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="12.5"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="creatinina">Creatinina (mg/dL)</Label>
+                    <Input
+                      id="creatinina"
+                      name="creatinina"
+                      type="number"
+                      step="0.1"
+                      value={formData.creatinina}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="1.0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bun">BUN (mg/dL)</Label>
+                    <Input
+                      id="bun"
+                      name="bun"
+                      type="number"
+                      step="0.1"
+                      value={formData.bun}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="15"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sodio">Sodio (mEq/L)</Label>
+                    <Input
+                      id="sodio"
+                      name="sodio"
+                      type="number"
+                      step="0.1"
+                      value={formData.sodio}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="140"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="potasio">Potasio (mEq/L)</Label>
+                    <Input
+                      id="potasio"
+                      name="potasio"
+                      type="number"
+                      step="0.1"
+                      value={formData.potasio}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="4.0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 pt-6">
+                      <Checkbox
+                        id="troponinas_alteradas"
+                        checked={formData.troponinas_alteradas}
+                        onCheckedChange={(checked) => handleCheckboxChange('troponinas_alteradas', checked as boolean)}
+                        disabled={loading}
+                      />
+                      <Label htmlFor="troponinas_alteradas">Troponinas Alteradas</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Evaluaciones Clínicas */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Evaluaciones Clínicas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="triage">Nivel de Triage</Label>
+                    <Select
+                      value={formData.triage}
+                      onValueChange={(value) => handleSelectChange('triage', value)}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar nivel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="I">Nivel I - Crítico</SelectItem>
+                        <SelectItem value="II">Nivel II - Emergente</SelectItem>
+                        <SelectItem value="III">Nivel III - Urgente</SelectItem>
+                        <SelectItem value="IV">Nivel IV - Semi-urgente</SelectItem>
+                        <SelectItem value="V">Nivel V - No urgente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo_cama">Tipo de Cama</Label>
+                    <Input
+                      id="tipo_cama"
+                      name="tipo_cama"
+                      value={formData.tipo_cama}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="UCI, Intermedio, Básica..."
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="ecg_alterado"
+                      checked={formData.ecg_alterado}
+                      onCheckedChange={(checked) => handleCheckboxChange('ecg_alterado', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="ecg_alterado">ECG Alterado</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="dreo"
+                      checked={formData.dreo}
+                      onCheckedChange={(checked) => handleCheckboxChange('dreo', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="dreo">Drogas Vasoactivas</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="dva"
+                      checked={formData.dva}
+                      onCheckedChange={(checked) => handleCheckboxChange('dva', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="dva">DVA Específicas</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="compromiso_conciencia"
+                      checked={formData.compromiso_conciencia}
+                      onCheckedChange={(checked) => handleCheckboxChange('compromiso_conciencia', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="compromiso_conciencia">Compromiso de Conciencia</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rnm_protocol_stroke"
+                      checked={formData.rnm_protocol_stroke}
+                      onCheckedChange={(checked) => handleCheckboxChange('rnm_protocol_stroke', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="rnm_protocol_stroke">Protocolo RNM Stroke</Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Procedimientos */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Procedimientos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pcr"
+                      checked={formData.pcr}
+                      onCheckedChange={(checked) => handleCheckboxChange('pcr', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="pcr">Parada Cardiorrespiratoria</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="cirugia"
+                      checked={formData.cirugia}
+                      onCheckedChange={(checked) => handleCheckboxChange('cirugia', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="cirugia">Cirugía</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="cirugia_same_day"
+                      checked={formData.cirugia_same_day}
+                      onCheckedChange={(checked) => handleCheckboxChange('cirugia_same_day', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="cirugia_same_day">Cirugía Mismo Día</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hemodinamia"
+                      checked={formData.hemodinamia}
+                      onCheckedChange={(checked) => handleCheckboxChange('hemodinamia', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="hemodinamia">Hemodinamia</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hemodinamia_same_day"
+                      checked={formData.hemodinamia_same_day}
+                      onCheckedChange={(checked) => handleCheckboxChange('hemodinamia_same_day', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="hemodinamia_same_day">Hemodinamia Mismo Día</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="endoscopia"
+                      checked={formData.endoscopia}
+                      onCheckedChange={(checked) => handleCheckboxChange('endoscopia', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="endoscopia">Endoscopia</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="endoscopia_same_day"
+                      checked={formData.endoscopia_same_day}
+                      onCheckedChange={(checked) => handleCheckboxChange('endoscopia_same_day', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="endoscopia_same_day">Endoscopia Mismo Día</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="dialisis"
+                      checked={formData.dialisis}
+                      onCheckedChange={(checked) => handleCheckboxChange('dialisis', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="dialisis">Diálisis</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="trombolisis"
+                      checked={formData.trombolisis}
+                      onCheckedChange={(checked) => handleCheckboxChange('trombolisis', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="trombolisis">Trombólisis</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="trombolisis_same_day"
+                      checked={formData.trombolisis_same_day}
+                      onCheckedChange={(checked) => handleCheckboxChange('trombolisis_same_day', checked as boolean)}
+                      disabled={loading}
+                    />
+                    <Label htmlFor="trombolisis_same_day">Trombólisis Mismo Día</Label>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="transfusiones">Número de Transfusiones</Label>
+                    <Input
+                      id="transfusiones"
+                      name="transfusiones"
+                      type="number"
+                      min="0"
+                      value={formData.transfusiones}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Método de Evaluación */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Método de Evaluación</h3>
+                <div className="space-y-2">
+                  <Select
+                    value={evaluationMethod}
+                    onValueChange={setEvaluationMethod}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rules">Motor de Reglas (DS N°34/2021)</SelectItem>
+                      <SelectItem value="grok">Grok</SelectItem>
+                      <SelectItem value="openai">OpenAI</SelectItem>
+                      <SelectItem value="gemini">Gemini Pro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {evaluationMethod === 'rules' && 'Evaluación determinística basada en criterios del Decreto Supremo N°34/2021'}
+                    {evaluationMethod === 'grok' && 'Evaluación con IA usando el modelo grok-4-fast-reasoning de xAI'}
+                    {evaluationMethod === 'openai' && 'Evaluación con IA usando OpenAI'}
+                    {evaluationMethod === 'gemini' && 'Evaluación con IA usando Gemini'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t">
+                <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                  {loading ? 'Evaluando...' : `Evaluar con ${
+                    evaluationMethod === 'rules' ? 'Motor de Reglas' :
+                    evaluationMethod === 'grok' ? 'Grok' :
+                    evaluationMethod === 'openai' ? 'OpenAI' :
+                    evaluationMethod === 'gemini' ? 'Gemini' : 'IA'
+                  }`}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
