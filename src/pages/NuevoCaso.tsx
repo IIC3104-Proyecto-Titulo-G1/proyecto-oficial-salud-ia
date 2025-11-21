@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
 // Schema de validación con zod
@@ -53,6 +53,7 @@ export default function NuevoCaso() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const [evaluationMethod, setEvaluationMethod] = useState('rules');
   const testDatasets = {
@@ -369,71 +370,67 @@ export default function NuevoCaso() {
       const triageNumber = convertTriageToNumber(casoData.triage);
       const fechaIngreso = normalizeFechaIngreso(casoData.fecha_ingreso);
 
-      // Preparar datos para la evaluación
-      const evaluationData = {
-        data: {
-          // Campos requeridos - asegurar que no estén vacíos
-          episodio: (casoData.episodio || `EP-${Date.now()}`).toString(),
-          centro: (casoData.centro || 'Centro sin especificar').toString(),
-          fecha_ingreso: fechaIngreso,
-          diagnostico: casoData.diagnostico_principal || 'Diagnóstico pendiente',
+      // Base data usada para todos los métodos
+      const baseData = {
+        // Campos requeridos - asegurar que no estén vacíos
+        episodio: (casoData.episodio || `EP-${Date.now()}`).toString(),
+        centro: (casoData.centro || 'Centro sin especificar').toString(),
+        fecha_ingreso: fechaIngreso,
+        diagnostico: casoData.diagnostico_principal || 'Diagnóstico pendiente',
 
-          // Signos vitales
-          pa_sistolica: casoData.pa_sistolica ?? null,
-          pa_diastolica: casoData.pa_diastolica ?? null,
-          pa_media: casoData.pa_media ?? null,
-          fc: casoData.fc ?? null,
-          fr: casoData.fr ?? null,
-          temperatura_c: casoData.temperatura_c ?? null,
-          sat_o2: casoData.sat_o2 ?? null,
-          glasgow: casoData.glasgow ?? null,
+        // Signos vitales
+        pa_sistolica: casoData.pa_sistolica ?? null,
+        pa_diastolica: casoData.pa_diastolica ?? null,
+        pa_media: casoData.pa_media ?? null,
+        fc: casoData.fc ?? null,
+        fr: casoData.fr ?? null,
+        temperatura_c: casoData.temperatura_c ?? null,
+        sat_o2: casoData.sat_o2 ?? null,
+        glasgow: casoData.glasgow ?? null,
 
-          // Soporte respiratorio
-          fio2: casoData.fio2 ?? null,
-          fio2_ge_50: casoData.fio2_ge_50 ?? false,
-          vm: casoData.vm ?? false,
+        // Soporte respiratorio
+        fio2: casoData.fio2 ?? null,
+        fio2_ge_50: casoData.fio2_ge_50 ?? false,
+        vm: casoData.vm ?? false,
 
-          // Antecedentes
-          antecedentes_cardiacos: casoData.antecedentes_cardiacos ?? false,
-          antecedentes_diabeticos: casoData.antecedentes_diabeticos ?? false,
-          antecedentes_hta: casoData.antecedentes_hta ?? false,
+        // Antecedentes
+        antecedentes_cardiacos: casoData.antecedentes_cardiacos ?? false,
+        antecedentes_diabeticos: casoData.antecedentes_diabeticos ?? false,
+        antecedentes_hta: casoData.antecedentes_hta ?? false,
 
-          // Laboratorio
-          hb: casoData.hb ?? null,
-          creatinina: casoData.creatinina ?? null,
-          bun: casoData.bun ?? null,
-          sodio: casoData.sodio ?? null,
-          potasio: casoData.potasio ?? null,
-          troponinas_alteradas: casoData.troponinas_alteradas ?? false,
+        // Laboratorio
+        hb: casoData.hb ?? null,
+        creatinina: casoData.creatinina ?? null,
+        bun: casoData.bun ?? null,
+        sodio: casoData.sodio ?? null,
+        potasio: casoData.potasio ?? null,
+        troponinas_alteradas: casoData.troponinas_alteradas ?? false,
 
-          // Evaluaciones clínicas - CORREGIR TIPOS
-          triage: triageNumber,
-          tipo_cama: casoData.tipo_cama || null,
-          ecg_alterado: casoData.ecg_alterado ?? false,
-          dreo: casoData.dreo ?? false,
-          dva: casoData.dva ?? false,
-          compromiso_conciencia: casoData.compromiso_conciencia ?? false,
-          rnm_protocol_stroke: casoData.rnm_protocol_stroke ?? false,
+        // Evaluaciones clínicas - CORREGIR TIPOS
+        triage: triageNumber,
+        tipo_cama: casoData.tipo_cama || null,
+        ecg_alterado: casoData.ecg_alterado ?? false,
+        dreo: casoData.dreo ?? false,
+        dva: casoData.dva ?? false,
+        compromiso_conciencia: casoData.compromiso_conciencia ?? false,
+        rnm_protocol_stroke: casoData.rnm_protocol_stroke ?? false,
 
-          // Procedimientos - CORREGIR TIPOS
-          pcr: casoData.pcr ? 1 : 0, // Backend espera número, no boolean
-          cirugia: casoData.cirugia ?? false,
-          cirugia_same_day: casoData.cirugia_same_day ?? false,
-          hemodinamia: casoData.hemodinamia ?? false,
-          hemodinamia_same_day: casoData.hemodinamia_same_day ?? false,
-          endoscopia: casoData.endoscopia ?? false,
-          endoscopia_same_day: casoData.endoscopia_same_day ?? false,
-          dialisis: casoData.dialisis ?? false,
-          trombolisis: casoData.trombolisis ?? false,
-          trombolisis_same_day: casoData.trombolisis_same_day ?? false,
-          transfusiones: normalizeTransfusionFlag(casoData.transfusiones), // Backend espera boolean
-        },
-        patient_type: 'adult',
-        provider: method === 'rules' ? undefined : method
+        // Procedimientos - CORREGIR TIPOS
+        pcr: casoData.pcr ? 1 : 0, // Backend espera número en rules
+        cirugia: casoData.cirugia ?? false,
+        cirugia_same_day: casoData.cirugia_same_day ?? false,
+        hemodinamia: casoData.hemodinamia ?? false,
+        hemodinamia_same_day: casoData.hemodinamia_same_day ?? false,
+        endoscopia: casoData.endoscopia ?? false,
+        endoscopia_same_day: casoData.endoscopia_same_day ?? false,
+        dialisis: casoData.dialisis ?? false,
+        trombolisis: casoData.trombolisis ?? false,
+        trombolisis_same_day: casoData.trombolisis_same_day ?? false,
+        transfusiones: normalizeTransfusionFlag(casoData.transfusiones), // Backend espera boolean para reglas
       };
 
       if (method === 'rules') {
-        endpoint = '/api/emergency/evaluate';
+        endpoint = '/api/emergency/evaluate?patient_type=adult';
       } else if (method === 'grok' || method === 'openai' || method === 'gemini') {
         endpoint = `/api/multi-llm/evaluate/${method}`;
       } else {
@@ -445,7 +442,15 @@ export default function NuevoCaso() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(evaluationData),
+        body: JSON.stringify(
+          method === 'rules'
+            ? baseData // rules espera campos en el root del body
+            : {
+                data: baseData,
+                patient_type: 'adult',
+                provider: method,
+              }
+        ),
       });
 
       const responseText = await response.text();
@@ -462,14 +467,16 @@ export default function NuevoCaso() {
         throw new Error(errorMessage);
       }
 
-      if (!result.success) {
+      if (result.success === false) {
         throw new Error(result.error || result.message || 'Error en la evaluación');
       }
 
-      // Guardar resultado en la base de datos
-      await saveEvaluationResult(casoId, result.result, method);
+      const payload = result?.data ?? result?.result ?? result;
 
-      return { success: true, result: result.result };
+      // Guardar resultado en la base de datos
+      await saveEvaluationResult(casoId, payload, method);
+
+      return { success: true, result: payload };
     } catch (error: any) {
       console.error('Error en evaluación:', {
         method,
@@ -485,53 +492,75 @@ export default function NuevoCaso() {
     try {
       console.log('Guardando resultado:', { casoId, result, method });
 
+      const payload = result?.data ?? result?.result ?? result;
       let sugerencia: 'aceptar' | 'rechazar' | 'incierto' = 'incierto';
       let confianza = 50;
       let explicacion = '';
 
       if (method === 'rules') {
         // Resultado del motor de reglas
-        sugerencia = result.applies ? 'aceptar' : 'rechazar';
-        confianza = 95; // Reglas son determinísticas
-        explicacion = `🔧 Motor de Reglas: ${result.applies ? 'APLICA' : 'NO APLICA'} Ley de Urgencia.`;
+        const applies = payload?.applies;
 
-        if (result.evidence?.length) {
-          explicacion += ` Criterios cumplidos: ${result.evidence.join(', ')}.`;
+        if (applies === undefined || applies === null) {
+          sugerencia = 'incierto';
+          confianza = 50;
+          explicacion = 'Motor de reglas no retornó el campo "applies".';
+        } else {
+          sugerencia = applies ? 'aceptar' : 'rechazar';
+          confianza = 95; // Reglas son determinísticas
+          explicacion = `Motor de Reglas: ${applies ? 'APLICA' : 'NO APLICA'} Ley de Urgencia.`;
         }
 
-        if (result.rule_details?.score !== undefined) {
-          explicacion += ` Score: ${result.rule_details.score}.`;
+        const evidence = payload?.evidence;
+        const clusters = payload?.clusters;
+        const appliedRules = payload?.applied_rules;
+        const ruleDetails = payload?.rule_details ?? payload?.evaluation_criteria;
+
+        if (evidence?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Criterios cumplidos: ${evidence.join(', ')}.`;
         }
 
-        if (result.rule_details?.triggered_rules?.length) {
-          explicacion += ` Reglas activadas: ${result.rule_details.triggered_rules.join(', ')}.`;
+        if (clusters?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Clusters: ${clusters.join(', ')}.`;
+        }
+
+        if (appliedRules?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Reglas aplicadas: ${appliedRules.join(', ')}.`;
+        }
+
+        if (ruleDetails?.score !== undefined) {
+          explicacion += `${explicacion ? ' ' : ''}Score: ${ruleDetails.score}.`;
+        }
+
+        if (ruleDetails?.triggered_rules?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Reglas activadas: ${ruleDetails.triggered_rules.join(', ')}.`;
         }
       } else {
         // Resultado de LLM
-        sugerencia = result.applies ? 'aceptar' : 'rechazar';
-        confianza = Math.round((result.confidence || 0.5) * 100);
+        sugerencia = payload.applies ? 'aceptar' : 'rechazar';
+        confianza = Math.round((payload.confidence || 0.5) * 100);
 
         explicacion = '';
 
-        if (result.reasoning) {
-          explicacion += `${result.reasoning.substring(0, 500)}${result.reasoning.length > 500 ? '...' : ''}`;
+        if (payload.reasoning) {
+          explicacion += `${payload.reasoning.substring(0, 500)}${payload.reasoning.length > 500 ? '...' : ''}`;
         }
 
-        if (result.evidence?.length) {
-          explicacion += `${explicacion ? ' ' : ''}Evidencias: ${result.evidence.join(', ')}.`;
+        if (payload.evidence?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Evidencias: ${payload.evidence.join(', ')}.`;
         }
 
-        if (result.risk_factors?.length) {
-          explicacion += `${explicacion ? ' ' : ''}Factores de riesgo: ${result.risk_factors.join(', ')}.`;
+        if (payload.risk_factors?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Factores de riesgo: ${payload.risk_factors.join(', ')}.`;
         }
 
-        if (result.recommendations?.length) {
-          explicacion += `${explicacion ? ' ' : ''}Recomendaciones: ${result.recommendations.slice(0, 3).join(', ')}${result.recommendations.length > 3 ? '...' : ''}.`;
+        if (payload.recommendations?.length) {
+          explicacion += `${explicacion ? ' ' : ''}Recomendaciones: ${payload.recommendations.slice(0, 3).join(', ')}${payload.recommendations.length > 3 ? '...' : ''}.`;
         }
 
         // Agregar información del proveedor si está disponible
-        if (result.provider_info) {
-          explicacion += `${explicacion ? ' ' : ''}Proveedor: ${result.provider_info.name || method}.`;
+        if (payload.provider_info) {
+          explicacion += `${explicacion ? ' ' : ''}Proveedor: ${payload.provider_info.name || method}.`;
         }
       }
 
@@ -588,11 +617,15 @@ export default function NuevoCaso() {
     setLoading(true);
 
     try {
+      const resolvedEpisodio = formData.episodio.trim() || `EP-${Date.now()}`;
+      const resolvedCentro = formData.centro.trim() || 'Centro sin especificar';
+      const resolvedFechaIngreso = normalizeFechaIngreso(formData.fecha_ingreso);
+
       const casoData = {
         // Identificación
-        episodio: formData.episodio.trim() || null,
-        centro: formData.centro.trim() || null,
-        fecha_ingreso: formData.fecha_ingreso || null,
+        episodio: resolvedEpisodio,
+        centro: resolvedCentro,
+        fecha_ingreso: resolvedFechaIngreso,
 
         // Datos del paciente
         nombre_paciente: formData.nombre_paciente.trim(),
@@ -698,6 +731,23 @@ export default function NuevoCaso() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!loading) {
+      setProgress(0);
+      return;
+    }
+
+    setProgress(10);
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) return 95;
+        return prev + 5;
+      });
+    }, 400);
+
+    return () => clearInterval(timer);
+  }, [loading]);
 
 
   return (
@@ -1426,6 +1476,38 @@ export default function NuevoCaso() {
           </CardContent>
         </Card>
       </main>
+
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border p-8 w-11/12 max-w-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Evaluando caso</p>
+                <p className="text-xl font-semibold text-primary">Analizando</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <span>Generando sugerencia y explicación...</span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="h-3 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-primary via-secondary to-primary transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Este paso puede tomar unos segundos. No cierres la ventana.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

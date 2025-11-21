@@ -136,7 +136,7 @@ export default function Dashboard() {
     }
 
     loadCasos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, userRole]);
 
   // Efecto separado para manejar el filtrado desde notificaciones
@@ -167,7 +167,7 @@ export default function Dashboard() {
     if (filtroCasoId && !filtroDesdeNotificacion.current) {
       setFiltroCasoId(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
 
   const handleSignOut = async () => {
