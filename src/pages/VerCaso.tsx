@@ -305,7 +305,7 @@ export default function VerCaso() {
   };
   const handleConfirmEditWithWarning = () => {
     setShowEditWarning(false);
-    setShowEditModal(true);
+    navigate(`/caso/${id}/editar`);
   };
   const handleSaveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -831,7 +831,7 @@ export default function VerCaso() {
                   <Mail className="w-5 h-5 mr-2" />
                   Enviar Correo a Paciente
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowReopenCase(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
+                <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
                   <Edit className="w-5 h-5 mr-2" />
                   Editar Caso
                 </Button>
@@ -900,7 +900,7 @@ export default function VerCaso() {
                 </CardDescription>
               </div>
               {/* Botón de editar: casos pendientes (cualquier médico), derivados/cerrados (solo médico jefe) */}
-              {(caso.estado === 'pendiente' || (userRole === 'medico_jefe' && (caso.estado === 'derivado' || showReopenCase))) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
+              {(caso.estado === 'pendiente' || userRole === 'medico_jefe' && ['derivado', 'aceptado', 'rechazado'].includes(caso.estado)) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
                 </Button>}
@@ -976,7 +976,7 @@ export default function VerCaso() {
                   <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
                   <div>
                     <p className="font-medium mb-2">Explicación del Análisis</p>
-                    <p className="text-sm text-muted-foreground">{sugerencia.explicacion}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">{sugerencia.explicacion}</p>
                   </div>
                 </div>
               </div>

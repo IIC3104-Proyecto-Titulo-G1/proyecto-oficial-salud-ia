@@ -24,6 +24,7 @@ interface Caso {
   estado: 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
   fecha_creacion: string;
   medico_tratante_id: string;
+  episodio?: string;
 }
 
 interface MedicoData {
@@ -336,7 +337,12 @@ export default function Dashboard() {
         return true;
       }
 
-      const hayCoincidencia = `${caso.nombre_paciente} ${caso.diagnostico_principal}`
+      const hayCoincidencia = [
+        caso.nombre_paciente,
+        caso.diagnostico_principal,
+        caso.episodio || ''
+      ]
+        .join(' ')
         .toLowerCase()
         .includes(normalizedSearch);
 
@@ -645,7 +651,7 @@ export default function Dashboard() {
               <Input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Buscar por paciente o diagnóstico"
+                placeholder="Paciente, episodio o diagnóstico"
                 className="pl-10"
               />
             </div>
@@ -832,6 +838,9 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3 mt-4">
+                        <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg ring-1 ring-border/50">
+                          Episodio: {caso.episodio || 'Sin número'}
+                        </div>
                         <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg ring-1 ring-border/50">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1086,4 +1095,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

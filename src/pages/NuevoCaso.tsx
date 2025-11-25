@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import type { Database } from '@/integrations/supabase/types';
 
 // Schema de validación con zod
 const formSchema = z.object({
@@ -48,11 +49,59 @@ const formSchema = z.object({
   frecuencia_respiratoria: z.string().optional(),
 });
 
+// Tipado local extendido hasta regenerar los tipos de Supabase
+type CasoRowExpanded = Database['public']['Tables']['casos']['Row'] & Partial<{
+  episodio: string;
+  centro: string;
+  fecha_ingreso: string;
+  pa_sistolica: number;
+  pa_diastolica: number;
+  pa_media: number;
+  fc: number;
+  fr: number;
+  temperatura_c: number;
+  sat_o2: number;
+  glasgow: number;
+  fio2: number;
+  fio2_ge_50: boolean;
+  vm: boolean;
+  antecedentes_cardiacos: boolean;
+  antecedentes_diabeticos: boolean;
+  antecedentes_hta: boolean;
+  hb: number;
+  creatinina: number;
+  bun: number;
+  sodio: number;
+  potasio: number;
+  troponinas_alteradas: boolean;
+  triage: string | number;
+  tipo_cama: string;
+  ecg_alterado: boolean;
+  dreo: boolean;
+  dva: boolean;
+  compromiso_conciencia: boolean;
+  rnm_protocol_stroke: boolean;
+  pcr: boolean;
+  cirugia: boolean;
+  cirugia_same_day: boolean;
+  hemodinamia: boolean;
+  hemodinamia_same_day: boolean;
+  endoscopia: boolean;
+  endoscopia_same_day: boolean;
+  dialisis: boolean;
+  trombolisis: boolean;
+  trombolisis_same_day: boolean;
+  transfusiones: number;
+}>;
+
 export default function NuevoCaso() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { id: editingCaseId } = useParams();
+  const isEditing = Boolean(editingCaseId);
   const [loading, setLoading] = useState(false);
+  const [prefilling, setPrefilling] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const [evaluationMethod, setEvaluationMethod] = useState('rules');
@@ -190,6 +239,64 @@ export default function NuevoCaso() {
       trombolisis: false,
       trombolisis_same_day: false,
       transfusiones: '0',
+    },
+    intermedio: {
+      episodio: 'EP-2024-TEST-003',
+      centro: 'Clínica Providencia',
+      fecha_ingreso: new Date().toISOString().slice(0, 16),
+
+      nombre_paciente: 'Carlos Muñoz',
+      edad: '58',
+      sexo: 'M',
+      email_paciente: 'carlos.munoz@email.com',
+
+      diagnostico_principal: 'Dolor torácico atípico con factores de riesgo cardiovascular',
+      sintomas: 'Dolor torácico leve-moderado, sin irradiación clara, ligero mareo',
+      historia_clinica: 'HTA controlada, ex fumador, dislipidemia en tratamiento',
+      descripcion_adicional: 'Dolor inició hace 4 horas, responde parcialmente a reposo',
+
+      pa_sistolica: '105',
+      pa_diastolica: '68',
+      fc: '105',
+      fr: '20',
+      temperatura_c: '37.2',
+      sat_o2: '94',
+      glasgow: '15',
+
+      fio2: '28',
+      fio2_ge_50: false,
+      vm: false,
+
+      antecedentes_cardiacos: true,
+      antecedentes_diabeticos: false,
+      antecedentes_hta: true,
+
+      hb: '13.2',
+      creatinina: '1.0',
+      bun: '19',
+      sodio: '138',
+      potasio: '4.4',
+      troponinas_alteradas: false,
+
+      triage: 'II',
+      tipo_cama: 'Intermedio',
+      ecg_alterado: true,
+      dreo: false,
+      dva: false,
+      compromiso_conciencia: false,
+      rnm_protocol_stroke: false,
+
+      pcr: false,
+      cirugia: false,
+      cirugia_same_day: false,
+      hemodinamia: false,
+      hemodinamia_same_day: false,
+      endoscopia: false,
+      endoscopia_same_day: false,
+      dialisis: false,
+      trombolisis: false,
+      trombolisis_same_day: false,
+      transfusiones: '0',
     }
   } as const;
   const [formData, setFormData] = useState({
@@ -264,9 +371,14 @@ export default function NuevoCaso() {
   const fillWithTestData = (datasetKey: keyof typeof testDatasets = 'critico') => {
     const dataset = testDatasets[datasetKey];
     setFormData(dataset);
+    const datasetLabels: Record<keyof typeof testDatasets, string> = {
+      critico: 'Crítico (aplica)',
+      leve: 'Leve (probable rechazo)',
+      intermedio: 'Intermedio (dudoso)',
+    };
     toast({
       title: 'Datos de prueba cargados',
-      description: `Se cargó el set: ${datasetKey === 'critico' ? 'Crítico (aplica)' : 'Leve (probable rechazo)'}`,
+      description: `Se cargó el set: ${datasetLabels[datasetKey]}`,
     });
   };
 
@@ -274,6 +386,12 @@ export default function NuevoCaso() {
     const validationErrors: Record<string, string> = {};
 
     // Validaciones básicas requeridas
+    if (formData.fecha_ingreso) {
+      const parsedDate = new Date(formData.fecha_ingreso);
+      if (Number.isNaN(parsedDate.getTime())) {
+        validationErrors.fecha_ingreso = 'Fecha de ingreso inválida';
+      }
+    }
     if (!formData.episodio.trim()) {
       validationErrors.episodio = 'El ID del episodio es requerido';
     }
@@ -293,6 +411,14 @@ export default function NuevoCaso() {
       validationErrors.diagnostico_principal = 'El diagnóstico debe tener al menos 10 caracteres';
     }
 
+    // Textos opcionales con longitudes mínimas
+    if (formData.sintomas && formData.sintomas.trim().length < 10) {
+      validationErrors.sintomas = 'Los síntomas deben tener al menos 10 caracteres';
+    }
+    if (formData.historia_clinica && formData.historia_clinica.trim().length < 5) {
+      validationErrors.historia_clinica = 'La historia clínica debe tener al menos 5 caracteres';
+    }
+
     // Validaciones opcionales de rangos
     if (formData.pa_sistolica && (Number(formData.pa_sistolica) < 70 || Number(formData.pa_sistolica) > 250)) {
       validationErrors.pa_sistolica = 'Presión sistólica debe estar entre 70 y 250 mmHg';
@@ -303,6 +429,9 @@ export default function NuevoCaso() {
     if (formData.fc && (Number(formData.fc) < 30 || Number(formData.fc) > 220)) {
       validationErrors.fc = 'Frecuencia cardíaca debe estar entre 30 y 220 lpm';
     }
+    if (formData.fr && (Number(formData.fr) < 8 || Number(formData.fr) > 40)) {
+      validationErrors.fr = 'Frecuencia respiratoria debe estar entre 8 y 40 rpm';
+    }
     if (formData.temperatura_c && (Number(formData.temperatura_c) < 30 || Number(formData.temperatura_c) > 45)) {
       validationErrors.temperatura_c = 'Temperatura debe estar entre 30 y 45 °C';
     }
@@ -311,6 +440,12 @@ export default function NuevoCaso() {
     }
     if (formData.glasgow && (Number(formData.glasgow) < 3 || Number(formData.glasgow) > 15)) {
       validationErrors.glasgow = 'Escala de Glasgow debe estar entre 3 y 15';
+    }
+    if (formData.fio2 && (Number(formData.fio2) < 21 || Number(formData.fio2) > 100)) {
+      validationErrors.fio2 = 'FiO2 debe estar entre 21 y 100%';
+    }
+    if (formData.transfusiones && Number(formData.transfusiones) < 0) {
+      validationErrors.transfusiones = 'El número de transfusiones no puede ser negativo';
     }
 
     return validationErrors;
@@ -363,6 +498,105 @@ export default function NuevoCaso() {
     const parsed = new Date(fecha);
     return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
   };
+
+  const formatDateForInput = (fecha: string | null | undefined) => {
+    if (!fecha) return '';
+    const parsed = new Date(fecha);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 16);
+  };
+
+  const loadExistingCase = async (caseId: string) => {
+    setPrefilling(true);
+    try {
+      const { data, error } = await supabase
+        .from('casos')
+        .select('*')
+        .eq('id', caseId)
+        .single();
+
+      const caso = data as CasoRowExpanded | null;
+
+      if (error || !caso) {
+        throw error || new Error('No se encontró el caso solicitado');
+      }
+
+      setFormData({
+        episodio: caso.episodio || '',
+        centro: caso.centro || '',
+        fecha_ingreso: formatDateForInput(caso.fecha_ingreso),
+
+        nombre_paciente: caso.nombre_paciente || '',
+        edad: caso.edad_paciente?.toString() || '',
+        sexo: caso.sexo_paciente || '',
+        email_paciente: caso.email_paciente || '',
+
+        diagnostico_principal: caso.diagnostico_principal || '',
+        sintomas: caso.sintomas || '',
+        historia_clinica: caso.historia_clinica || '',
+        descripcion_adicional: caso.descripcion_adicional || '',
+
+        pa_sistolica: caso.pa_sistolica?.toString() || '',
+        pa_diastolica: caso.pa_diastolica?.toString() || '',
+        fc: caso.fc?.toString() || '',
+        fr: caso.fr?.toString() || '',
+        temperatura_c: caso.temperatura_c?.toString() || '',
+        sat_o2: caso.sat_o2?.toString() || '',
+        glasgow: caso.glasgow?.toString() || '',
+
+        fio2: caso.fio2?.toString() || '',
+        fio2_ge_50: Boolean(caso.fio2_ge_50),
+        vm: Boolean(caso.vm),
+
+        antecedentes_cardiacos: Boolean(caso.antecedentes_cardiacos),
+        antecedentes_diabeticos: Boolean(caso.antecedentes_diabeticos),
+        antecedentes_hta: Boolean(caso.antecedentes_hta),
+
+        hb: caso.hb?.toString() || '',
+        creatinina: caso.creatinina?.toString() || '',
+        bun: caso.bun?.toString() || '',
+        sodio: caso.sodio?.toString() || '',
+        potasio: caso.potasio?.toString() || '',
+        troponinas_alteradas: Boolean(caso.troponinas_alteradas),
+
+        triage: caso.triage ? caso.triage.toString() : '',
+        tipo_cama: caso.tipo_cama || '',
+        ecg_alterado: Boolean(caso.ecg_alterado),
+        dreo: Boolean(caso.dreo),
+        dva: Boolean(caso.dva),
+        compromiso_conciencia: Boolean(caso.compromiso_conciencia),
+        rnm_protocol_stroke: Boolean(caso.rnm_protocol_stroke),
+
+        pcr: Boolean(caso.pcr),
+        cirugia: Boolean(caso.cirugia),
+        cirugia_same_day: Boolean(caso.cirugia_same_day),
+        hemodinamia: Boolean(caso.hemodinamia),
+        hemodinamia_same_day: Boolean(caso.hemodinamia_same_day),
+        endoscopia: Boolean(caso.endoscopia),
+        endoscopia_same_day: Boolean(caso.endoscopia_same_day),
+        dialisis: Boolean(caso.dialisis),
+        trombolisis: Boolean(caso.trombolisis),
+        trombolisis_same_day: Boolean(caso.trombolisis_same_day),
+        transfusiones: caso.transfusiones?.toString() || '',
+      });
+      setErrors({});
+    } catch (error: any) {
+      toast({
+        title: 'Error al cargar caso',
+        description: error.message || 'No se pudo cargar la información del caso',
+        variant: 'destructive',
+      });
+      navigate('/dashboard');
+    } finally {
+      setPrefilling(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isEditing && editingCaseId) {
+      loadExistingCase(editingCaseId);
+    }
+  }, [isEditing, editingCaseId]);
 
   const performEvaluation = async (casoId: string, casoData: any, method: string) => {
     let endpoint = '';
@@ -540,33 +774,35 @@ export default function NuevoCaso() {
         sugerencia = payload.applies ? 'aceptar' : 'rechazar';
         confianza = Math.round((payload.confidence || 0.5) * 100);
 
-        explicacion = '';
+        const explicacionParts: string[] = [];
 
         if (payload.reasoning) {
-          explicacion += `${payload.reasoning.substring(0, 500)}${payload.reasoning.length > 500 ? '...' : ''}`;
+          const reasoning = payload.reasoning.length > 800
+            ? `${payload.reasoning.substring(0, 800)}...`
+            : payload.reasoning;
+          explicacionParts.push(reasoning);
         }
 
         if (payload.evidence?.length) {
-          explicacion += `${explicacion ? ' ' : ''}Evidencias: ${payload.evidence.join(', ')}.`;
+          explicacionParts.push(`- Evidencias: ${payload.evidence.join(', ')}.`);
         }
 
         if (payload.risk_factors?.length) {
-          explicacion += `${explicacion ? ' ' : ''}Factores de riesgo: ${payload.risk_factors.join(', ')}.`;
+          explicacionParts.push(`- Factores de riesgo: ${payload.risk_factors.join(', ')}.`);
         }
 
         if (payload.recommendations?.length) {
-          explicacion += `${explicacion ? ' ' : ''}Recomendaciones: ${payload.recommendations.slice(0, 3).join(', ')}${payload.recommendations.length > 3 ? '...' : ''}.`;
+          const recs = payload.recommendations.slice(0, 3).join(', ');
+          const hasMore = payload.recommendations.length > 3 ? '...' : '';
+          explicacionParts.push(`- Recomendaciones: ${recs}${hasMore}.`);
         }
 
-        // Agregar información del proveedor si está disponible
-        if (payload.provider_info) {
-          explicacion += `${explicacion ? ' ' : ''}Proveedor: ${payload.provider_info.name || method}.`;
-        }
+        explicacion = explicacionParts.join('\n');
       }
 
       // Limitar la explicación a un tamaño razonable para la base de datos
-      if (explicacion.length > 1500) {
-        explicacion = explicacion.substring(0, 1500) + '...';
+      if (explicacion.length > 4000) {
+        explicacion = explicacion.substring(0, 4000) + '...';
       }
 
       const insertData = {
@@ -617,11 +853,16 @@ export default function NuevoCaso() {
     setLoading(true);
 
     try {
+      const methodLabel =
+        evaluationMethod === 'rules' ? 'Motor de Reglas' :
+        evaluationMethod === 'grok' ? 'Grok' :
+        evaluationMethod === 'openai' ? 'OpenAI' :
+        evaluationMethod === 'gemini' ? 'Gemini' : 'IA';
       const resolvedEpisodio = formData.episodio.trim() || `EP-${Date.now()}`;
       const resolvedCentro = formData.centro.trim() || 'Centro sin especificar';
       const resolvedFechaIngreso = normalizeFechaIngreso(formData.fecha_ingreso);
 
-      const casoData = {
+      const baseCasoData = {
         // Identificación
         episodio: resolvedEpisodio,
         centro: resolvedCentro,
@@ -689,41 +930,60 @@ export default function NuevoCaso() {
         trombolisis: formData.trombolisis,
         trombolisis_same_day: formData.trombolisis_same_day,
         transfusiones: formData.transfusiones ? parseInt(formData.transfusiones) : null,
-
-        // Campos del sistema
-        medico_tratante_id: user?.id,
-        estado: 'pendiente',
       };
 
-      const { data: caso, error: casoError } = await supabase
-        .from('casos')
-        .insert([casoData])
-        .select()
-        .single();
+      if (isEditing && editingCaseId) {
+        const { error: updateError } = await supabase
+          .from('casos')
+          .update(baseCasoData)
+          .eq('id', editingCaseId);
 
-      if (casoError) throw casoError;
+        if (updateError) throw updateError;
 
-      // Realizar evaluación con el método seleccionado
-      const evaluationResult = await performEvaluation(caso.id, casoData, evaluationMethod);
+        const evaluationResult = await performEvaluation(editingCaseId, baseCasoData, evaluationMethod);
 
-      if (evaluationResult.success) {
-        toast({
-          title: 'Caso creado y evaluado exitosamente',
-          description: `Evaluación completada con ${
-            evaluationMethod === 'rules' ? 'Motor de Reglas' :
-            evaluationMethod === 'grok' ? 'Grok' :
-            evaluationMethod === 'openai' ? 'OpenAI' :
-            evaluationMethod === 'gemini' ? 'Gemini' : 'IA'
-          }`,
-        });
-        setErrors({});
-        navigate(`/caso/${caso.id}`);
+        if (evaluationResult.success) {
+          toast({
+            title: 'Caso actualizado y reevaluado exitosamente',
+            description: `Evaluación completada con ${methodLabel}`,
+          });
+          setErrors({});
+          navigate(`/caso/${editingCaseId}`);
+        } else {
+          throw new Error(evaluationResult.error || 'Error en la evaluación');
+        }
       } else {
-        throw new Error(evaluationResult.error || 'Error en la evaluación');
+        const insertData = {
+          ...baseCasoData,
+          medico_tratante_id: user?.id,
+          estado: 'pendiente',
+        };
+
+        const { data: caso, error: casoError } = await supabase
+          .from('casos')
+          // Tipado laxo hasta regenerar tipos de Supabase con los nuevos campos
+          .insert([insertData as any])
+          .select()
+          .single();
+
+        if (casoError) throw casoError;
+
+        const evaluationResult = await performEvaluation(caso.id, insertData, evaluationMethod);
+
+        if (evaluationResult.success) {
+          toast({
+            title: 'Caso creado y evaluado exitosamente',
+            description: `Evaluación completada con ${methodLabel}`,
+          });
+          setErrors({});
+          navigate(`/caso/${caso.id}`);
+        } else {
+          throw new Error(evaluationResult.error || 'Error en la evaluación');
+        }
       }
     } catch (error: any) {
       toast({
-        title: 'Error al crear caso',
+        title: isEditing ? 'Error al actualizar caso' : 'Error al crear caso',
         description: error.message,
         variant: 'destructive',
       });
@@ -749,6 +1009,11 @@ export default function NuevoCaso() {
     return () => clearInterval(timer);
   }, [loading]);
 
+  if (prefilling) {
+    return <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <p className="text-muted-foreground">Cargando caso...</p>
+      </div>;
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -758,13 +1023,13 @@ export default function NuevoCaso() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(isEditing && editingCaseId ? `/caso/${editingCaseId}` : '/dashboard')}
               className="text-white hover:bg-white/20"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>
-            <h1 className="text-2xl font-bold">Nuevo Caso Clínico</h1>
+            <h1 className="text-2xl font-bold">{isEditing ? 'Editar Caso Clínico' : 'Nuevo Caso Clínico'}</h1>
           </div>
         </div>
       </header>
@@ -794,6 +1059,15 @@ export default function NuevoCaso() {
                 className="flex items-center gap-2"
               >
                 Llenar con datos de prueba (Leve)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fillWithTestData('intermedio')}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                Llenar con datos de prueba (Intermedio)
               </Button>
             </div>
           </CardHeader>
