@@ -33,12 +33,15 @@ interface MedicoData {
   genero?: string | null;
 }
 
+type RangoMetricas = 'todos' | '30' | '7' | '1' | 'custom';
+
 type EstadoFiltro = 'todos' | 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
 
 export default function Dashboard() {
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [rangoMetricas, setRangoMetricas] = useState<RangoMetricas>('todos');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
@@ -63,11 +66,11 @@ export default function Dashboard() {
 
   // Establecer fecha de término por defecto a hoy para todos los médicos
   useEffect(() => {
-    if ((userRole === 'medico' || userRole === 'medico_jefe') && !fechaFin) {
+    if ((userRole === 'medico' || userRole === 'medico_jefe') && !fechaFin && rangoMetricas !== 'todos') {
       const hoy = new Date().toISOString().split('T')[0];
       setFechaFin(hoy);
     }
-  }, [userRole, fechaFin]);
+  }, [userRole, fechaFin, rangoMetricas]);
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
@@ -367,15 +370,114 @@ export default function Dashboard() {
     }, 100);
   };
 
+  const handleRangoMetricasChange = (value: RangoMetricas) => {
+    setRangoMetricas(value);
+
+    if (value === 'custom') {
+      return;
+    }
+
+    if (value === 'todos') {
+      setFechaInicio('');
+      setFechaFin('');
+      return;
+    }
+
+    const dias = value === '30' ? 30 : value === '7' ? 7 : 1;
+    const hoy = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - (dias - 1));
+
+    setFechaInicio(inicio.toISOString().split('T')[0]);
+    setFechaFin(hoy.toISOString().split('T')[0]);
+  };
+
+  const rangoFechasMetricas = useMemo(() => {
+    if (rangoMetricas === 'todos') {
+      return { inicio: null as Date | null, fin: null as Date | null, dias: null as number | null };
+    }
+
+    if (rangoMetricas === 'custom') {
+      return {
+        inicio: fechaInicio ? new Date(fechaInicio + 'T00:00:00Z') : null,
+        fin: fechaFin ? new Date(fechaFin + 'T23:59:59.999Z') : null,
+        dias: null as number | null,
+      };
+    }
+
+    const dias = rangoMetricas === '30' ? 30 : rangoMetricas === '7' ? 7 : 1;
+    const fin = new Date();
+    fin.setHours(23, 59, 59, 999);
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - (dias - 1));
+    inicio.setHours(0, 0, 0, 0);
+
+    return { inicio, fin, dias };
+  }, [rangoMetricas, fechaInicio, fechaFin]);
+
+  const casosParaMetricas = useMemo(() => {
+    const { inicio, fin } = rangoFechasMetricas;
+
+    if (!inicio && !fin) {
+      return casos;
+    }
+
+    return casos.filter((caso) => {
+      const fechaCaso = new Date(caso.fecha_creacion + 'Z');
+      if (Number.isNaN(fechaCaso.getTime())) {
+        return false;
+      }
+
+      if (inicio && fechaCaso < inicio) return false;
+      if (fin && fechaCaso > fin) return false;
+      return true;
+    });
+  }, [casos, rangoFechasMetricas]);
+
   const casosPorEstado = useMemo(() => {
-    return casos.reduce(
+    return casosParaMetricas.reduce(
       (acc, caso) => {
         acc[caso.estado] += 1;
         return acc;
       },
       { aceptado: 0, rechazado: 0, pendiente: 0, derivado: 0 }
     );
-  }, [casos]);
+  }, [casosParaMetricas]);
+
+  const casosPreviosMetricas = useMemo(() => {
+    if (!rangoFechasMetricas.dias || rangoMetricas === 'custom' || rangoMetricas === 'todos') {
+      return [];
+    }
+
+    const { inicio } = rangoFechasMetricas;
+    if (!inicio) return [];
+
+    const dias = rangoFechasMetricas.dias;
+    const inicioPrevio = new Date(inicio);
+    inicioPrevio.setDate(inicioPrevio.getDate() - dias);
+    inicioPrevio.setHours(0, 0, 0, 0);
+    const finPrevio = new Date(inicio);
+    finPrevio.setMilliseconds(finPrevio.getMilliseconds() - 1);
+
+    return casos.filter((caso) => {
+      const fechaCaso = new Date(caso.fecha_creacion + 'Z');
+      if (Number.isNaN(fechaCaso.getTime())) {
+        return false;
+      }
+
+      return fechaCaso >= inicioPrevio && fechaCaso <= finPrevio;
+    });
+  }, [casos, rangoFechasMetricas, rangoMetricas]);
+
+  const casosPorEstadoPrevio = useMemo(() => {
+    return casosPreviosMetricas.reduce(
+      (acc, caso) => {
+        acc[caso.estado] += 1;
+        return acc;
+      },
+      { aceptado: 0, rechazado: 0, pendiente: 0, derivado: 0 }
+    );
+  }, [casosPreviosMetricas]);
 
   const getEstadoBadgeVariant = (estado: string) => {
     switch (estado) {
@@ -412,6 +514,20 @@ export default function Dashboard() {
       default:
         return estado;
     }
+  };
+
+  const getDeltaInfo = (actual: number, previo: number) => {
+    if (previo === 0) {
+      if (actual === 0) {
+        return { label: '0% vs período anterior', className: 'text-muted-foreground' };
+      }
+      return { label: 'N/A vs período anterior', className: 'text-muted-foreground' };
+    }
+
+    const delta = ((actual - previo) / previo) * 100;
+    const sign = delta > 0 ? '+' : '';
+    const className = delta > 0 ? 'text-success' : delta < 0 ? 'text-destructive' : 'text-muted-foreground';
+    return { label: `${sign}${delta.toFixed(1)}% vs período anterior`, className };
   };
 
   if (loading) {
@@ -494,6 +610,21 @@ export default function Dashboard() {
 
       {/* Main Content con diseño moderno */}
       <main className="container mx-auto px-6 py-10 max-w-7xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <Select value={rangoMetricas} onValueChange={(value) => handleRangoMetricasChange(value as RangoMetricas)}>
+            <SelectTrigger className="sm:w-[220px]">
+              <SelectValue placeholder="Rango de tiempo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="30">Últimos 30 días</SelectItem>
+              <SelectItem value="7">Últimos 7 días</SelectItem>
+              <SelectItem value="1">Último día</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Stats Cards Grid mejorado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
           {/* Total Casos */}
@@ -513,7 +644,12 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Casos Registrados</p>
-                <p className="text-4xl font-bold text-foreground">{casos.length}</p>
+                <p className="text-4xl font-bold text-foreground">{casosParaMetricas.length}</p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).className}`}>
+                    {getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -541,6 +677,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.pendiente}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).className}`}>
+                    {getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -565,6 +706,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.derivado}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).className}`}>
+                    {getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -593,6 +739,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.rechazado}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).className}`}>
+                    {getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -619,6 +770,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.aceptado}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).className}`}>
+                    {getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -701,7 +857,10 @@ export default function Dashboard() {
                       <Input
                         type="date"
                         value={fechaInicio}
-                        onChange={(event) => setFechaInicio(event.target.value)}
+                        onChange={(event) => {
+                          setFechaInicio(event.target.value);
+                          setRangoMetricas('custom');
+                        }}
                         className="w-[200px] text-center"
                       />
                     </div>
@@ -710,7 +869,10 @@ export default function Dashboard() {
                       <Input
                         type="date"
                         value={fechaFin}
-                        onChange={(event) => setFechaFin(event.target.value)}
+                        onChange={(event) => {
+                          setFechaFin(event.target.value);
+                          setRangoMetricas('custom');
+                        }}
                         className="w-[200px] text-center"
                       />
                     </div>
@@ -720,8 +882,8 @@ export default function Dashboard() {
                         size="sm"
                         onClick={() => {
                           setFechaInicio('');
-                          const hoy = new Date().toISOString().split('T')[0];
-                          setFechaFin(hoy);
+                          setFechaFin('');
+                          handleRangoMetricasChange('todos');
                         }}
                         disabled={!fechaInicio && !fechaFin}
                       >
@@ -752,8 +914,8 @@ export default function Dashboard() {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
                 setFechaInicio('');
-                const hoy = new Date().toISOString().split('T')[0];
-                setFechaFin(hoy);
+                setFechaFin('');
+                handleRangoMetricasChange('todos');
                 setFiltroMedico('todos');
                 setFiltroCasoId(null);
                 setCurrentPage(1);
@@ -804,6 +966,7 @@ export default function Dashboard() {
                   setEstadoFiltro('todos');
                   setFechaInicio('');
                   setFechaFin('');
+                  setRangoMetricas('todos');
                   setFiltroMedico('todos');
                   setFiltroCasoId(null);
                 }}
