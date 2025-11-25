@@ -521,7 +521,7 @@ export default function Dashboard() {
       if (actual === 0) {
         return { label: '0% vs período anterior', className: 'text-muted-foreground' };
       }
-      return { label: 'N/A vs período anterior', className: 'text-muted-foreground' };
+      return { label: 'Sin data', className: 'text-muted-foreground' };
     }
 
     const delta = ((actual - previo) / previo) * 100;
