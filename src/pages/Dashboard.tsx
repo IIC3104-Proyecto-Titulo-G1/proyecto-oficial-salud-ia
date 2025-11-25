@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar, Trash2 } from 'lucide-react';
 import { getDoctorPrefix, consoleLogDebugger } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -24,6 +23,7 @@ interface Caso {
   estado: 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
   fecha_creacion: string;
   medico_tratante_id: string;
+  episodio?: string;
 }
 
 interface MedicoData {
@@ -32,12 +32,15 @@ interface MedicoData {
   genero?: string | null;
 }
 
+type RangoMetricas = 'todos' | '30' | '7' | '1' | 'custom';
+
 type EstadoFiltro = 'todos' | 'pendiente' | 'aceptado' | 'rechazado' | 'derivado';
 
 export default function Dashboard() {
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [rangoMetricas, setRangoMetricas] = useState<RangoMetricas>('todos');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
@@ -46,7 +49,6 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
-  const [openDateFilter, setOpenDateFilter] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deletingCasoId, setDeletingCasoId] = useState<string | null>(null);
@@ -62,11 +64,11 @@ export default function Dashboard() {
 
   // Establecer fecha de término por defecto a hoy para todos los médicos
   useEffect(() => {
-    if ((userRole === 'medico' || userRole === 'medico_jefe') && !fechaFin) {
+    if ((userRole === 'medico' || userRole === 'medico_jefe') && !fechaFin && rangoMetricas !== 'todos') {
       const hoy = new Date().toISOString().split('T')[0];
       setFechaFin(hoy);
     }
-  }, [userRole, fechaFin]);
+  }, [userRole, fechaFin, rangoMetricas]);
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
@@ -136,7 +138,7 @@ export default function Dashboard() {
     }
 
     loadCasos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, userRole]);
 
   // Efecto separado para manejar el filtrado desde notificaciones
@@ -167,7 +169,7 @@ export default function Dashboard() {
     if (filtroCasoId && !filtroDesdeNotificacion.current) {
       setFiltroCasoId(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
 
   const handleSignOut = async () => {
@@ -336,7 +338,12 @@ export default function Dashboard() {
         return true;
       }
 
-      const hayCoincidencia = `${caso.nombre_paciente} ${caso.diagnostico_principal}`
+      const hayCoincidencia = [
+        caso.nombre_paciente,
+        caso.diagnostico_principal,
+        caso.episodio || ''
+      ]
+        .join(' ')
         .toLowerCase()
         .includes(normalizedSearch);
 
@@ -361,15 +368,114 @@ export default function Dashboard() {
     }, 100);
   };
 
+  const handleRangoMetricasChange = (value: RangoMetricas) => {
+    setRangoMetricas(value);
+
+    if (value === 'custom') {
+      return;
+    }
+
+    if (value === 'todos') {
+      setFechaInicio('');
+      setFechaFin('');
+      return;
+    }
+
+    const dias = value === '30' ? 30 : value === '7' ? 7 : 1;
+    const hoy = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - (dias - 1));
+
+    setFechaInicio(inicio.toISOString().split('T')[0]);
+    setFechaFin(hoy.toISOString().split('T')[0]);
+  };
+
+  const rangoFechasMetricas = useMemo(() => {
+    if (rangoMetricas === 'todos') {
+      return { inicio: null as Date | null, fin: null as Date | null, dias: null as number | null };
+    }
+
+    if (rangoMetricas === 'custom') {
+      return {
+        inicio: fechaInicio ? new Date(fechaInicio + 'T00:00:00Z') : null,
+        fin: fechaFin ? new Date(fechaFin + 'T23:59:59.999Z') : null,
+        dias: null as number | null,
+      };
+    }
+
+    const dias = rangoMetricas === '30' ? 30 : rangoMetricas === '7' ? 7 : 1;
+    const fin = new Date();
+    fin.setHours(23, 59, 59, 999);
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - (dias - 1));
+    inicio.setHours(0, 0, 0, 0);
+
+    return { inicio, fin, dias };
+  }, [rangoMetricas, fechaInicio, fechaFin]);
+
+  const casosParaMetricas = useMemo(() => {
+    const { inicio, fin } = rangoFechasMetricas;
+
+    if (!inicio && !fin) {
+      return casos;
+    }
+
+    return casos.filter((caso) => {
+      const fechaCaso = new Date(caso.fecha_creacion + 'Z');
+      if (Number.isNaN(fechaCaso.getTime())) {
+        return false;
+      }
+
+      if (inicio && fechaCaso < inicio) return false;
+      if (fin && fechaCaso > fin) return false;
+      return true;
+    });
+  }, [casos, rangoFechasMetricas]);
+
   const casosPorEstado = useMemo(() => {
-    return casos.reduce(
+    return casosParaMetricas.reduce(
       (acc, caso) => {
         acc[caso.estado] += 1;
         return acc;
       },
       { aceptado: 0, rechazado: 0, pendiente: 0, derivado: 0 }
     );
-  }, [casos]);
+  }, [casosParaMetricas]);
+
+  const casosPreviosMetricas = useMemo(() => {
+    if (!rangoFechasMetricas.dias || rangoMetricas === 'custom' || rangoMetricas === 'todos') {
+      return [];
+    }
+
+    const { inicio } = rangoFechasMetricas;
+    if (!inicio) return [];
+
+    const dias = rangoFechasMetricas.dias;
+    const inicioPrevio = new Date(inicio);
+    inicioPrevio.setDate(inicioPrevio.getDate() - dias);
+    inicioPrevio.setHours(0, 0, 0, 0);
+    const finPrevio = new Date(inicio);
+    finPrevio.setMilliseconds(finPrevio.getMilliseconds() - 1);
+
+    return casos.filter((caso) => {
+      const fechaCaso = new Date(caso.fecha_creacion + 'Z');
+      if (Number.isNaN(fechaCaso.getTime())) {
+        return false;
+      }
+
+      return fechaCaso >= inicioPrevio && fechaCaso <= finPrevio;
+    });
+  }, [casos, rangoFechasMetricas, rangoMetricas]);
+
+  const casosPorEstadoPrevio = useMemo(() => {
+    return casosPreviosMetricas.reduce(
+      (acc, caso) => {
+        acc[caso.estado] += 1;
+        return acc;
+      },
+      { aceptado: 0, rechazado: 0, pendiente: 0, derivado: 0 }
+    );
+  }, [casosPreviosMetricas]);
 
   const getEstadoBadgeVariant = (estado: string) => {
     switch (estado) {
@@ -406,6 +512,20 @@ export default function Dashboard() {
       default:
         return estado;
     }
+  };
+
+  const getDeltaInfo = (actual: number, previo: number) => {
+    if (previo === 0) {
+      if (actual === 0) {
+        return { label: '0% vs período anterior', className: 'text-muted-foreground' };
+      }
+      return { label: 'Sin data', className: 'text-muted-foreground' };
+    }
+
+    const delta = ((actual - previo) / previo) * 100;
+    const sign = delta > 0 ? '+' : '';
+    const className = delta > 0 ? 'text-success' : delta < 0 ? 'text-destructive' : 'text-muted-foreground';
+    return { label: `${sign}${delta.toFixed(1)}% vs período anterior`, className };
   };
 
   if (loading) {
@@ -488,6 +608,70 @@ export default function Dashboard() {
 
       {/* Main Content con diseño moderno */}
       <main className="container mx-auto px-6 py-10 max-w-7xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={rangoMetricas} onValueChange={(value) => handleRangoMetricasChange(value as RangoMetricas)}>
+              <SelectTrigger className="sm:w-[220px]">
+                <Calendar className="h-4 w-4" />
+                <SelectValue placeholder="Rango de tiempo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="30">Últimos 30 días</SelectItem>
+                <SelectItem value="7">Últimos 7 días</SelectItem>
+                <SelectItem value="1">Último día</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {rangoMetricas === 'custom' && (
+              <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Fecha inicio</Label>
+                  <Input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(event) => {
+                      setFechaInicio(event.target.value);
+                      setRangoMetricas('custom');
+                    }}
+                    className="w-[170px] text-center"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Fecha término</Label>
+                  <Input
+                    type="date"
+                    value={fechaFin}
+                    onChange={(event) => {
+                      setFechaFin(event.target.value);
+                      setRangoMetricas('custom');
+                    }}
+                    className="w-[170px] text-center"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFechaInicio('');
+                      setFechaFin('');
+                      handleRangoMetricasChange('todos');
+                    }}
+                    disabled={!fechaInicio && !fechaFin}
+                  >
+                    Limpiar
+                  </Button>
+                  <Button size="sm" onClick={() => setCurrentPage(1)}>
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Stats Cards Grid mejorado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
           {/* Total Casos */}
@@ -507,7 +691,12 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Casos Registrados</p>
-                <p className="text-4xl font-bold text-foreground">{casos.length}</p>
+                <p className="text-4xl font-bold text-foreground">{casosParaMetricas.length}</p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).className}`}>
+                    {getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -535,6 +724,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.pendiente}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).className}`}>
+                    {getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -559,6 +753,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.derivado}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).className}`}>
+                    {getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -587,6 +786,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.rechazado}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).className}`}>
+                    {getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -613,6 +817,11 @@ export default function Dashboard() {
                 <p className="text-4xl font-bold text-foreground">
                   {casosPorEstado.aceptado}
                 </p>
+                {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                  <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).className}`}>
+                    {getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).label}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -645,7 +854,7 @@ export default function Dashboard() {
               <Input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Buscar por paciente o diagnóstico"
+                placeholder="Paciente, episodio o diagnóstico"
                 className="pl-10"
               />
             </div>
@@ -679,56 +888,6 @@ export default function Dashboard() {
               </Select>
             )}
 
-            {/* Filtros de fecha para todos los médicos */}
-            {(userRole === 'medico' || userRole === 'medico_jefe') && (
-              <Popover open={openDateFilter} onOpenChange={setOpenDateFilter}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Filtrar por fecha
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto" align="start">
-                  <div className="space-y-4 py-2">
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-center block">Fecha inicio</label>
-                      <Input
-                        type="date"
-                        value={fechaInicio}
-                        onChange={(event) => setFechaInicio(event.target.value)}
-                        className="w-[200px] text-center"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-center block">Fecha término</label>
-                      <Input
-                        type="date"
-                        value={fechaFin}
-                        onChange={(event) => setFechaFin(event.target.value)}
-                        className="w-[200px] text-center"
-                      />
-                    </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setFechaInicio('');
-                          const hoy = new Date().toISOString().split('T')[0];
-                          setFechaFin(hoy);
-                        }}
-                        disabled={!fechaInicio && !fechaFin}
-                      >
-                        Limpiar
-                      </Button>
-                      <Button size="sm" onClick={() => setOpenDateFilter(false)}>
-                        Aplicar
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-sm text-crm">
@@ -746,8 +905,8 @@ export default function Dashboard() {
                 setSearchTerm('');
                 setEstadoFiltro('todos');
                 setFechaInicio('');
-                const hoy = new Date().toISOString().split('T')[0];
-                setFechaFin(hoy);
+                setFechaFin('');
+                handleRangoMetricasChange('todos');
                 setFiltroMedico('todos');
                 setFiltroCasoId(null);
                 setCurrentPage(1);
@@ -798,6 +957,7 @@ export default function Dashboard() {
                   setEstadoFiltro('todos');
                   setFechaInicio('');
                   setFechaFin('');
+                  setRangoMetricas('todos');
                   setFiltroMedico('todos');
                   setFiltroCasoId(null);
                 }}
@@ -832,6 +992,9 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3 mt-4">
+                        <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg ring-1 ring-border/50">
+                          Episodio: {caso.episodio || 'Sin número'}
+                        </div>
                         <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg ring-1 ring-border/50">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1086,4 +1249,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

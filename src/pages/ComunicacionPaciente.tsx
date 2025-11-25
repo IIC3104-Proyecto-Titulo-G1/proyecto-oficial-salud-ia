@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Mail, Send } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Mail, Send } from 'lucide-react';
 import { consoleLogDebugger } from '@/lib/utils';
 
 interface Caso {
@@ -372,7 +372,17 @@ export default function ComunicacionPaciente() {
 
               <div>
                 <p className="font-semibold mb-2">Explicación del Análisis:</p>
-                <p className="text-sm text-muted-foreground">{sugerencia?.explicacion || 'Análisis realizado por el equipo médico.'}</p>
+                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
+                    <div
+                      className="text-sm text-muted-foreground whitespace-pre-line [&_strong]:font-semibold"
+                      dangerouslySetInnerHTML={{
+                        __html: ((sugerencia?.explicacion || 'Análisis realizado por el equipo médico.') as string).replace(/\n/g, '<br />')
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
