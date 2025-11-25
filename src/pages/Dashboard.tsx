@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Plus, LogOut, Users, User as UserIcon, FileText, Search, Calendar, Trash2 } from 'lucide-react';
 import { getDoctorPrefix, consoleLogDebugger } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -50,7 +49,6 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
-  const [openDateFilter, setOpenDateFilter] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deletingCasoId, setDeletingCasoId] = useState<string | null>(null);
@@ -611,18 +609,67 @@ export default function Dashboard() {
       {/* Main Content con diseño moderno */}
       <main className="container mx-auto px-6 py-10 max-w-7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <Select value={rangoMetricas} onValueChange={(value) => handleRangoMetricasChange(value as RangoMetricas)}>
-            <SelectTrigger className="sm:w-[220px]">
-              <SelectValue placeholder="Rango de tiempo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="30">Últimos 30 días</SelectItem>
-              <SelectItem value="7">Últimos 7 días</SelectItem>
-              <SelectItem value="1">Último día</SelectItem>
-              <SelectItem value="custom">Personalizado</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={rangoMetricas} onValueChange={(value) => handleRangoMetricasChange(value as RangoMetricas)}>
+              <SelectTrigger className="sm:w-[220px]">
+                <Calendar className="h-4 w-4" />
+                <SelectValue placeholder="Rango de tiempo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="30">Últimos 30 días</SelectItem>
+                <SelectItem value="7">Últimos 7 días</SelectItem>
+                <SelectItem value="1">Último día</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {rangoMetricas === 'custom' && (
+              <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Fecha inicio</Label>
+                  <Input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(event) => {
+                      setFechaInicio(event.target.value);
+                      setRangoMetricas('custom');
+                    }}
+                    className="w-[170px] text-center"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Fecha término</Label>
+                  <Input
+                    type="date"
+                    value={fechaFin}
+                    onChange={(event) => {
+                      setFechaFin(event.target.value);
+                      setRangoMetricas('custom');
+                    }}
+                    className="w-[170px] text-center"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFechaInicio('');
+                      setFechaFin('');
+                      handleRangoMetricasChange('todos');
+                    }}
+                    disabled={!fechaInicio && !fechaFin}
+                  >
+                    Limpiar
+                  </Button>
+                  <Button size="sm" onClick={() => setCurrentPage(1)}>
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards Grid mejorado */}
@@ -841,62 +888,6 @@ export default function Dashboard() {
               </Select>
             )}
 
-            {/* Filtros de fecha para todos los médicos */}
-            {(userRole === 'medico' || userRole === 'medico_jefe') && (
-              <Popover open={openDateFilter} onOpenChange={setOpenDateFilter}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Filtrar por fecha
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto" align="start">
-                  <div className="space-y-4 py-2">
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-center block">Fecha inicio</label>
-                      <Input
-                        type="date"
-                        value={fechaInicio}
-                        onChange={(event) => {
-                          setFechaInicio(event.target.value);
-                          setRangoMetricas('custom');
-                        }}
-                        className="w-[200px] text-center"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-center block">Fecha término</label>
-                      <Input
-                        type="date"
-                        value={fechaFin}
-                        onChange={(event) => {
-                          setFechaFin(event.target.value);
-                          setRangoMetricas('custom');
-                        }}
-                        className="w-[200px] text-center"
-                      />
-                    </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setFechaInicio('');
-                          setFechaFin('');
-                          handleRangoMetricasChange('todos');
-                        }}
-                        disabled={!fechaInicio && !fechaFin}
-                      >
-                        Limpiar
-                      </Button>
-                      <Button size="sm" onClick={() => setOpenDateFilter(false)}>
-                        Aplicar
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-sm text-crm">
