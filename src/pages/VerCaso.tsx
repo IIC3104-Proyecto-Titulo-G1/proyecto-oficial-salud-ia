@@ -976,7 +976,12 @@ export default function VerCaso() {
                   <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
                   <div>
                     <p className="font-medium mb-2">Explicación del Análisis</p>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">{sugerencia.explicacion}</p>
+                    <div
+                      className="text-sm text-muted-foreground whitespace-pre-line [&_strong]:font-semibold"
+                      dangerouslySetInnerHTML={{
+                        __html: (sugerencia.explicacion || '').replace(/\n/g, '<br />')
+                      }}
+                    />
                   </div>
                 </div>
               </div>

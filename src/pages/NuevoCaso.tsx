@@ -784,20 +784,20 @@ export default function NuevoCaso() {
         }
 
         if (payload.evidence?.length) {
-          explicacionParts.push(`- Evidencias: ${payload.evidence.join(', ')}.`);
+          explicacionParts.push(`- <strong>Evidencias:</strong> ${payload.evidence.join(', ')}.`);
         }
 
         if (payload.risk_factors?.length) {
-          explicacionParts.push(`- Factores de riesgo: ${payload.risk_factors.join(', ')}.`);
+          explicacionParts.push(`- <strong>Factores de riesgo:</strong> ${payload.risk_factors.join(', ')}.`);
         }
 
         if (payload.recommendations?.length) {
           const recs = payload.recommendations.slice(0, 3).join(', ');
           const hasMore = payload.recommendations.length > 3 ? '...' : '';
-          explicacionParts.push(`- Recomendaciones: ${recs}${hasMore}.`);
+          explicacionParts.push(`- <strong>Recomendaciones:</strong> ${recs}${hasMore}.`);
         }
 
-        explicacion = explicacionParts.join('\n');
+        explicacion = explicacionParts.join('\n\n');
       }
 
       // Limitar la explicación a un tamaño razonable para la base de datos
