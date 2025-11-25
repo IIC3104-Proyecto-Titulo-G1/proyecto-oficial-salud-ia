@@ -1,6 +1,6 @@
 // Configuración de endpoints de evaluación
 export const EVALUATION_CONFIG = {
-  baseUrl: 'http://localhost:3001',
+  baseUrl: 'https://urgencia-backend-production.up.railway.app',
   endpoints: {
     rules: '/api/emergency/evaluate',
     grok: '/api/multi-llm/evaluate/grok',
@@ -19,19 +19,16 @@ export const EVALUATION_CONFIG = {
     grok: {
       name: 'Grok (xAI)',
       description: 'Evaluación con IA usando grok-4-fast-reasoning',
-      emoji: '🤖',
       deterministic: false,
     },
     openai: {
       name: 'OpenAI GPT-4o',
       description: 'Evaluación con IA usando GPT-4o-mini',
-      emoji: '🧠',
       deterministic: false,
     },
     gemini: {
       name: 'Google Gemini Pro',
       description: 'Evaluación con IA usando Gemini Pro',
-      emoji: '✨',
       deterministic: false,
     },
   },

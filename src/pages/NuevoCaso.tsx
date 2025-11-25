@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import type { Database } from '@/integrations/supabase/types';
+import { EVALUATION_CONFIG } from '@/config/evaluation';
 
 // Schema de validación con zod
 const formSchema = z.object({
@@ -671,7 +672,7 @@ export default function NuevoCaso() {
         throw new Error(`Método de evaluación no soportado: ${method}`);
       }
 
-      const response = await fetch(`http://localhost:3001${endpoint}`, {
+      const response = await fetch(`${EVALUATION_CONFIG.baseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
