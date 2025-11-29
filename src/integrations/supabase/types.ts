@@ -37,6 +37,7 @@ export type Database = {
           endoscopia_same_day: boolean | null
           episodio: string | null
           estado: Database["public"]["Enums"]["estado_caso"] | null
+          estado_resolucion_aseguradora: string | null
           fc: number | null
           fecha_actualizacion: string | null
           fecha_analisis_ia: string | null
@@ -55,6 +56,7 @@ export type Database = {
           id: string
           medico_jefe_id: string | null
           medico_tratante_id: string
+          nombre_isapre: string | null
           nombre_paciente: string
           pa_diastolica: number | null
           pa_media: number | null
@@ -62,6 +64,7 @@ export type Database = {
           pcr: boolean | null
           potasio: number | null
           presion_arterial: string | null
+          prevision: string | null
           rnm_protocol_stroke: boolean | null
           sat_o2: number | null
           saturacion_oxigeno: number | null
@@ -100,6 +103,7 @@ export type Database = {
           endoscopia_same_day?: boolean | null
           episodio?: string | null
           estado?: Database["public"]["Enums"]["estado_caso"] | null
+          estado_resolucion_aseguradora?: string | null
           fc?: number | null
           fecha_actualizacion?: string | null
           fecha_analisis_ia?: string | null
@@ -118,6 +122,7 @@ export type Database = {
           id?: string
           medico_jefe_id?: string | null
           medico_tratante_id: string
+          nombre_isapre?: string | null
           nombre_paciente: string
           pa_diastolica?: number | null
           pa_media?: number | null
@@ -125,6 +130,7 @@ export type Database = {
           pcr?: boolean | null
           potasio?: number | null
           presion_arterial?: string | null
+          prevision?: string | null
           rnm_protocol_stroke?: boolean | null
           sat_o2?: number | null
           saturacion_oxigeno?: number | null
@@ -163,6 +169,7 @@ export type Database = {
           endoscopia_same_day?: boolean | null
           episodio?: string | null
           estado?: Database["public"]["Enums"]["estado_caso"] | null
+          estado_resolucion_aseguradora?: string | null
           fc?: number | null
           fecha_actualizacion?: string | null
           fecha_analisis_ia?: string | null
@@ -181,6 +188,7 @@ export type Database = {
           id?: string
           medico_jefe_id?: string | null
           medico_tratante_id?: string
+          nombre_isapre?: string | null
           nombre_paciente?: string
           pa_diastolica?: number | null
           pa_media?: number | null
@@ -188,6 +196,7 @@ export type Database = {
           pcr?: boolean | null
           potasio?: number | null
           presion_arterial?: string | null
+          prevision?: string | null
           rnm_protocol_stroke?: boolean | null
           sat_o2?: number | null
           saturacion_oxigeno?: number | null

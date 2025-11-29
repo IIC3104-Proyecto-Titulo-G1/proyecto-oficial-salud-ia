@@ -32,6 +32,9 @@ interface Caso {
   estado: string;
   medico_tratante_id: string;
   medico_jefe_id?: string;
+  prevision?: string;
+  nombre_isapre?: string;
+  estado_resolucion_aseguradora?: string;
 }
 interface Sugerencia {
   id: string;
@@ -898,6 +901,36 @@ export default function VerCaso() {
                 <CardDescription>
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
+                {/* Tags de Previsión y Resolución Aseguradora */}
+                {((caso as any).prevision || (caso.estado === 'aceptado' && (caso as any).estado_resolucion_aseguradora)) && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {(caso as any).prevision && (
+                      <Badge variant="outline" className="text-xs">
+                        {(caso as any).prevision === 'Isapre' && (caso as any).nombre_isapre 
+                          ? `Isapre: ${(caso as any).nombre_isapre}` 
+                          : (caso as any).prevision}
+                      </Badge>
+                    )}
+                    {caso.estado === 'aceptado' && (caso as any).estado_resolucion_aseguradora && (
+                      <Badge 
+                        variant={
+                          (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                            ? 'default' 
+                            : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                            ? 'destructive' 
+                            : 'secondary'
+                        }
+                        className="text-xs"
+                      >
+                        {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                          ? `Aceptado por ${(caso as any).prevision || 'Aseguradora'}` 
+                          : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                          ? `Rechazado por ${(caso as any).prevision || 'Aseguradora'}` 
+                          : `Pendiente revisión ${(caso as any).prevision || 'Aseguradora'}`}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
               {/* Botón de editar: casos pendientes (cualquier médico), derivados/cerrados (solo médico jefe) */}
               {(caso.estado === 'pendiente' || userRole === 'medico_jefe' && ['derivado', 'aceptado', 'rechazado'].includes(caso.estado)) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>

@@ -15,6 +15,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AseguradorasUpload } from '@/components/AseguradorasUpload';
 
 interface Caso {
   id: string;
@@ -835,16 +836,21 @@ export default function Dashboard() {
               Gestiona y evalúa casos clínicos bajo la Ley de Urgencia
             </p>
           </div>
-          {(userRole === 'medico' || userRole === 'medico_jefe') && (
-            <Button
-              onClick={() => navigate('/caso/nuevo')}
-              size="lg"
-              className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              Nuevo Caso
-            </Button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {userRole === 'medico_jefe' && (
+              <AseguradorasUpload />
+            )}
+            {(userRole === 'medico' || userRole === 'medico_jefe') && (
+              <Button
+                onClick={() => navigate('/caso/nuevo')}
+                size="lg"
+                className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                Nuevo Caso
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
