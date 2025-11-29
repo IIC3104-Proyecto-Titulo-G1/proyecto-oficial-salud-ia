@@ -911,7 +911,7 @@ export default function VerCaso() {
                           : (caso as any).prevision}
                       </Badge>
                     )}
-                    {caso.estado === 'aceptado' && (caso as any).estado_resolucion_aseguradora && (
+                    {caso.estado === 'aceptado' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
                       <Badge 
                         variant={
                           (caso as any).estado_resolucion_aseguradora === 'aceptada' 
@@ -920,13 +920,13 @@ export default function VerCaso() {
                             ? 'destructive' 
                             : 'secondary'
                         }
-                        className="text-xs"
+                        className="text-xs font-medium"
                       >
                         {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                          ? `Aceptado por ${(caso as any).prevision || 'Aseguradora'}` 
+                          ? `Aceptado por ${(caso as any).prevision}` 
                           : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                          ? `Rechazado por ${(caso as any).prevision || 'Aseguradora'}` 
-                          : `Pendiente revisión ${(caso as any).prevision || 'Aseguradora'}`}
+                          ? `Rechazado por ${(caso as any).prevision}` 
+                          : `Pendiente resolución ${(caso as any).prevision}`}
                       </Badge>
                     )}
                   </div>

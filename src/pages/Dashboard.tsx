@@ -1027,7 +1027,7 @@ export default function Dashboard() {
                     <div className="flex flex-col items-end gap-3">
                       <div className="flex items-center gap-2">
                         {/* Tags de resolución de aseguradora (solo para casos aceptados) */}
-                        {caso.estado === 'aceptado' && (caso as any).estado_resolucion_aseguradora && (
+                        {caso.estado === 'aceptado' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
                           <Badge 
                             variant={
                               (caso as any).estado_resolucion_aseguradora === 'aceptada' 
@@ -1036,13 +1036,13 @@ export default function Dashboard() {
                                 ? 'destructive' 
                                 : 'secondary'
                             }
-                            className="text-xs"
+                            className="text-xs font-medium"
                           >
                             {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                              ? `✓ ${(caso as any).prevision || 'Aseguradora'}` 
+                              ? `Aceptado por ${(caso as any).prevision}` 
                               : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                              ? `✗ ${(caso as any).prevision || 'Aseguradora'}` 
-                              : `⏳ ${(caso as any).prevision || 'Aseguradora'}`}
+                              ? `Rechazado por ${(caso as any).prevision}` 
+                              : `Pendiente resolución ${(caso as any).prevision}`}
                           </Badge>
                         )}
                         
