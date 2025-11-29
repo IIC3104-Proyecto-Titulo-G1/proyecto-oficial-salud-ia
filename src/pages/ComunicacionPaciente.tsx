@@ -18,6 +18,8 @@ interface Caso {
   diagnostico_principal: string;
   estado: string;
   medico_jefe_id?: string;
+  prevision?: string;
+  estado_resolucion_aseguradora?: string;
 }
 
 interface Sugerencia {
@@ -49,9 +51,9 @@ export default function ComunicacionPaciente() {
   const loadData = async () => {
     if (!id) return;
 
-    const { data: casoData } = await supabase
+      const { data: casoData } = await supabase
       .from('casos')
-      .select('id, nombre_paciente, email_paciente, diagnostico_principal, estado, medico_jefe_id')
+      .select('id, nombre_paciente, email_paciente, diagnostico_principal, estado, medico_jefe_id, prevision, estado_resolucion_aseguradora')
       .eq('id', id)
       .single();
 
@@ -197,6 +199,8 @@ export default function ComunicacionPaciente() {
               result: resultadoEmail,
               explanation: sugerencia?.explicacion || '',
               additionalComment: comentarioAdicional || undefined,
+              insuranceStatus: (caso as any).estado_resolucion_aseguradora || null,
+              insuranceType: (caso as any).prevision || null,
             },
           }
         );
@@ -354,13 +358,39 @@ export default function ComunicacionPaciente() {
               <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
                 resultado === 'ACTIVADA' ? 'border-success' : 'border-destructive'
               }`}>
-                <p className="font-semibold text-lg mb-2">
-                  Resultado: <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
+                <p className="text-sm text-muted-foreground mb-2">Decisión Médica:</p>
+                <p className="font-bold text-2xl mb-2">
+                  <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
                 </p>
                 <p className="text-sm">
                   <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
                 </p>
               </div>
+
+              {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+                <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
+                  (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                    ? 'border-success' 
+                    : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                    ? 'border-destructive' 
+                    : 'border-muted-foreground'
+                }`}>
+                  <p className="text-sm text-muted-foreground mb-2">Estado de Aseguradora:</p>
+                  <p className={`font-bold text-xl ${
+                    (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                      ? 'text-success' 
+                      : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                      ? 'text-destructive' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {(caso as any).estado_resolucion_aseguradora === 'pendiente' 
+                      ? `PENDIENTE RESOLUCIÓN ${(caso as any).prevision?.toUpperCase()}` 
+                      : (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                      ? `ACEPTADO POR ${(caso as any).prevision?.toUpperCase()}` 
+                      : `RECHAZADO POR ${(caso as any).prevision?.toUpperCase()}`}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <p className="font-semibold mb-2">Fundamento Legal:</p>
