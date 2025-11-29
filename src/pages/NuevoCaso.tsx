@@ -119,6 +119,10 @@ export default function NuevoCaso() {
       sexo: 'M',
       email_paciente: 'juan.perez@email.com',
 
+      // Previsión
+      prevision: 'Fonasa',
+      nombre_isapre: '',
+
       // Diagnóstico
       diagnostico_principal: 'Infarto agudo de miocardio con supradesnivel del segmento ST',
       sintomas: 'Dolor torácico opresivo irradiado a brazo izquierdo, disnea, sudoración profusa',
@@ -186,6 +190,10 @@ export default function NuevoCaso() {
       sexo: 'F',
       email_paciente: 'maria.lopez@email.com',
 
+      // Previsión
+      prevision: 'Isapre',
+      nombre_isapre: 'Banmédica',
+
       // Diagnóstico
       diagnostico_principal: 'Gastroenteritis aguda',
       sintomas: 'Dolor abdominal leve, náuseas, sin vómitos, sin fiebre',
@@ -251,6 +259,10 @@ export default function NuevoCaso() {
       sexo: 'M',
       email_paciente: 'carlos.munoz@email.com',
 
+      // Previsión
+      prevision: 'Fonasa',
+      nombre_isapre: '',
+
       diagnostico_principal: 'Dolor torácico atípico con factores de riesgo cardiovascular',
       sintomas: 'Dolor torácico leve-moderado, sin irradiación clara, ligero mareo',
       historia_clinica: 'HTA controlada, ex fumador, dislipidemia en tratamiento',
@@ -311,6 +323,10 @@ export default function NuevoCaso() {
     edad: '',
     sexo: '',
     email_paciente: '',
+
+    // Previsión
+    prevision: '',
+    nombre_isapre: '',
 
     // Diagnóstico
     diagnostico_principal: '',
@@ -531,6 +547,9 @@ export default function NuevoCaso() {
         edad: caso.edad_paciente?.toString() || '',
         sexo: caso.sexo_paciente || '',
         email_paciente: caso.email_paciente || '',
+
+        prevision: (caso as any).prevision || '',
+        nombre_isapre: (caso as any).nombre_isapre || '',
 
         diagnostico_principal: caso.diagnostico_principal || '',
         sintomas: caso.sintomas || '',
@@ -875,6 +894,10 @@ export default function NuevoCaso() {
         sexo_paciente: formData.sexo,
         email_paciente: formData.email_paciente.trim() || null,
 
+        // Previsión
+        prevision: formData.prevision || null,
+        nombre_isapre: (formData.prevision === 'Isapre' && formData.nombre_isapre.trim()) ? formData.nombre_isapre.trim() : null,
+
         // Diagnóstico
         diagnostico_principal: formData.diagnostico_principal.trim(),
         sintomas: formData.sintomas.trim() || null,
@@ -1181,6 +1204,48 @@ export default function NuevoCaso() {
                     />
                     {errors.email_paciente && <p className="text-sm text-destructive">{errors.email_paciente}</p>}
                   </div>
+                </div>
+              </div>
+
+              {/* Previsión */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Previsión de Salud</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="prevision">Tipo de Previsión</Label>
+                    <Select
+                      value={formData.prevision}
+                      onValueChange={(value) => {
+                        handleSelectChange('prevision', value);
+                        // Limpiar nombre de isapre si se cambia a Fonasa
+                        if (value === 'Fonasa') {
+                          setFormData(prev => ({ ...prev, nombre_isapre: '' }));
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar previsión" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fonasa">Fonasa</SelectItem>
+                        <SelectItem value="Isapre">Isapre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formData.prevision === 'Isapre' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre_isapre">Nombre de la Isapre</Label>
+                      <Input
+                        id="nombre_isapre"
+                        name="nombre_isapre"
+                        value={formData.nombre_isapre}
+                        onChange={handleChange}
+                        disabled={loading}
+                        placeholder="Ej: Banmédica, Cruz Blanca, Consalud"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
