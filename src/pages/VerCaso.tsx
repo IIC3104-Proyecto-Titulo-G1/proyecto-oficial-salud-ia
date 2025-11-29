@@ -829,7 +829,7 @@ export default function VerCaso() {
                   <p className="text-sm font-medium mb-2">Explicación:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
                 </div>}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${(!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                 <Button size="lg" onClick={() => navigate(`/caso/${id}/comunicacion`)} className="w-full">
                   <Mail className="w-5 h-5 mr-2" />
                   Enviar Correo a Paciente
