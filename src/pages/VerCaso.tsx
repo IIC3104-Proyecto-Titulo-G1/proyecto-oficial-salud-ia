@@ -834,10 +834,13 @@ export default function VerCaso() {
                   <Mail className="w-5 h-5 mr-2" />
                   Enviar Correo a Paciente
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
-                  <Edit className="w-5 h-5 mr-2" />
-                  Editar Caso
-                </Button>
+                {/* Solo mostrar botón de editar si NO hay resolución definitiva de aseguradora */}
+                {(!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') && (
+                  <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
+                    <Edit className="w-5 h-5 mr-2" />
+                    Editar Caso
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>}
