@@ -370,7 +370,7 @@ export default function ComunicacionPaciente() {
                 </div>
 
                 {/* Estado de Aseguradora */}
-                {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+                {resultado === 'ACTIVADA' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
                   <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
                     (caso as any).estado_resolucion_aseguradora === 'aceptada' 
                       ? 'border-success' 
