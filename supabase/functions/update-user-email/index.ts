@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { consoleLogDebugger } from '@/lib/utils';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    consoleLogDebugger('Update user email function called');
+    console.log('Update user email function called');
     
     // Crear cliente de Supabase con service role key
     const supabaseAdmin = createClient(
@@ -75,7 +74,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    consoleLogDebugger(`Admin ${requestingUser.email} actualizando email de usuario ${userId} a ${newEmail}`);
+    console.log(`Admin ${requestingUser.email} actualizando email de usuario ${userId} a ${newEmail}`);
 
     // Actualizar email en auth.users
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -91,7 +90,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    consoleLogDebugger(`Email actualizado exitosamente para usuario ${userId}`);
+    console.log(`Email actualizado exitosamente para usuario ${userId}`);
 
     return new Response(
       JSON.stringify({ success: true }),

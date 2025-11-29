@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
-import { consoleLogDebugger } from '@/lib/utils';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -35,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
       additionalComment 
     }: PatientEmailRequest = await req.json();
 
-    consoleLogDebugger("Sending email to:", to);
+    console.log("Sending email to:", to);
 
     const resultText = result === 'aceptado' ? 'ACTIVADA' : 'NO ACTIVADA';
     const resultColor = result === 'aceptado' ? '#10b981' : '#ef4444';
@@ -177,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    consoleLogDebugger("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully:", emailResponse);
 
     return new Response(JSON.stringify({ 
       success: true, 
