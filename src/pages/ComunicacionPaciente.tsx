@@ -355,42 +355,46 @@ export default function ComunicacionPaciente() {
                 bajo la Ley de Urgencia (Decreto 34).
               </p>
 
-              <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
-                resultado === 'ACTIVADA' ? 'border-success' : 'border-destructive'
-              }`}>
-                <p className="text-sm text-muted-foreground mb-2">Decisión Médica:</p>
-                <p className="font-bold text-2xl mb-2">
-                  <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
-                </p>
-                <p className="text-sm">
-                  <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
-                </p>
-              </div>
-
-              {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Decisión Médica */}
                 <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
-                  (caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                    ? 'border-success' 
-                    : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                    ? 'border-destructive' 
-                    : 'border-muted-foreground'
+                  resultado === 'ACTIVADA' ? 'border-success' : 'border-destructive'
                 }`}>
-                  <p className="text-sm text-muted-foreground mb-2">Estado de Aseguradora:</p>
-                  <p className={`font-bold text-xl ${
-                    (caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                      ? 'text-success' 
-                      : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                      ? 'text-destructive' 
-                      : 'text-muted-foreground'
-                  }`}>
-                    {(caso as any).estado_resolucion_aseguradora === 'pendiente' 
-                      ? `PENDIENTE RESOLUCIÓN ${(caso as any).prevision?.toUpperCase()}` 
-                      : (caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                      ? `ACEPTADO POR ${(caso as any).prevision?.toUpperCase()}` 
-                      : `RECHAZADO POR ${(caso as any).prevision?.toUpperCase()}`}
+                  <p className="text-sm text-muted-foreground mb-2">Decisión Médica:</p>
+                  <p className="font-bold text-2xl mb-2">
+                    <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
+                  </p>
+                  <p className="text-sm">
+                    <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
                   </p>
                 </div>
-              )}
+
+                {/* Estado de Aseguradora */}
+                {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+                  <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
+                    (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                      ? 'border-success' 
+                      : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                      ? 'border-destructive' 
+                      : 'border-muted-foreground'
+                  }`}>
+                    <p className="text-sm text-muted-foreground mb-2">Estado de Aseguradora:</p>
+                    <p className={`font-bold text-2xl ${
+                      (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                        ? 'text-success' 
+                        : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                        ? 'text-destructive' 
+                        : 'text-muted-foreground'
+                    }`}>
+                      {(caso as any).estado_resolucion_aseguradora === 'pendiente' 
+                        ? `PENDIENTE RESOLUCIÓN ${(caso as any).prevision?.toUpperCase()}` 
+                        : (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                        ? `ACEPTADO POR ${(caso as any).prevision?.toUpperCase()}` 
+                        : `RECHAZADO POR ${(caso as any).prevision?.toUpperCase()}`}
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <p className="font-semibold mb-2">Fundamento Legal:</p>
