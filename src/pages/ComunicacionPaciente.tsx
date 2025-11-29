@@ -355,7 +355,11 @@ export default function ComunicacionPaciente() {
                 bajo la Ley de Urgencia (Decreto 34).
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid grid-cols-1 gap-4 ${
+                resultado === 'ACTIVADA' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora 
+                  ? 'md:grid-cols-2' 
+                  : ''
+              }`}>
                 {/* Decisión Médica */}
                 <div className={`bg-muted/50 rounded-lg p-4 border-l-4 ${
                   resultado === 'ACTIVADA' ? 'border-success' : 'border-destructive'
