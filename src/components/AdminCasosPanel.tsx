@@ -693,7 +693,7 @@ export function AdminCasosPanel() {
             medicosData={medicosData}
             usuarioExportador={(userRoleData && userRoleData.nombre) ? userRoleData.nombre : 'Administrador'}
           />
-          <AseguradorasUpload onSuccess={loadCasos} />
+          <AseguradorasUpload onSuccess={loadCasos} variant="admin" />
         </div>
       </div>
 

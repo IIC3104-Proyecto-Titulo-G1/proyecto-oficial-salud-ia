@@ -12,9 +12,10 @@ import * as XLSX from 'xlsx';
 
 interface AseguradorasUploadProps {
   onSuccess?: () => void;
+  variant?: 'default' | 'admin';
 }
 
-export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} as AseguradorasUploadProps) {
+export function AseguradorasUpload({ onSuccess, variant = 'default' }: AseguradorasUploadProps = {} as AseguradorasUploadProps) {
   const [open, setOpen] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -355,7 +356,13 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90">
+        <Button 
+          variant={variant === 'admin' ? undefined : 'outline'}
+          className={variant === 'admin' 
+            ? "gap-2 bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90" 
+            : "gap-2"
+          }
+        >
           <FileSpreadsheet className="h-4 w-4" />
           Cargar Resoluciones Aseguradoras
         </Button>
