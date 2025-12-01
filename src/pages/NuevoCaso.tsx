@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { consoleLogDebugger } from '@/lib/utils';
 import { ArrowLeft, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import type { Database } from '@/integrations/supabase/types';
@@ -732,13 +733,20 @@ export default function NuevoCaso() {
 
       return { success: true, result: payload };
     } catch (error: any) {
-      console.error('Error en evaluación:', {
+      consoleLogDebugger('Error en evaluación:', {
         method,
         endpoint,
         error: error.message,
         stack: error.stack
       });
-      return { success: false, error: error.message };
+      
+      // Mejorar el mensaje de error para "Failed to fetch"
+      let errorMessage = error.message;
+      if (error.message === 'Failed to fetch' || error.message.includes('Failed to fetch')) {
+        errorMessage = 'No se pudo conectar con el servidor de evaluación. Por favor, verifica tu conexión a internet o intenta más tarde.';
+      }
+      
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -974,7 +982,14 @@ export default function NuevoCaso() {
           setErrors({});
           navigate(`/caso/${editingCaseId}`);
         } else {
-          throw new Error(evaluationResult.error || 'Error en la evaluación');
+          // El caso se guardó correctamente, pero la evaluación falló
+          toast({
+            title: 'Caso actualizado',
+            description: `El caso se actualizó correctamente, pero no se pudo completar la evaluación: ${evaluationResult.error || 'Error desconocido'}. Puedes intentar evaluar nuevamente desde la vista del caso.`,
+            variant: 'default',
+          });
+          setErrors({});
+          navigate(`/caso/${editingCaseId}`);
         }
       } else {
         const insertData = {

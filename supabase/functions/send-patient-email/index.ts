@@ -169,6 +169,22 @@ const handler = async (req: Request): Promise<Response> => {
                 </div>
               ` : ''}
               
+              ${result === 'aceptado' && insuranceStatus && insuranceType ? `
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                  <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
+                    <strong>Importante:</strong> 
+                    ${insuranceStatus === 'aceptada' 
+                      ? `Su aseguradora (${insuranceType}) ha aprobado la decisión médica. La Ley de Urgencia está activa y en pleno efecto.`
+                      : insuranceStatus === 'rechazada'
+                      ? `Su aseguradora (${insuranceType}) ha rechazado la decisión médica. La Ley de Urgencia no se activará. Por favor, contacte con su aseguradora para más información sobre su caso.`
+                      : (insuranceStatus === 'pendiente' || insuranceStatus === 'pendiente_envio')
+                      ? `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.`
+                      : `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.`
+                    }
+                  </p>
+                </div>
+              ` : ''}
+              
               <div class="section">
                 <div class="section-title">Fundamento Legal:</div>
                 <p style="font-size: 14px; color: #6b7280;">

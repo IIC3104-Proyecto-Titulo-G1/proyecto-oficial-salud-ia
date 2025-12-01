@@ -25,6 +25,8 @@ interface Caso {
   fecha_creacion: string;
   medico_tratante_id: string;
   episodio?: string;
+  prevision?: string;
+  estado_resolucion_aseguradora?: 'pendiente' | 'pendiente_envio' | 'aceptada' | 'rechazada';
 }
 
 interface MedicoData {
@@ -56,6 +58,9 @@ export default function Dashboard() {
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const filtroDesdeNotificacion = useRef(false);
+  const [showEstadoAseguradoraModal, setShowEstadoAseguradoraModal] = useState(false);
+  const [casoEditandoEstado, setCasoEditandoEstado] = useState<Caso | null>(null);
+  const [actualizandoEstado, setActualizandoEstado] = useState(false);
   
   const itemsPerPage = 10;
   const { user, userRole, userRoleData, signOut } = useAuth();
@@ -75,7 +80,7 @@ export default function Dashboard() {
     setLoading(true);
     const { data, error } = await supabase
       .from('casos')
-      .select('*')
+      .select('*, estado_resolucion_aseguradora, prevision')
       .order('fecha_creacion', { ascending: false });
 
     if (error) {
@@ -85,7 +90,28 @@ export default function Dashboard() {
         variant: "destructive",
       });
     } else {
-      setCasos(data || []);
+      setCasos((data || []) as Caso[]);
+      
+      // Log para verificar que los campos se carguen correctamente
+      if (data && data.length > 0) {
+        const casosConResolucion = data.filter(c => (c as any).estado_resolucion_aseguradora);
+        consoleLogDebugger('🔍 Casos con estado_resolucion_aseguradora:', casosConResolucion.map(c => ({
+          episodio: (c as any).episodio,
+          estado: c.estado,
+          estado_resolucion_aseguradora: (c as any).estado_resolucion_aseguradora,
+          prevision: (c as any).prevision
+        })));
+        
+        // Log específico para casos que deberían mostrar el badge
+        const casosAceptados = data.filter(c => c.estado === 'aceptado' && (c as any).prevision);
+        consoleLogDebugger('🔍 Casos aceptados con prevision:', casosAceptados.map(c => ({
+          episodio: (c as any).episodio,
+          estado: c.estado,
+          estado_resolucion_aseguradora: (c as any).estado_resolucion_aseguradora,
+          prevision: (c as any).prevision,
+          tieneEstadoResolucion: !!(c as any).estado_resolucion_aseguradora
+        })));
+      }
       
       // Cargar información de médicos solo si es médico jefe
       consoleLogDebugger('🔍 userRole:', userRole);
@@ -186,6 +212,50 @@ export default function Dashboard() {
     setShowDeleteModal(true);
     setDeletePassword('');
     setDeleteError('');
+  };
+
+  const handleCambiarEstadoAseguradora = (caso: Caso) => {
+    setCasoEditandoEstado(caso);
+    setShowEstadoAseguradoraModal(true);
+  };
+
+  const handleConfirmarCambioEstadoAseguradora = async (nuevoEstado: 'pendiente' | 'pendiente_envio' | 'aceptada' | 'rechazada') => {
+    if (!casoEditandoEstado || actualizandoEstado) return;
+
+    setActualizandoEstado(true);
+    try {
+      const { error } = await supabase
+        .from('casos')
+        .update({ estado_resolucion_aseguradora: nuevoEstado })
+        .eq('id', casoEditandoEstado.id);
+
+      if (error) throw error;
+
+      // Actualizar el estado local
+      setCasos(prevCasos =>
+        prevCasos.map(caso =>
+          caso.id === casoEditandoEstado.id
+            ? { ...caso, estado_resolucion_aseguradora: nuevoEstado } as Caso
+            : caso
+        )
+      );
+
+      toast({
+        title: 'Estado actualizado',
+        description: `El estado de resolución del asegurador ha sido actualizado a ${nuevoEstado === 'aceptada' ? 'Aceptada' : nuevoEstado === 'rechazada' ? 'Rechazada' : 'Pendiente'}`,
+      });
+
+      setShowEstadoAseguradoraModal(false);
+      setCasoEditandoEstado(null);
+    } catch (error: any) {
+      toast({
+        title: 'Error al actualizar estado',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setActualizandoEstado(false);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -838,7 +908,7 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             {userRole === 'medico_jefe' && (
-              <AseguradorasUpload />
+              <AseguradorasUpload onSuccess={loadCasos} />
             )}
             {(userRole === 'medico' || userRole === 'medico_jefe') && (
               <Button
@@ -997,7 +1067,10 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-3 mt-4">
+                      <div 
+                        className="flex flex-wrap gap-3 mt-4 cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg ring-1 ring-border/50">
                           Episodio: {caso.episodio || 'Sin número'}
                         </div>
@@ -1027,7 +1100,7 @@ export default function Dashboard() {
                     <div className="flex flex-col items-end gap-3">
                       <div className="flex items-center gap-2">
                         {/* Tags de resolución de aseguradora (solo para casos aceptados) */}
-                        {caso.estado === 'aceptado' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+                        {caso.estado === 'aceptado' && (caso as any).prevision && (
                           <Badge 
                             variant={
                               (caso as any).estado_resolucion_aseguradora === 'aceptada' 
@@ -1036,19 +1109,44 @@ export default function Dashboard() {
                                 ? 'destructive' 
                                 : 'secondary'
                             }
-                            className="text-xs font-medium"
+                            className={`text-xs font-medium ${
+                              (caso as any).estado_resolucion_aseguradora === 'aceptada'
+                                ? 'bg-success/10 text-success border-success/20 hover:bg-success/20'
+                                : (caso as any).estado_resolucion_aseguradora === 'rechazada'
+                                ? userRole === 'medico_jefe' 
+                                  ? 'hover:border-destructive hover:border-2 hover:shadow-md transition-all' 
+                                  : ''
+                                : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                                ? userRole === 'medico_jefe'
+                                  ? 'bg-amber/10 text-amber-700 border-amber-300 hover:bg-amber/20 hover:border-2 hover:shadow-md transition-all'
+                                  : 'bg-amber/10 text-amber-700 border-amber-300'
+                                : userRole === 'medico_jefe'
+                                ? 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted/70 hover:border-2 hover:shadow-md transition-all'
+                                : 'bg-muted/50 text-muted-foreground border-border/50'
+                            } ${
+                              userRole === 'medico_jefe' ? 'cursor-pointer transition-all' : ''
+                            }`}
+                            onClick={(e) => {
+                              if (userRole === 'medico_jefe') {
+                                e.stopPropagation();
+                                handleCambiarEstadoAseguradora(caso);
+                              }
+                            }}
                           >
                             {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
                               ? `Aceptado por ${(caso as any).prevision}` 
                               : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                              ? `Rechazado por ${(caso as any).prevision}` 
+                              ? `Rechazado por ${(caso as any).prevision}`
+                              : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                              ? `Pendiente envío a ${(caso as any).prevision}`
                               : `Pendiente resolución ${(caso as any).prevision}`}
                           </Badge>
                         )}
                         
                         <Badge 
                           variant={getEstadoBadgeVariant(caso.estado)}
-                          className={getEstadoBadgeClassName(caso.estado)}
+                          className={`${getEstadoBadgeClassName(caso.estado)} cursor-default`}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           {getEstadoLabel(caso.estado)}
                         </Badge>
@@ -1268,6 +1366,133 @@ export default function Dashboard() {
               disabled={!deletePassword || isDeleting}
             >
               {isDeleting ? 'Eliminando...' : 'Eliminar Caso'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para cambiar estado de resolución del asegurador */}
+      <Dialog 
+        open={showEstadoAseguradoraModal} 
+        onOpenChange={(open) => {
+          if (!open && !actualizandoEstado) {
+            setShowEstadoAseguradoraModal(false);
+            setCasoEditandoEstado(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cambiar Estado de Resolución del Asegurador</DialogTitle>
+            <DialogDescription>
+              Seleccione el nuevo estado para la resolución de {casoEditandoEstado && (casoEditandoEstado as any).prevision ? (casoEditandoEstado as any).prevision : 'el asegurador'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {casoEditandoEstado && (
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Paciente</Label>
+                  <p className="text-sm font-semibold text-foreground">{casoEditandoEstado.nombre_paciente}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Estado Actual</Label>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                            variant={
+                              (casoEditandoEstado as any).estado_resolucion_aseguradora === 'aceptada'
+                                ? 'default'
+                                : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'rechazada'
+                                ? 'destructive'
+                                : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                                ? 'secondary'
+                                : 'secondary'
+                            }
+                            className={`text-xs font-medium ${
+                              (casoEditandoEstado as any).estado_resolucion_aseguradora === 'aceptada'
+                                ? 'bg-success/10 text-success border-success/20'
+                                : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'rechazada'
+                                ? ''
+                                : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                                ? 'bg-amber/10 text-amber-700 border-amber-300'
+                                : 'bg-muted/50 text-muted-foreground border-border/50'
+                            }`}
+                    >
+                      {(casoEditandoEstado as any).estado_resolucion_aseguradora === 'aceptada'
+                        ? `Aceptado por ${(casoEditandoEstado as any).prevision}`
+                        : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'rechazada'
+                        ? `Rechazado por ${(casoEditandoEstado as any).prevision}`
+                        : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                        ? `Pendiente envío a ${(casoEditandoEstado as any).prevision}`
+                        : `Pendiente resolución ${(casoEditandoEstado as any).prevision}`}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => handleConfirmarCambioEstadoAseguradora('pendiente_envio')}
+                disabled={actualizandoEstado || (casoEditandoEstado as any)?.estado_resolucion_aseguradora === 'pendiente_envio'}
+                className="justify-start h-auto py-4 bg-amber/10 text-amber-700 border-amber-300 hover:bg-amber/20 hover:text-amber-800 disabled:opacity-50"
+              >
+                <div className="flex flex-col items-start gap-1">
+                  <span className="font-semibold text-base">Pendiente envío a {(casoEditandoEstado as any)?.prevision || 'Fonasa/Isapre'}</span>
+                  <span className="text-xs text-amber-700/90">El caso está pendiente de ser enviado al asegurador</span>
+                </div>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => handleConfirmarCambioEstadoAseguradora('pendiente')}
+                disabled={actualizandoEstado || (casoEditandoEstado as any)?.estado_resolucion_aseguradora === 'pendiente'}
+                className="justify-start h-auto py-4 bg-muted/80 text-foreground border-border hover:bg-muted hover:text-foreground disabled:opacity-50"
+              >
+                <div className="flex flex-col items-start gap-1">
+                  <span className="font-semibold text-base">Pendiente resolución {(casoEditandoEstado as any)?.prevision || 'Fonasa/Isapre'}</span>
+                  <span className="text-xs text-muted-foreground">El caso está esperando resolución del asegurador</span>
+                </div>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => handleConfirmarCambioEstadoAseguradora('aceptada')}
+                disabled={actualizandoEstado || (casoEditandoEstado as any)?.estado_resolucion_aseguradora === 'aceptada'}
+                className="justify-start h-auto py-4 bg-success/15 text-success border-success/30 hover:bg-success/25 hover:text-success disabled:opacity-50"
+              >
+                <div className="flex flex-col items-start gap-1">
+                  <span className="font-semibold text-base">Aceptado por {(casoEditandoEstado as any)?.prevision || 'Fonasa/Isapre'}</span>
+                  <span className="text-xs text-success/90">El asegurador ha aceptado el caso</span>
+                </div>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => handleConfirmarCambioEstadoAseguradora('rechazada')}
+                disabled={actualizandoEstado || (casoEditandoEstado as any)?.estado_resolucion_aseguradora === 'rechazada'}
+                className="justify-start h-auto py-4 bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 hover:text-destructive disabled:opacity-50"
+              >
+                <div className="flex flex-col items-start gap-1">
+                  <span className="font-semibold text-base">Rechazado por {(casoEditandoEstado as any)?.prevision || 'Fonasa/Isapre'}</span>
+                  <span className="text-xs text-destructive/90">El asegurador ha rechazado el caso</span>
+                </div>
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEstadoAseguradoraModal(false);
+                setCasoEditandoEstado(null);
+              }}
+              disabled={actualizandoEstado}
+            >
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
