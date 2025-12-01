@@ -25,7 +25,7 @@ interface Usuario {
   imagen?: string;
 }
 
-type RolFiltro = 'todos' | 'admin' | 'medico' | 'medico_jefe';
+type RolFiltro = 'todos' | 'doctores' | 'admin' | 'medico' | 'medico_jefe';
 
 export default function AdminUsuarios() {
   const { user, userRole, userRoleData, signOut, refreshUserRole } = useAuth();
@@ -36,7 +36,7 @@ export default function AdminUsuarios() {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [rolFiltro, setRolFiltro] = useState<RolFiltro>('todos');
+  const [rolFiltro, setRolFiltro] = useState<RolFiltro>('doctores');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
@@ -263,7 +263,10 @@ export default function AdminUsuarios() {
         (usuario.hospital && usuario.hospital.toLowerCase().includes(normalizedSearch)) ||
         (usuario.especialidad && usuario.especialidad.toLowerCase().includes(normalizedSearch));
       
-      const matchesRol = rolFiltro === 'todos' || usuario.rol === rolFiltro;
+      const matchesRol = 
+        rolFiltro === 'todos' || 
+        usuario.rol === rolFiltro ||
+        (rolFiltro === 'doctores' && (usuario.rol === 'medico' || usuario.rol === 'medico_jefe'));
       
       return matchesSearch && matchesRol;
     });
@@ -286,7 +289,7 @@ export default function AdminUsuarios() {
     }, 100);
   };
 
-  const filtrosActivos = searchTerm.trim() !== '' || rolFiltro !== 'todos';
+  const filtrosActivos = searchTerm.trim() !== '' || rolFiltro !== 'doctores';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -380,6 +383,7 @@ export default function AdminUsuarios() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todos los roles</SelectItem>
+                        <SelectItem value="doctores">Todos los doctores</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
                         <SelectItem value="medico">Médico</SelectItem>
                         <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
@@ -400,7 +404,7 @@ export default function AdminUsuarios() {
                       size="sm"
                       onClick={() => {
                         setSearchTerm('');
-                        setRolFiltro('todos');
+                        setRolFiltro('doctores');
                         setCurrentPage(1);
                       }}
                       disabled={!filtrosActivos}
@@ -430,7 +434,7 @@ export default function AdminUsuarios() {
                       size="sm"
                       onClick={() => {
                         setSearchTerm('');
-                        setRolFiltro('todos');
+                        setRolFiltro('doctores');
                       }}
                       className="mt-4"
                     >
