@@ -245,7 +245,12 @@ export default function ComunicacionPaciente() {
           : 'El caso ha sido registrado sin enviar comunicación',
       });
 
-      navigate('/dashboard');
+      // Redirigir según el rol del usuario
+      if (userRole === 'admin') {
+        navigate('/admin?tab=casos');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: 'Error al procesar',

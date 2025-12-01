@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Users, FileText } from 'lucide-react';
+import { AdminCasosPanel } from '@/components/AdminCasosPanel';
 
 interface Usuario {
   id: string;
@@ -28,6 +30,7 @@ type RolFiltro = 'todos' | 'admin' | 'medico' | 'medico_jefe';
 export default function AdminUsuarios() {
   const { user, userRole, userRoleData, signOut, refreshUserRole } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,7 @@ export default function AdminUsuarios() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'casos'>('usuarios');
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -59,6 +63,16 @@ export default function AdminUsuarios() {
     }
     loadUsuarios();
   }, [userRole]);
+
+  // Leer parámetro tab de la URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'casos' || tabParam === 'usuarios') {
+      setActiveTab(tabParam);
+      // Limpiar el parámetro de la URL después de leerlo
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
 
   const loadUsuarios = async () => {
@@ -280,17 +294,10 @@ export default function AdminUsuarios() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-              <p className="text-sm text-white/80">Administrar médicos y médicos jefe</p>
+              <h1 className="text-2xl font-bold">Panel de Administración</h1>
+              <p className="text-sm text-white/80">Gestionar usuarios y casos</p>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={() => handleOpenDialog()}
-                className="bg-white/20 hover:bg-white/30 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nuevo Usuario
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -315,6 +322,19 @@ export default function AdminUsuarios() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'usuarios' | 'casos')} className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="usuarios" className="gap-2">
+              <Users className="w-4 h-4" />
+              Usuarios
+            </TabsTrigger>
+            <TabsTrigger value="casos" className="gap-2">
+              <FileText className="w-4 h-4" />
+              Casos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="usuarios" className="mt-0">
         {loading ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -326,10 +346,21 @@ export default function AdminUsuarios() {
             {/* Barra de búsqueda y filtros */}
             <Card>
               <CardHeader>
-                <CardTitle>Buscar y Filtrar Usuarios</CardTitle>
-                <CardDescription>
-                  Busca usuarios por nombre, email, hospital o especialidad
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Buscar y Filtrar Usuarios</CardTitle>
+                    <CardDescription>
+                      Busca usuarios por nombre, email, hospital o especialidad
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => handleOpenDialog()}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nuevo Usuario
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -562,6 +593,12 @@ export default function AdminUsuarios() {
             </div>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="casos" className="mt-0">
+            <AdminCasosPanel />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Dialog para crear/editar usuario */}

@@ -686,7 +686,18 @@ export default function VerCaso() {
       <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-white hover:bg-white/20">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                if (userRole === 'admin') {
+                  navigate('/admin?tab=casos');
+                } else {
+                  navigate('/dashboard');
+                }
+              }} 
+              className="text-white hover:bg-white/20"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>
@@ -776,8 +787,8 @@ export default function VerCaso() {
             </CardContent>
           </Card>}
 
-        {/* Casos cerrados - Solo médico jefe puede reabrir */}
-        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && userRole === 'medico_jefe' && !showReopenCase && <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
+        {/* Casos cerrados - Médico jefe y admin pueden ver */}
+        {(caso.estado === 'rechazado' || caso.estado === 'aceptado') && (userRole === 'medico_jefe' || userRole === 'admin') && !showReopenCase && <Card className={caso.estado === 'aceptado' ? 'border-crm/30 bg-crm/5' : 'border-destructive/30 bg-destructive/5'}>
             <CardHeader>
               <CardTitle className={caso.estado === 'aceptado' ? 'text-crm' : 'text-destructive'}>
                 {caso.estado === 'aceptado' ? 'Ley Aplicada' : 'Ley No Aplicada'}
@@ -829,13 +840,19 @@ export default function VerCaso() {
                   <p className="text-sm font-medium mb-2">Explicación:</p>
                   <p className="text-sm text-muted-foreground">{resolucionInfo.comentario_final}</p>
                 </div>}
-              <div className={`grid gap-4 ${(!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+              <div className={`grid gap-4 ${
+                userRole === 'admin' 
+                  ? 'grid-cols-1' 
+                  : (!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') 
+                    ? 'grid-cols-1 md:grid-cols-2' 
+                    : 'grid-cols-1'
+              }`}>
                 <Button size="lg" onClick={() => navigate(`/caso/${id}/comunicacion`)} className="w-full">
                   <Mail className="w-5 h-5 mr-2" />
                   Enviar Correo a Paciente
                 </Button>
-                {/* Solo mostrar botón de editar si NO hay resolución definitiva de aseguradora */}
-                {(!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') && (
+                {/* Solo mostrar botón de editar si NO hay resolución definitiva de aseguradora y NO es admin */}
+                {userRole !== 'admin' && (!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') && (
                   <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
                     <Edit className="w-5 h-5 mr-2" />
                     Editar Caso
@@ -846,7 +863,7 @@ export default function VerCaso() {
           </Card>}
 
         {/* Mensaje de Caso Derivado para médicos normales */}
-        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && <Card className="border-amber-200 bg-amber-50">
+        {caso.estado === 'derivado' && userRole !== 'medico_jefe' && userRole !== 'admin' && <Card className="border-amber-200 bg-amber-50">
             <CardHeader>
               <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
               <CardDescription className="text-amber-700">
@@ -861,8 +878,8 @@ export default function VerCaso() {
               </CardContent>}
           </Card>}
 
-        {/* Información del médico que derivó - Para médicos jefe */}
-        {caso.estado === 'derivado' && userRole === 'medico_jefe' && medicoInfo && resolucionInfo && <Card className="border-amber-200 bg-amber-50">
+        {/* Información del médico que derivó - Para médicos jefe y admin */}
+        {caso.estado === 'derivado' && (userRole === 'medico_jefe' || userRole === 'admin') && medicoInfo && resolucionInfo && <Card className="border-amber-200 bg-amber-50">
             <CardHeader>
               <CardTitle className="text-amber-800">Caso Derivado</CardTitle>
               <CardDescription className="text-amber-700">
@@ -1026,24 +1043,26 @@ export default function VerCaso() {
           </Card>}
 
         {/* Acciones para casos pendientes o derivados */}
-        {sugerencia && (caso.estado === 'pendiente' || caso.estado === 'derivado' && userRole === 'medico_jefe' || userRole === 'medico_jefe' && showReopenCase) && <Card>
+        {sugerencia && (caso.estado === 'pendiente' || caso.estado === 'derivado' && (userRole === 'medico_jefe' || userRole === 'admin') || (userRole === 'medico_jefe' || userRole === 'admin') && showReopenCase) && <Card>
             <CardHeader>
               <CardTitle>Decisión del Médico</CardTitle>
               <CardDescription>
-                {userRole === 'medico_jefe' ? 'Como médico jefe, puede tomar la decisión final sobre este caso.' : 'Revise la sugerencia de IA y tome una decisión sobre el caso'}
+                {userRole === 'medico_jefe' ? 'Como médico jefe, puede tomar la decisión final sobre este caso.' : userRole === 'admin' ? 'Como administrador, puede ver la información del caso pero no puede tomar decisiones médicas.' : 'Revise la sugerencia de IA y tome una decisión sobre el caso'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Aplicar Ley
-                </Button>
-                <Button size="lg" onClick={handleNoAplicarLey} className={sugerencia?.sugerencia === 'rechazar' ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30" : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}>
-                  <XCircle className="w-5 h-5 mr-2" />
-                  No Aplicar Ley
-                </Button>
-              </div>
+              {userRole !== 'admin' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Aplicar Ley
+                  </Button>
+                  <Button size="lg" onClick={handleNoAplicarLey} className={sugerencia?.sugerencia === 'rechazar' ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30" : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}>
+                    <XCircle className="w-5 h-5 mr-2" />
+                    No Aplicar Ley
+                  </Button>
+                </div>
+              )}
               {/* Botón para cancelar edición en casos cerrados que han sido reabiertos */}
               {(caso.estado === 'aceptado' || caso.estado === 'rechazado') && showReopenCase && <Button size="lg" variant="outline" onClick={handleCancelEdit} disabled={isCancelingEdit} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
                   {isCancelingEdit ? 'Cancelando...' : 'Cancelar Edición'}

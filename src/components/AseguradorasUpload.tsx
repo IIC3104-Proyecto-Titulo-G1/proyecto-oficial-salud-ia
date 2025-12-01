@@ -8,7 +8,11 @@ import { supabase } from '@/lib/supabase';
 import { Upload, FileSpreadsheet } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export function AseguradorasUpload() {
+interface AseguradorasUploadProps {
+  onSuccess?: () => void;
+}
+
+export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} as AseguradorasUploadProps) {
   const [open, setOpen] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -93,6 +97,11 @@ export function AseguradorasUpload() {
 
       setTextInput('');
       setOpen(false);
+      
+      // Llamar callback si existe
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       toast({
         title: 'Error al procesar',
