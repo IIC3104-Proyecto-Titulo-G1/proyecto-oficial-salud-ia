@@ -16,6 +16,7 @@ import { consoleLogDebugger } from '@/lib/utils';
 import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Users, FileText, Calendar, Filter, X, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdminCasosPanel } from '@/components/AdminCasosPanel';
+import { ExportDoctorMetricsButton } from '@/components/ExportDoctorMetricsButton';
 
 interface Usuario {
   id: string;
@@ -613,13 +614,30 @@ export default function AdminUsuarios() {
                       Busca usuarios por nombre, email, hospital o especialidad
                     </CardDescription>
                   </div>
-                  <Button
-                    onClick={() => handleOpenDialog()}
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Nuevo Usuario
-                  </Button>
+                  <div className="flex gap-2">
+                    <ExportDoctorMetricsButton
+                      doctors={filteredUsuarios
+                        .filter(u => u.rol === 'medico' || u.rol === 'medico_jefe')
+                        .map(u => ({
+                          id: u.id,
+                          nombre: u.nombre,
+                          email: u.email,
+                          rol: u.rol,
+                          hospital: u.hospital,
+                          especialidad: u.especialidad,
+                        }))}
+                      rangoMetricas={rangoMetricas}
+                      fechaInicioMetricas={fechaInicioMetricas}
+                      fechaFinMetricas={fechaFinMetricas}
+                    />
+                    <Button
+                      onClick={() => handleOpenDialog()}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Nuevo Usuario
+                    </Button>
+                  </div>
                 </div>
                 {/* Filtros de fecha y métricas */}
                 <div className="mt-4 pt-4 border-t space-y-4">
