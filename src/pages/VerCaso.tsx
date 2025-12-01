@@ -1019,9 +1019,8 @@ export default function VerCaso() {
               </div>
                 )}
               </div>
-              {/* Botón de editar: solo cuando está en pendiente_envio (cualquier médico), derivados/cerrados (solo médico jefe) */}
-              {/* No se permite editar si la aseguradora ya dio resolución (aceptada o rechazada) o está en pendiente resolución */}
-              {(caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (caso.estado === 'pendiente' || userRole === 'medico_jefe' && ['derivado', 'aceptado', 'rechazado'].includes(caso.estado)) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
+              {/* Botón de editar datos: solo cuando está en estado derivado o pendiente (caso sin dictaminar) */}
+              {(caso.estado === 'derivado' || caso.estado === 'pendiente') && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
                 </Button>}
