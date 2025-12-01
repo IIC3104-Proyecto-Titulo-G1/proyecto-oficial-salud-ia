@@ -138,7 +138,7 @@ export default function VerCaso() {
     const {
       data: casoData,
       error: casoError
-    } = await supabase.from('casos').select('*').eq('id', id).single();
+    } = await supabase.from('casos').select('*, estado_resolucion_aseguradora, prevision').eq('id', id).single();
     if (casoError) {
       toast({
         title: 'Error al cargar caso',
@@ -211,6 +211,15 @@ export default function VerCaso() {
         }
       }
     }
+    consoleLogDebugger('Caso cargado en VerCaso:', {
+      id: casoData?.id,
+      estado: casoData?.estado,
+      estado_resolucion_aseguradora: (casoData as any)?.estado_resolucion_aseguradora,
+      prevision: (casoData as any)?.prevision,
+      tieneSugerencia: !!sugerenciaData,
+      userRole: userRole,
+      debeMostrarBotones: !!sugerenciaData && userRole !== 'admin' && (casoData as any)?.estado_resolucion_aseguradora === 'pendiente_envio'
+    });
     setCaso(casoData);
     setSugerencia(sugerenciaData);
 
@@ -843,7 +852,7 @@ export default function VerCaso() {
               <div className={`grid gap-4 ${
                 userRole === 'admin' 
                   ? 'grid-cols-1' 
-                  : (!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') 
+                  : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
                     ? 'grid-cols-1 md:grid-cols-2' 
                     : 'grid-cols-1'
               }`}>
@@ -851,8 +860,8 @@ export default function VerCaso() {
                   <Mail className="w-5 h-5 mr-2" />
                   Enviar Correo a Paciente
                 </Button>
-                {/* Solo mostrar botón de editar si NO hay resolución definitiva de aseguradora y NO es admin */}
-                {userRole !== 'admin' && (!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') && (
+                {/* Solo mostrar botón de editar si está en pendiente_envio y NO es admin */}
+                {userRole !== 'admin' && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (
                   <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
                     <Edit className="w-5 h-5 mr-2" />
                     Editar Caso
@@ -945,16 +954,18 @@ export default function VerCaso() {
                         {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
                           ? `Aceptado por ${(caso as any).prevision}` 
                           : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                          ? `Rechazado por ${(caso as any).prevision}` 
+                          ? `Rechazado por ${(caso as any).prevision}`
+                          : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                          ? `Pendiente envío a ${(caso as any).prevision}`
                           : `Pendiente resolución ${(caso as any).prevision}`}
                       </Badge>
                     )}
                   </div>
                 )}
               </div>
-              {/* Botón de editar: casos pendientes (cualquier médico), derivados/cerrados (solo médico jefe) */}
-              {/* No se permite editar si la aseguradora ya dio resolución (aceptada o rechazada) */}
-              {(!(caso as any).estado_resolucion_aseguradora || (caso as any).estado_resolucion_aseguradora === 'pendiente') && (caso.estado === 'pendiente' || userRole === 'medico_jefe' && ['derivado', 'aceptado', 'rechazado'].includes(caso.estado)) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
+              {/* Botón de editar: solo cuando está en pendiente_envio (cualquier médico), derivados/cerrados (solo médico jefe) */}
+              {/* No se permite editar si la aseguradora ya dio resolución (aceptada o rechazada) o está en pendiente resolución */}
+              {(caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (caso.estado === 'pendiente' || userRole === 'medico_jefe' && ['derivado', 'aceptado', 'rechazado'].includes(caso.estado)) && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
                 </Button>}
@@ -1042,8 +1053,8 @@ export default function VerCaso() {
             </CardContent>
           </Card>}
 
-        {/* Acciones para casos pendientes o derivados */}
-        {sugerencia && userRole !== 'admin' && (caso.estado === 'pendiente' || (caso.estado === 'derivado' && userRole === 'medico_jefe') || (userRole === 'medico_jefe' && showReopenCase)) && <Card>
+        {/* Acciones para casos - Solo si está en pendiente_envio */}
+        {sugerencia && userRole !== 'admin' && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && <Card>
             <CardHeader>
               <CardTitle>Decisión del Médico</CardTitle>
               <CardDescription>

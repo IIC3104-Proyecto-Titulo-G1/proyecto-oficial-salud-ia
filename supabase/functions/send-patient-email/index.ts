@@ -177,6 +177,8 @@ const handler = async (req: Request): Promise<Response> => {
                       ? `Su aseguradora (${insuranceType}) ha aprobado la decisión médica. La Ley de Urgencia está activa y en pleno efecto.`
                       : insuranceStatus === 'rechazada'
                       ? `Su aseguradora (${insuranceType}) ha rechazado la decisión médica. La Ley de Urgencia no se activará. Por favor, contacte con su aseguradora para más información sobre su caso.`
+                      : (insuranceStatus === 'pendiente' || insuranceStatus === 'pendiente_envio')
+                      ? `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.`
                       : `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.`
                     }
                   </p>

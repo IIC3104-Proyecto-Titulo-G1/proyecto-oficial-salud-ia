@@ -24,7 +24,7 @@ interface Caso {
   medico_tratante_id: string;
   episodio?: string;
   prevision?: string;
-  estado_resolucion_aseguradora?: 'pendiente' | 'aceptada' | 'rechazada';
+  estado_resolucion_aseguradora?: 'pendiente' | 'pendiente_envio' | 'aceptada' | 'rechazada';
 }
 
 interface MedicoData {
@@ -156,7 +156,7 @@ export function AdminCasosPanel() {
     setShowEstadoAseguradoraModal(true);
   };
 
-  const handleConfirmarCambioEstadoAseguradora = async (nuevoEstado: 'pendiente' | 'aceptada' | 'rechazada') => {
+  const handleConfirmarCambioEstadoAseguradora = async (nuevoEstado: 'pendiente' | 'pendiente_envio' | 'aceptada' | 'rechazada') => {
     if (!casoEditandoEstado || actualizandoEstado) return;
 
     setActualizandoEstado(true);
@@ -177,9 +177,16 @@ export function AdminCasosPanel() {
         )
       );
 
+      const estadoLabels: Record<string, string> = {
+        'aceptada': 'Aceptada',
+        'rechazada': 'Rechazada',
+        'pendiente': 'Pendiente resolución',
+        'pendiente_envio': 'Pendiente envío'
+      };
+      
       toast({
         title: 'Estado actualizado',
-        description: `El estado de resolución del asegurador ha sido actualizado a ${nuevoEstado === 'aceptada' ? 'Aceptada' : nuevoEstado === 'rechazada' ? 'Rechazada' : 'Pendiente'}`,
+        description: `El estado de resolución del asegurador ha sido actualizado a ${estadoLabels[nuevoEstado] || nuevoEstado}`,
       });
 
       setShowEstadoAseguradoraModal(false);
@@ -850,6 +857,8 @@ export function AdminCasosPanel() {
                                 ? 'bg-success/10 text-success border-success/20 hover:bg-success/20'
                                 : (caso as any).estado_resolucion_aseguradora === 'rechazada'
                                 ? 'hover:border-destructive hover:border-2 hover:shadow-md transition-all' 
+                                : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                                ? 'bg-amber/10 text-amber-700 border-amber-300 hover:bg-amber/20 hover:border-2 hover:shadow-md transition-all'
                                 : 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted/70 hover:border-2 hover:shadow-md transition-all'
                             } cursor-pointer transition-all`}
                             onClick={(e) => {
@@ -860,7 +869,9 @@ export function AdminCasosPanel() {
                             {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
                               ? `Aceptado por ${(caso as any).prevision}` 
                               : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                              ? `Rechazado por ${(caso as any).prevision}` 
+                              ? `Rechazado por ${(caso as any).prevision}`
+                              : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                              ? `Pendiente envío a ${(caso as any).prevision}`
                               : `Pendiente resolución ${(caso as any).prevision}`}
                           </Badge>
                         )}
@@ -1034,18 +1045,22 @@ export function AdminCasosPanel() {
                           ? 'destructive'
                           : 'secondary'
                       }
-                      className={`text-xs font-medium ${
-                        (casoEditandoEstado as any).estado_resolucion_aseguradora === 'aceptada'
-                          ? 'bg-success/10 text-success border-success/20'
-                          : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'rechazada'
-                          ? ''
-                          : 'bg-muted/50 text-muted-foreground border-border/50'
-                      }`}
+                            className={`text-xs font-medium ${
+                              (casoEditandoEstado as any).estado_resolucion_aseguradora === 'aceptada'
+                                ? 'bg-success/10 text-success border-success/20'
+                                : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'rechazada'
+                                ? ''
+                                : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                                ? 'bg-amber/10 text-amber-700 border-amber-300'
+                                : 'bg-muted/50 text-muted-foreground border-border/50'
+                            }`}
                     >
                       {(casoEditandoEstado as any).estado_resolucion_aseguradora === 'aceptada'
                         ? `Aceptado por ${(casoEditandoEstado as any).prevision}`
                         : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'rechazada'
                         ? `Rechazado por ${(casoEditandoEstado as any).prevision}`
+                        : (casoEditandoEstado as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                        ? `Pendiente envío a ${(casoEditandoEstado as any).prevision}`
                         : `Pendiente resolución ${(casoEditandoEstado as any).prevision}`}
                     </Badge>
                   </div>
@@ -1056,13 +1071,25 @@ export function AdminCasosPanel() {
             <div className="grid grid-cols-1 gap-3">
               <Button
                 variant="outline"
+                onClick={() => handleConfirmarCambioEstadoAseguradora('pendiente_envio')}
+                disabled={actualizandoEstado || (casoEditandoEstado as any)?.estado_resolucion_aseguradora === 'pendiente_envio'}
+                className="justify-start h-auto py-4 bg-amber/10 text-amber-700 border-amber-300 hover:bg-amber/20 hover:text-amber-800 disabled:opacity-50"
+              >
+                <div className="flex flex-col items-start gap-1">
+                  <span className="font-semibold text-base">Pendiente envío a {(casoEditandoEstado as any)?.prevision || 'Fonasa/Isapre'}</span>
+                  <span className="text-xs text-amber-700/90">El caso está pendiente de ser enviado al asegurador</span>
+                </div>
+              </Button>
+              
+              <Button
+                variant="outline"
                 onClick={() => handleConfirmarCambioEstadoAseguradora('pendiente')}
                 disabled={actualizandoEstado || (casoEditandoEstado as any)?.estado_resolucion_aseguradora === 'pendiente'}
                 className="justify-start h-auto py-4 bg-muted/80 text-foreground border-border hover:bg-muted hover:text-foreground disabled:opacity-50"
               >
                 <div className="flex flex-col items-start gap-1">
                   <span className="font-semibold text-base">Pendiente resolución {(casoEditandoEstado as any)?.prevision || 'Fonasa/Isapre'}</span>
-                  <span className="text-xs text-muted-foreground">El caso está esperando resolución</span>
+                  <span className="text-xs text-muted-foreground">El caso está esperando resolución del asegurador</span>
                 </div>
               </Button>
               

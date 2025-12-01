@@ -232,7 +232,10 @@ export default function ComunicacionPaciente() {
               result: resultadoEmail,
               explanation: sugerencia?.explicacion || '',
               additionalComment: comentarioAdicional || undefined,
-              insuranceStatus: (caso as any).estado_resolucion_aseguradora || null,
+              // Normalizar pendiente_envio a pendiente para el email
+              insuranceStatus: (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' 
+                ? 'pendiente' 
+                : ((caso as any).estado_resolucion_aseguradora || null),
               insuranceType: (caso as any).prevision || null,
             },
           }
@@ -418,7 +421,7 @@ export default function ComunicacionPaciente() {
                             ? 'text-destructive' 
                             : 'text-yellow-600'
                         }`}>
-                          {(caso as any).estado_resolucion_aseguradora === 'pendiente' 
+                          {(caso as any).estado_resolucion_aseguradora === 'pendiente' || (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
                             ? `PENDIENTE RESOLUCIÓN ${(caso as any).prevision?.toUpperCase()}` 
                             : (caso as any).estado_resolucion_aseguradora === 'aceptada' 
                             ? `ACEPTADO POR ${(caso as any).prevision?.toUpperCase()}` 
@@ -435,6 +438,8 @@ export default function ComunicacionPaciente() {
                               ? `Su aseguradora (${(caso as any).prevision}) ha aprobado la decisión médica. La Ley de Urgencia está activa y en pleno efecto.`
                               : (caso as any).estado_resolucion_aseguradora === 'rechazada'
                               ? `Su aseguradora (${(caso as any).prevision}) ha rechazado la decisión médica. La Ley de Urgencia no se activará. Por favor, contacte con su aseguradora para más información sobre su caso.`
+                              : (caso as any).estado_resolucion_aseguradora === 'pendiente' || (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                              ? `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${(caso as any).prevision}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${(caso as any).prevision}.`
                               : `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${(caso as any).prevision}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${(caso as any).prevision}.`
                             }
                           </p>

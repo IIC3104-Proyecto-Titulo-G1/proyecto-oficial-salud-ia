@@ -35,12 +35,32 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
         }
 
         const [episodio, resolucion] = parts;
-        const resolucionNormalizada = resolucion.toLowerCase();
+        const resolucionNormalizada = resolucion.toLowerCase().trim();
 
-        if (resolucionNormalizada !== 'aceptada' && resolucionNormalizada !== 'rechazada' && resolucionNormalizada !== 'pendiente') {
-          errors.push(`Línea ${index + 1}: resolución debe ser "Aceptada", "Rechazada" o "Pendiente"`);
+        // Normalizar diferentes variantes de "pendiente envio" a "pendiente_envio"
+        let resolucionFinal = resolucionNormalizada;
+        if (resolucionNormalizada === 'pendiente envio' || 
+            resolucionNormalizada === 'pendiente envío' || 
+            resolucionNormalizada === 'pendiente_envio' ||
+            resolucionNormalizada === 'pendienteenvio' ||
+            resolucionNormalizada === 'pendiente-envio' ||
+            resolucionNormalizada === 'pendiente-envío') {
+          resolucionFinal = 'pendiente_envio';
+        } else if (resolucionNormalizada === 'pendiente' || 
+                   resolucionNormalizada === 'pendiente resolucion' || 
+                   resolucionNormalizada === 'pendiente resolución' ||
+                   resolucionNormalizada === 'pendienteresolucion' ||
+                   resolucionNormalizada === 'pendiente-resolucion' ||
+                   resolucionNormalizada === 'pendiente-resolución') {
+          resolucionFinal = 'pendiente';
+        }
+        
+        if (resolucionFinal !== 'aceptada' && resolucionFinal !== 'rechazada' && resolucionFinal !== 'pendiente' && resolucionFinal !== 'pendiente_envio') {
+          errors.push(`Línea ${index + 1}: resolución debe ser "Aceptada", "Rechazada", "Pendiente" o "PendienteEnvio"`);
           return;
         }
+
+        updates.push({ episodio, resolucion: resolucionFinal });
 
         updates.push({ episodio, resolucion: resolucionNormalizada });
       });
@@ -195,15 +215,17 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
               episodio2,Rechazada
               <br />
               episodio3,Pendiente
+              <br />
+              episodio4,PendienteEnvio
             </code>
           </DialogDescription>
         </DialogHeader>
 
         <Alert>
           <Upload className="h-4 w-4" />
-          <AlertDescription>
+            <AlertDescription>
             Solo se actualizarán casos que estén en estado "Aceptado" (Ley aplicada).
-            La resolución puede ser: <strong>Aceptada</strong>, <strong>Rechazada</strong> o <strong>Pendiente</strong>.
+            La resolución puede ser: <strong>Aceptada</strong>, <strong>Rechazada</strong>, <strong>Pendiente</strong> o <strong>PendienteEnvio</strong>.
           </AlertDescription>
         </Alert>
 
@@ -214,7 +236,7 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
               id="resolutions"
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              placeholder={`EP-2024-001,Aceptada\nEP-2024-002,Rechazada\nEP-2024-003,Pendiente`}
+              placeholder={`EP-2024-001,Aceptada\nEP-2024-002,Rechazada\nEP-2024-003,Pendiente\nEP-2024-004,PendienteEnvio`}
               rows={10}
               className="font-mono text-sm"
               disabled={processing}
