@@ -95,8 +95,10 @@ export default function AdminUsuarios() {
     const tabParam = searchParams.get('tab');
     if (tabParam === 'casos' || tabParam === 'usuarios') {
       setActiveTab(tabParam);
-      // Limpiar el parámetro de la URL después de leerlo
-      setSearchParams({}, { replace: true });
+      // Limpiar solo el parámetro tab, pero preservar otros parámetros como 'medico'
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('tab');
+      setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -143,8 +145,8 @@ export default function AdminUsuarios() {
       if (usuarioEditar.id === user?.id) {
         navigate('/admin/perfil');
       } else {
-        // Navegar a la vista de edición de otro usuario
-        navigate(`/admin/usuario/${usuarioEditar.id}`);
+        // Navegar a la vista de edición de otro usuario, abriendo directamente en Estadísticas
+        navigate(`/admin/usuario/${usuarioEditar.id}?tab=estadisticas`);
       }
     } else {
       // Crear nuevo usuario - mantener el modal
@@ -163,11 +165,11 @@ export default function AdminUsuarios() {
   };
 
   const handleCardClick = (usuario: Usuario) => {
-    // Navegar a la vista de detalle del usuario
+    // Navegar a la vista de detalle del usuario, abriendo directamente en Estadísticas
     if (usuario.id === user?.id) {
       navigate('/admin/perfil');
     } else {
-      navigate(`/admin/usuario/${usuario.id}`);
+      navigate(`/admin/usuario/${usuario.id}?tab=estadisticas`);
     }
   };
 

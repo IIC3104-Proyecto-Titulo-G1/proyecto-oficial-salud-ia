@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, ArrowRightLeft, Target, Info } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, ArrowRightLeft, Target, Info, FileText } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 import { consoleLogDebugger } from '@/lib/utils';
@@ -20,7 +21,9 @@ interface EstadisticasMedico {
   casosAceptadosAseguradora: number;
   casosRechazadosAseguradora: number;
   casosPendientesAseguradora: number;
+  casosPendientesEnvioAseguradora: number;
   casosAceptadosPorMedico: number;
+  casosRechazadosPorMedico: number;
   tiempoPromedioResolucion: number; // en días
 }
 
@@ -32,6 +35,7 @@ interface MedicoStatsDashboardProps {
 }
 
 export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medicoImagen }: MedicoStatsDashboardProps) {
+  const navigate = useNavigate();
   const [rangoMetricas, setRangoMetricas] = useState<RangoMetricas>('todos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
@@ -43,7 +47,9 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
     casosAceptadosAseguradora: 0,
     casosRechazadosAseguradora: 0,
     casosPendientesAseguradora: 0,
+    casosPendientesEnvioAseguradora: 0,
     casosAceptadosPorMedico: 0,
+    casosRechazadosPorMedico: 0,
     tiempoPromedioResolucion: 0,
   });
 
@@ -135,7 +141,7 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
       // Cargar resoluciones de casos
       const { data: resoluciones, error: resolucionesError } = await supabase
         .from('resolucion_caso')
-        .select('caso_id, decision_medico, fecha_decision_medico')
+        .select('caso_id, decision_medico, decision_final, fecha_decision_medico')
         .in('caso_id', casosIds.length > 0 ? casosIds : ['00000000-0000-0000-0000-000000000000']);
 
       if (resolucionesError) throw resolucionesError;
@@ -151,13 +157,26 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
       const casosAceptadosPorMedico = casos?.filter(c => c.estado === 'aceptado').length || 0;
 
       // Derivaciones
-      // Para médico jefe: casos que fueron derivados a él (estado = 'derivado' y medico_jefe_id = medicoId)
-      // Para médico normal: casos que él derivó (estado = 'derivado' y medico_tratante_id = medicoId)
       let totalDerivaciones = 0;
       if (medicoRol === 'medico_jefe') {
-        totalDerivaciones = casos?.filter(c => c.estado === 'derivado' && c.medico_jefe_id === medicoId).length || 0;
+        // Para médico jefe: casos derivados que resolvió
+        // Casos que fueron derivados a él (medico_jefe_id = su ID) y que tienen resolución
+        const casosDerivados = casos?.filter(c => c.medico_jefe_id === medicoId) || [];
+        // De esos casos, contamos los que tienen una resolución (fueron resueltos)
+        totalDerivaciones = casosDerivados.filter(c => {
+          const resolucion = resolucionesMap.get(c.id);
+          // Caso resuelto si tiene decision_final o decision_medico
+          return resolucion && (resolucion.decision_final || resolucion.decision_medico);
+        }).length;
       } else {
-        totalDerivaciones = casos?.filter(c => c.estado === 'derivado' && c.medico_tratante_id === medicoId).length || 0;
+        // Para médico normal: casos que él derivó
+        // Un caso fue derivado si tiene medico_jefe_id asignado (independientemente del estado actual)
+        // porque el estado puede cambiar después de que el médico jefe lo resuelva
+        totalDerivaciones = casos?.filter(c => 
+          c.medico_tratante_id === medicoId && 
+          c.medico_jefe_id !== null && 
+          c.medico_jefe_id !== undefined
+        ).length || 0;
       }
 
       // Porcentaje de aceptación de IA
@@ -192,11 +211,16 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
         (c as any).estado_resolucion_aseguradora === 'rechazada'
       ).length || 0;
 
-      // Casos pendientes de resolución por aseguradora
+      // Casos pendientes de resolución por aseguradora (pendiente o pendiente_envio)
       const casosPendientesAseguradora = casos?.filter(c => 
         c.estado === 'aceptado' && 
-        ((c as any).estado_resolucion_aseguradora === 'pendiente' || 
-         (c as any).estado_resolucion_aseguradora === 'pendiente_envio')
+        (c as any).estado_resolucion_aseguradora === 'pendiente'
+      ).length || 0;
+
+      // Casos pendientes de envío a aseguradora (pendiente_envio)
+      const casosPendientesEnvioAseguradora = casos?.filter(c => 
+        c.estado === 'aceptado' && 
+        (c as any).estado_resolucion_aseguradora === 'pendiente_envio'
       ).length || 0;
 
       // Tiempo promedio de resolución (en días)
@@ -220,6 +244,9 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
         ? tiempoTotalResolucion / casosConResolucion
         : 0;
 
+      // Casos rechazados por el médico (estado = 'rechazado')
+      const casosRechazadosPorMedico = casos?.filter(c => c.estado === 'rechazado').length || 0;
+
       const nuevasEstadisticas = {
         totalCasos,
         porcentajeAceptacionIA: Math.round(porcentajeAceptacionIA * 10) / 10,
@@ -227,7 +254,9 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
         casosAceptadosAseguradora,
         casosRechazadosAseguradora,
         casosPendientesAseguradora,
+        casosPendientesEnvioAseguradora,
         casosAceptadosPorMedico,
+        casosRechazadosPorMedico,
         tiempoPromedioResolucion: Math.round(tiempoPromedioResolucion * 10) / 10,
       };
 
@@ -266,6 +295,10 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
     ? 'Casos derivados a este médico jefe' 
     : 'Casos que este médico derivó';
 
+  const handleVerCasos = () => {
+    navigate(`/admin?tab=casos&medico=${medicoId}`);
+  };
+
   return (
     <TooltipProvider>
     <div className="space-y-6">
@@ -277,17 +310,27 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
               <CardTitle>Filtros de Tiempo</CardTitle>
               <CardDescription>Selecciona el período para las estadísticas</CardDescription>
             </div>
-            {medicoNombre && (
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={medicoImagen || ''} alt={medicoNombre} />
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    {medicoNombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium text-muted-foreground">{medicoNombre}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {medicoNombre && (
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={medicoImagen || ''} alt={medicoNombre} />
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {medicoNombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium text-muted-foreground">{medicoNombre}</span>
+                </div>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleVerCasos}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Casos del doctor
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -430,8 +473,8 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
                       <p className="font-semibold mb-1">¿Cómo se calcula?</p>
                       <p className="text-xs">
                         {medicoRol === 'medico_jefe' 
-                          ? 'Total de casos que fueron derivados a este médico jefe en el período seleccionado (casos con estado "derivado" donde este médico es el médico jefe asignado).'
-                          : 'Total de casos que este médico derivó a un médico jefe en el período seleccionado (casos con estado "derivado" creados por este médico).'}
+                          ? 'Cantidad de casos derivados a este médico jefe que fueron resueltos (aceptados o rechazados) en el período seleccionado.'
+                          : 'Cantidad de casos que este médico derivó a un médico jefe en el período seleccionado (casos con medico_jefe_id asignado, independientemente del estado actual).'}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -501,7 +544,7 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Aceptados */}
                 <div className="flex items-center gap-4 p-4 rounded-lg bg-green-50 border border-green-200">
                   <div className="p-3 rounded-full bg-green-100">
@@ -534,14 +577,30 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
                   </div>
                 </div>
 
-                {/* Pendientes */}
+                {/* Pendientes de envío */}
+                <div className="flex items-center gap-4 p-4 rounded-lg bg-orange-50 border border-orange-200">
+                  <div className="p-3 rounded-full bg-orange-100">
+                    <Clock className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-700">{estadisticas.casosPendientesEnvioAseguradora}</div>
+                    <div className="text-sm text-orange-600">Pendientes de envío</div>
+                    {estadisticas.casosAceptadosPorMedico > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {Math.round((estadisticas.casosPendientesEnvioAseguradora / estadisticas.casosAceptadosPorMedico) * 100)}% del total
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pendientes de resolución */}
                 <div className="flex items-center gap-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
                   <div className="p-3 rounded-full bg-amber-100">
                     <Clock className="h-6 w-6 text-amber-600" />
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-amber-700">{estadisticas.casosPendientesAseguradora}</div>
-                    <div className="text-sm text-amber-600">Pendientes</div>
+                    <div className="text-sm text-amber-600">Pendientes de resolución</div>
                     {estadisticas.casosAceptadosPorMedico > 0 && (
                       <div className="text-xs text-muted-foreground mt-1">
                         {Math.round((estadisticas.casosPendientesAseguradora / estadisticas.casosAceptadosPorMedico) * 100)}% del total
@@ -569,11 +628,13 @@ export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medico
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Casos rechazados</span>
                   <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                    {estadisticas.totalCasos - estadisticas.casosAceptadosPorMedico - estadisticas.totalDerivaciones}
+                    {estadisticas.casosRechazadosPorMedico}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Derivaciones</span>
+                  <span className="text-sm text-muted-foreground">
+                    {medicoRol === 'medico_jefe' ? 'Derivados resueltos' : 'Derivaciones'}
+                  </span>
                   <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                     {estadisticas.totalDerivaciones}
                   </Badge>

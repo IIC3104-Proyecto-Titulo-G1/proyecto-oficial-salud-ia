@@ -143,6 +143,18 @@ export function AdminCasosPanel() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Manejar parámetro de URL para filtrar por médico
+  useEffect(() => {
+    const medicoParam = searchParams.get('medico');
+    if (medicoParam && medicoParam !== 'todos') {
+      setFiltroMedico(medicoParam);
+      // Limpiar el parámetro de la URL después de aplicarlo
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('medico');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Limpiar filtro de caso cuando cambien otros filtros
   useEffect(() => {
     if (filtroCasoId && !filtroDesdeNotificacion.current) {
@@ -795,7 +807,7 @@ export function AdminCasosPanel() {
                 className="relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/50 hover:border-primary/40 group bg-card"
                 onClick={() => navigate(`/caso/${caso.id}`)}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <CardContent className="p-7 relative">
                   <div className="flex items-start justify-between gap-6">
                     <div className="flex-1 min-w-0">
@@ -887,7 +899,16 @@ export function AdminCasosPanel() {
                       
                       {/* Mostrar información del médico */}
                       {medicosData[caso.medico_tratante_id] && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div 
+                          className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors relative z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (caso.medico_tratante_id !== user?.id) {
+                              navigate(`/admin/usuario/${caso.medico_tratante_id}?tab=estadisticas`);
+                            }
+                          }}
+                        >
                           <Avatar className="h-6 w-6 border border-border">
                             <AvatarImage 
                               src={medicosData[caso.medico_tratante_id].imagen || ''} 

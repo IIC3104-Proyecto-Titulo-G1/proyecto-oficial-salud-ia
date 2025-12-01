@@ -44,7 +44,8 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
             resolucionNormalizada === 'pendiente_envio' ||
             resolucionNormalizada === 'pendienteenvio' ||
             resolucionNormalizada === 'pendiente-envio' ||
-            resolucionNormalizada === 'pendiente-envío') {
+            resolucionNormalizada === 'pendiente-envío' ||
+            resolucionNormalizada === 'pendienteenvio') {
           resolucionFinal = 'pendiente_envio';
         } else if (resolucionNormalizada === 'pendiente' || 
                    resolucionNormalizada === 'pendiente resolucion' || 
@@ -61,8 +62,6 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
         }
 
         updates.push({ episodio, resolucion: resolucionFinal });
-
-        updates.push({ episodio, resolucion: resolucionNormalizada });
       });
 
       if (errors.length > 0) {

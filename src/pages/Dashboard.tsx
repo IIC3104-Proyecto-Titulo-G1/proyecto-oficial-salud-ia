@@ -181,7 +181,7 @@ export default function Dashboard() {
         // También establecer el nombre en el searchTerm para que se muestre en el input
         setSearchTerm(caso.nombre_paciente);
         // Limpiar el parámetro de la URL después de procesarlo
-        setSearchParams({});
+      setSearchParams({});
         // Resetear el flag después de un pequeño delay para permitir que los otros efectos se ejecuten
         setTimeout(() => {
           filtroDesdeNotificacion.current = false;
@@ -910,16 +910,16 @@ export default function Dashboard() {
             {userRole === 'medico_jefe' && (
               <AseguradorasUpload onSuccess={loadCasos} />
             )}
-            {(userRole === 'medico' || userRole === 'medico_jefe') && (
-              <Button
-                onClick={() => navigate('/caso/nuevo')}
-                size="lg"
-                className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
-              >
-                <Plus className="w-5 h-5" />
-                Nuevo Caso
-              </Button>
-            )}
+          {(userRole === 'medico' || userRole === 'medico_jefe') && (
+            <Button
+              onClick={() => navigate('/caso/nuevo')}
+              size="lg"
+              className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Caso
+            </Button>
+          )}
           </div>
         </div>
 

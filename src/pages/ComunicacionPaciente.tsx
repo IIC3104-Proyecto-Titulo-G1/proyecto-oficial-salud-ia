@@ -56,21 +56,21 @@ export default function ComunicacionPaciente() {
       // Cargar datos en paralelo
       const [casoResult, sugerenciaResult, resolucionResult] = await Promise.all([
         supabase
-          .from('casos')
+      .from('casos')
           .select('id, nombre_paciente, email_paciente, diagnostico_principal, estado, medico_jefe_id, prevision, estado_resolucion_aseguradora')
-          .eq('id', id)
+      .eq('id', id)
           .single(),
         supabase
-          .from('sugerencia_ia')
-          .select('sugerencia, explicacion')
-          .eq('caso_id', id)
-          .order('fecha_procesamiento', { ascending: false })
-          .limit(1)
+      .from('sugerencia_ia')
+      .select('sugerencia, explicacion')
+      .eq('caso_id', id)
+      .order('fecha_procesamiento', { ascending: false })
+      .limit(1)
           .maybeSingle(),
         supabase
-          .from('resolucion_caso')
+      .from('resolucion_caso')
           .select('comentario_email, email_paciente_enviado')
-          .eq('caso_id', id)
+      .eq('caso_id', id)
           .maybeSingle()
       ]);
 
@@ -78,8 +78,8 @@ export default function ComunicacionPaciente() {
       const sugerenciaData = sugerenciaResult.data;
       const resolucionData = resolucionResult.data;
 
-      if (casoData) {
-        setCaso(casoData);
+    if (casoData) {
+      setCaso(casoData);
         // Prioridad: 1) email del último correo enviado, 2) email del paciente del caso
         const emailAMostrar = resolucionData?.email_paciente_enviado 
           ? resolucionData.email_paciente_enviado 
@@ -90,17 +90,17 @@ export default function ComunicacionPaciente() {
           email_paciente: casoData.email_paciente,
           email_seleccionado: emailAMostrar
         });
-      }
-      setSugerencia(sugerenciaData);
-      
-      // Precargar comentario del email si existe
-      if (resolucionData?.comentario_email) {
-        setComentarioAdicional(resolucionData.comentario_email);
-      }
+    }
+    setSugerencia(sugerenciaData);
+    
+    // Precargar comentario del email si existe
+    if (resolucionData?.comentario_email) {
+      setComentarioAdicional(resolucionData.comentario_email);
+    }
     } catch (error) {
       consoleLogDebugger('Error cargando datos:', error);
     } finally {
-      setLoading(false);
+    setLoading(false);
     }
   };
 
@@ -285,7 +285,7 @@ export default function ComunicacionPaciente() {
       if (userRole === 'admin') {
         navigate('/admin?tab=casos');
       } else {
-        navigate('/dashboard');
+      navigate('/dashboard');
       }
     } catch (error: any) {
       toast({
@@ -403,11 +403,11 @@ export default function ComunicacionPaciente() {
                     <p className="text-sm text-muted-foreground mb-2">Decisión Médica:</p>
                     <p className="font-bold text-2xl mb-2">
                       <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
-                    </p>
-                    <p className="text-sm">
-                      <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
-                    </p>
-                  </div>
+                </p>
+                <p className="text-sm">
+                  <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
+                </p>
+              </div>
 
                   {/* Estado de Aseguradora */}
                   {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (

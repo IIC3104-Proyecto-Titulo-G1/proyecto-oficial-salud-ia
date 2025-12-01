@@ -863,9 +863,9 @@ export default function VerCaso() {
                 {/* Solo mostrar botón de editar si está en pendiente_envio y NO es admin */}
                 {userRole !== 'admin' && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (
                   <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
-                    <Edit className="w-5 h-5 mr-2" />
-                    Editar Caso
-                  </Button>
+                  <Edit className="w-5 h-5 mr-2" />
+                  Editar Caso
+                </Button>
                 )}
               </div>
             </CardContent>
@@ -960,7 +960,7 @@ export default function VerCaso() {
                           : `Pendiente resolución ${(caso as any).prevision}`}
                       </Badge>
                     )}
-                  </div>
+              </div>
                 )}
               </div>
               {/* Botón de editar: solo cuando está en pendiente_envio (cualquier médico), derivados/cerrados (solo médico jefe) */}
@@ -1063,16 +1063,16 @@ export default function VerCaso() {
             </CardHeader>
             <CardContent className="space-y-4">
               {userRole !== 'admin' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Aplicar Ley
-                  </Button>
-                  <Button size="lg" onClick={handleNoAplicarLey} className={sugerencia?.sugerencia === 'rechazar' ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30" : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}>
-                    <XCircle className="w-5 h-5 mr-2" />
-                    No Aplicar Ley
-                  </Button>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Aplicar Ley
+                </Button>
+                <Button size="lg" onClick={handleNoAplicarLey} className={sugerencia?.sugerencia === 'rechazar' ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30" : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}>
+                  <XCircle className="w-5 h-5 mr-2" />
+                  No Aplicar Ley
+                </Button>
+              </div>
               )}
               {/* Botón para cancelar edición en casos cerrados que han sido reabiertos */}
               {(caso.estado === 'aceptado' || caso.estado === 'rechazado') && showReopenCase && <Button size="lg" variant="outline" onClick={handleCancelEdit} disabled={isCancelingEdit} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
