@@ -121,6 +121,15 @@ export default function AdminUsuarios() {
     }
   };
 
+  const handleCardClick = (usuario: Usuario) => {
+    // Navegar a la vista de detalle del usuario
+    if (usuario.id === user?.id) {
+      navigate('/admin/perfil');
+    } else {
+      navigate(`/admin/usuario/${usuario.id}`);
+    }
+  };
+
   const handleSaveUser = async () => {
     try {
       if (editingUser) {
@@ -447,17 +456,21 @@ export default function AdminUsuarios() {
               <>
                 <div className="grid gap-4">
                   {paginatedUsuarios.map((usuario) => (
-              <Card key={usuario.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={usuario.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleCardClick(usuario)}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-4 flex-1">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={usuario.imagen || ''} alt={usuario.nombre} />
                         <AvatarFallback className="bg-primary/10 text-primary">
                           {usuario.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="flex-1">
                         <CardTitle className="mb-2">
                           {usuario.id === user?.id ? 'Tú' : usuario.nombre}
                         </CardTitle>
@@ -470,7 +483,7 @@ export default function AdminUsuarios() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="outline"
                         size="sm"

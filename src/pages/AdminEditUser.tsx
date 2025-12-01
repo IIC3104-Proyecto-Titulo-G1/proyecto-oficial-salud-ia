@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Upload, User, X } from 'lucide-react';
+import { ArrowLeft, Save, Upload, User, X, BarChart3, UserCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageCropper } from '@/components/ImageCropper';
+import { MedicoStatsDashboard } from '@/components/MedicoStatsDashboard';
 
 interface Usuario {
   id: string;
@@ -432,6 +434,19 @@ export default function AdminEditUser() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto space-y-6">
+          <Tabs defaultValue="informacion" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="informacion" className="gap-2">
+                <UserCircle className="w-4 h-4" />
+                Información
+              </TabsTrigger>
+              <TabsTrigger value="estadisticas" className="gap-2" disabled={usuario.rol === 'admin'}>
+                <BarChart3 className="w-4 h-4" />
+                Estadísticas
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="informacion" className="space-y-6">
           {/* Información Personal con Imagen */}
           <Card>
             <CardHeader>
@@ -635,6 +650,22 @@ export default function AdminEditUser() {
               )}
             </Button>
           </div>
+            </TabsContent>
+
+            <TabsContent value="estadisticas" className="space-y-6">
+              {usuario.rol !== 'admin' ? (
+                <MedicoStatsDashboard medicoId={usuario.id} medicoRol={usuario.rol} />
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">
+                      Las estadísticas solo están disponibles para médicos y médicos jefe.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
