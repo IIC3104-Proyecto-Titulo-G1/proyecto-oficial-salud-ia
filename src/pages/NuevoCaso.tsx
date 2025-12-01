@@ -774,7 +774,7 @@ export default function NuevoCaso() {
 
   const saveEvaluationResult = async (casoId: string, result: any, method: string) => {
     try {
-      console.log('Guardando resultado:', { casoId, result, method });
+      consoleLogDebugger('Guardando resultado:', { casoId, result, method });
 
       const payload = result?.data ?? result?.result ?? result;
       let sugerencia: 'aceptar' | 'rechazar' | 'incierto' = 'incierto';
@@ -862,7 +862,7 @@ export default function NuevoCaso() {
         explicacion: explicacion,
       };
 
-      console.log('Insertando en sugerencia_ia:', insertData);
+      consoleLogDebugger('Insertando en sugerencia_ia:', insertData);
 
       const { error } = await supabase
         .from('sugerencia_ia')
@@ -873,9 +873,9 @@ export default function NuevoCaso() {
         throw error;
       }
 
-      console.log('Resultado guardado exitosamente');
+      consoleLogDebugger('Resultado guardado exitosamente');
     } catch (error: any) {
-      console.error('Error guardando resultado:', {
+      consoleLogDebugger('Error guardando resultado:', {
         casoId,
         method,
         error: error.message,

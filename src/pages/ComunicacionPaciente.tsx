@@ -93,9 +93,12 @@ export default function ComunicacionPaciente() {
     }
     setSugerencia(sugerenciaData);
     
-    // Precargar comentario del email si existe
+    // Precargar comentario del email si existe, o comentario_medico como razón de la decisión
     if (resolucionData?.comentario_email) {
       setComentarioAdicional(resolucionData.comentario_email);
+    } else if (resolucionData?.comentario_medico) {
+      // Si no hay comentario_email pero hay comentario_medico (razón de la decisión), usarlo
+      setComentarioAdicional(resolucionData.comentario_medico);
     }
     } catch (error) {
       consoleLogDebugger('Error cargando datos:', error);

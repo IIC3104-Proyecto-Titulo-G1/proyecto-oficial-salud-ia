@@ -4,6 +4,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx-js-style';
 import { supabase } from '@/lib/supabase';
+import { consoleLogDebugger } from '@/lib/utils';
 
 interface Caso {
   id: string;
@@ -610,7 +611,7 @@ export function ExportCasosMetricsButton({
         description: `Se exportaron ${casosFiltrados.length} caso(s) con todas las métricas`,
       });
     } catch (error: any) {
-      console.error('Error exportando métricas:', error);
+      consoleLogDebugger('Error exportando métricas:', error);
       toast({
         title: 'Error al exportar',
         description: error.message || 'Ocurrió un error al generar el archivo Excel',

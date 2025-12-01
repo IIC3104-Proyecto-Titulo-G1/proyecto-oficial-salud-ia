@@ -1127,8 +1127,8 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-col items-end gap-3">
                       <div className="flex items-center gap-2">
-                        {/* Tags de resolución de aseguradora (solo para casos aceptados) */}
-                        {caso.estado === 'aceptado' && (caso as any).prevision && (
+                        {/* Tags de resolución de aseguradora (cuando hay estado_resolucion_aseguradora y prevision) */}
+                        {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
                           <Badge 
                             variant={
                               (caso as any).estado_resolucion_aseguradora === 'aceptada' 
