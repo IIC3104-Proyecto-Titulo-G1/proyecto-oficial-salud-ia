@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { AseguradorasUpload } from '@/components/AseguradorasUpload';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ExportCasosMetricsButton } from '@/components/ExportCasosMetricsButton';
 
 interface Caso {
   id: string;
@@ -61,7 +62,7 @@ export function AdminCasosPanel() {
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
   
   const itemsPerPage = 10;
-  const { user, userRole } = useAuth();
+  const { user, userRole, userRoleData } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '') || filtroCasoId !== null || filtroPendienteAseguradora || filtroPendienteEnvioAseguradora || filtroRechazadosAseguradora || filtroAceptadosAseguradora;
@@ -990,6 +991,35 @@ export function AdminCasosPanel() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
+          <ExportCasosMetricsButton
+            casosFiltrados={filteredCasos}
+            casosParaMetricas={casosParaMetricas}
+            metricas={{
+              totalCasos: casosParaMetricas.length,
+              casosPendientes: casosPorEstado.pendiente,
+              casosDerivados: casosPorEstado.derivado,
+              casosRechazados: casosPorEstado.rechazado,
+              casosAceptados: casosPorEstado.aceptado,
+              casosPendientesAseguradora,
+              casosPendientesEnvioAseguradora,
+              casosRechazadosAseguradora,
+              casosAceptadosAseguradora,
+            }}
+            filtros={{
+              searchTerm,
+              estadoFiltro,
+              fechaInicio,
+              fechaFin,
+              filtroMedico,
+              rangoMetricas,
+              filtroPendienteAseguradora,
+              filtroPendienteEnvioAseguradora,
+              filtroRechazadosAseguradora,
+              filtroAceptadosAseguradora,
+            }}
+            medicosData={medicosData}
+            usuarioExportador={userRoleData?.nombre || 'Administrador'}
+          />
           <AseguradorasUpload onSuccess={loadCasos} />
         </div>
       </div>
