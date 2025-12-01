@@ -628,10 +628,6 @@ export default function AdminUsuarios() {
                 </Button>
               </div>
             )}
-            
-            {activeTab === 'casos' && (
-              <div id="admin-casos-buttons-container" className="flex gap-2" />
-            )}
           </div>
 
           <TabsContent value="usuarios" className="mt-0">
