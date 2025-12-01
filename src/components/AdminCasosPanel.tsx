@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { AseguradorasUpload } from '@/components/AseguradorasUpload';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Caso {
   id: string;
@@ -47,6 +48,10 @@ export function AdminCasosPanel() {
   const [fechaFin, setFechaFin] = useState('');
   const [filtroMedico, setFiltroMedico] = useState('todos');
   const [filtroCasoId, setFiltroCasoId] = useState<string | null>(null);
+  const [filtroPendienteAseguradora, setFiltroPendienteAseguradora] = useState(false);
+  const [filtroPendienteEnvioAseguradora, setFiltroPendienteEnvioAseguradora] = useState(false);
+  const [filtroRechazadosAseguradora, setFiltroRechazadosAseguradora] = useState(false);
+  const [filtroAceptadosAseguradora, setFiltroAceptadosAseguradora] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
@@ -59,7 +64,7 @@ export function AdminCasosPanel() {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '') || filtroCasoId !== null;
+  const filtrosActivos = searchTerm.trim() !== '' || estadoFiltro !== 'todos' || fechaInicio !== '' || fechaFin !== '' || (filtroMedico !== 'todos' && filtroMedico !== '') || filtroCasoId !== null || filtroPendienteAseguradora || filtroPendienteEnvioAseguradora || filtroRechazadosAseguradora || filtroAceptadosAseguradora;
 
   // Establecer fecha de término por defecto a hoy
   useEffect(() => {
@@ -216,6 +221,70 @@ export function AdminCasosPanel() {
 
   const handleCardClick = (estado: EstadoFiltro) => {
     setEstadoFiltro(estado);
+    setFiltroPendienteAseguradora(false);
+    setFiltroPendienteEnvioAseguradora(false);
+    setFiltroRechazadosAseguradora(false);
+    setFiltroAceptadosAseguradora(false);
+    setCurrentPage(1);
+    setTimeout(() => {
+      const casosSection = document.getElementById('casos-section');
+      if (casosSection) {
+        casosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const handleCardClickPendienteAseguradora = () => {
+    setFiltroPendienteAseguradora(true);
+    setFiltroPendienteEnvioAseguradora(false);
+    setFiltroRechazadosAseguradora(false);
+    setFiltroAceptadosAseguradora(false);
+    setEstadoFiltro('aceptado'); // Solo mostrar casos aceptados
+    setCurrentPage(1);
+    setTimeout(() => {
+      const casosSection = document.getElementById('casos-section');
+      if (casosSection) {
+        casosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const handleCardClickPendienteEnvioAseguradora = () => {
+    setFiltroPendienteEnvioAseguradora(true);
+    setFiltroPendienteAseguradora(false);
+    setFiltroRechazadosAseguradora(false);
+    setFiltroAceptadosAseguradora(false);
+    setEstadoFiltro('aceptado'); // Solo mostrar casos aceptados
+    setCurrentPage(1);
+    setTimeout(() => {
+      const casosSection = document.getElementById('casos-section');
+      if (casosSection) {
+        casosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const handleCardClickRechazadosAseguradora = () => {
+    setFiltroRechazadosAseguradora(true);
+    setFiltroPendienteAseguradora(false);
+    setFiltroPendienteEnvioAseguradora(false);
+    setFiltroAceptadosAseguradora(false);
+    setEstadoFiltro('aceptado'); // Solo mostrar casos aceptados
+    setCurrentPage(1);
+    setTimeout(() => {
+      const casosSection = document.getElementById('casos-section');
+      if (casosSection) {
+        casosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const handleCardClickAceptadosAseguradora = () => {
+    setFiltroAceptadosAseguradora(true);
+    setFiltroPendienteAseguradora(false);
+    setFiltroPendienteEnvioAseguradora(false);
+    setFiltroRechazadosAseguradora(false);
+    setEstadoFiltro('aceptado'); // Solo mostrar casos aceptados
     setCurrentPage(1);
     setTimeout(() => {
       const casosSection = document.getElementById('casos-section');
@@ -241,6 +310,38 @@ export function AdminCasosPanel() {
 
       if (!matchesEstado) {
         return false;
+      }
+
+      // Filtro para casos pendientes de respuesta de aseguradora (solo pendiente resolución)
+      if (filtroPendienteAseguradora) {
+        const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+        if (caso.estado !== 'aceptado' || estadoAseguradora !== 'pendiente') {
+          return false;
+        }
+      }
+
+      // Filtro para casos pendientes de envío a aseguradora
+      if (filtroPendienteEnvioAseguradora) {
+        const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+        if (caso.estado !== 'aceptado' || estadoAseguradora !== 'pendiente_envio') {
+          return false;
+        }
+      }
+
+      // Filtro para casos rechazados por aseguradora
+      if (filtroRechazadosAseguradora) {
+        const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+        if (caso.estado !== 'aceptado' || estadoAseguradora !== 'rechazada') {
+          return false;
+        }
+      }
+
+      // Filtro para casos aceptados por aseguradora
+      if (filtroAceptadosAseguradora) {
+        const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+        if (caso.estado !== 'aceptado' || estadoAseguradora !== 'aceptada') {
+          return false;
+        }
       }
 
       const casoFecha = new Date(caso.fecha_creacion + 'Z');
@@ -276,7 +377,7 @@ export function AdminCasosPanel() {
 
       return hayCoincidencia;
     });
-  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin, filtroMedico, filtroCasoId]);
+  }, [casos, estadoFiltro, searchTerm, fechaInicio, fechaFin, filtroMedico, filtroCasoId, filtroPendienteAseguradora, filtroPendienteEnvioAseguradora, filtroRechazadosAseguradora, filtroAceptadosAseguradora]);
 
   const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -365,6 +466,38 @@ export function AdminCasosPanel() {
       },
       { aceptado: 0, rechazado: 0, pendiente: 0, derivado: 0 }
     );
+  }, [casosParaMetricas]);
+
+  const casosPendientesAseguradora = useMemo(() => {
+    return casosParaMetricas.filter((caso) => {
+      if (caso.estado !== 'aceptado') return false;
+      const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+      return estadoAseguradora === 'pendiente';
+    }).length;
+  }, [casosParaMetricas]);
+
+  const casosPendientesEnvioAseguradora = useMemo(() => {
+    return casosParaMetricas.filter((caso) => {
+      if (caso.estado !== 'aceptado') return false;
+      const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+      return estadoAseguradora === 'pendiente_envio';
+    }).length;
+  }, [casosParaMetricas]);
+
+  const casosRechazadosAseguradora = useMemo(() => {
+    return casosParaMetricas.filter((caso) => {
+      if (caso.estado !== 'aceptado') return false;
+      const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+      return estadoAseguradora === 'rechazada';
+    }).length;
+  }, [casosParaMetricas]);
+
+  const casosAceptadosAseguradora = useMemo(() => {
+    return casosParaMetricas.filter((caso) => {
+      if (caso.estado !== 'aceptado') return false;
+      const estadoAseguradora = (caso as any).estado_resolucion_aseguradora;
+      return estadoAseguradora === 'aceptada';
+    }).length;
   }, [casosParaMetricas]);
 
   const casosPreviosMetricas = useMemo(() => {
@@ -531,151 +664,322 @@ export function AdminCasosPanel() {
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        <Card 
-          className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-          onClick={() => handleCardClick('todos')}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all"></div>
-          <CardContent className="p-6 relative">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                <FileText className="w-6 h-6 text-primary" />
-              </div>
-              <Badge variant="outline" className="text-xs font-semibold border-primary/30 text-primary">
-                Total
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Casos Registrados</p>
-              <p className="text-4xl font-bold text-foreground">{casosParaMetricas.length}</p>
-              {(rangoMetricas === '7' || rangoMetricas === '30') && (
-                <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).className}`}>
-                  {getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).label}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <TooltipProvider>
+        <div className="flex flex-col gap-4 mb-10">
+          {/* Primera fila: 5 cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={() => handleCardClick('todos')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                      <FileText className="w-6 h-6 text-primary" />
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-primary/30 text-primary">
+                      Total
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Casos Registrados</p>
+                    <p className="text-4xl font-bold text-foreground">{casosParaMetricas.length}</p>
+                    {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                      <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).className}`}>
+                        {getDeltaInfo(casosParaMetricas.length, casosPreviosMetricas.length).label}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total de casos registrados en el sistema</p>
+            </TooltipContent>
+          </Tooltip>
 
-        <Card 
-          className="relative overflow-hidden border-warning/20 bg-gradient-to-br from-card to-warning/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-          onClick={() => handleCardClick('pendiente')}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-warning/10 rounded-full blur-3xl group-hover:bg-warning/20 transition-all"></div>
-          <CardContent className="p-6 relative">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-warning/10 ring-1 ring-warning/20">
-                <svg className="w-6 h-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <Badge variant="outline" className="text-xs font-semibold border-warning/30 text-warning">
-                En Espera
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Casos Pendientes</p>
-              <p className="text-4xl font-bold text-foreground">
-                {casosPorEstado.pendiente}
-              </p>
-              {(rangoMetricas === '7' || rangoMetricas === '30') && (
-                <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).className}`}>
-                  {getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).label}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-warning/20 bg-gradient-to-br from-card to-warning/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={() => handleCardClick('pendiente')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-warning/10 rounded-full blur-3xl group-hover:bg-warning/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-warning/10 ring-1 ring-warning/20">
+                      <svg className="w-6 h-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-warning/30 text-warning">
+                      En Espera
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Casos Pendientes</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosPorEstado.pendiente}
+                    </p>
+                    {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                      <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).className}`}>
+                        {getDeltaInfo(casosPorEstado.pendiente, casosPorEstadoPrevio.pendiente).label}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Casos que no fueron ingresados por completo y aún no se toma una decisión</p>
+            </TooltipContent>
+          </Tooltip>
 
-        <Card 
-          className="relative overflow-hidden border-secondary/20 bg-gradient-to-br from-card to-secondary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-          onClick={() => handleCardClick('derivado')}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-3xl group-hover:bg-secondary/20 transition-all"></div>
-          <CardContent className="p-6 relative">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-secondary/10 ring-1 ring-secondary/20">
-                <UserIcon className="w-6 h-6 text-secondary" />
-              </div>
-              <Badge variant="outline" className="text-xs font-semibold border-secondary/30 text-secondary">
-                Derivados
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Casos Derivados</p>
-              <p className="text-4xl font-bold text-foreground">
-                {casosPorEstado.derivado}
-              </p>
-              {(rangoMetricas === '7' || rangoMetricas === '30') && (
-                <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).className}`}>
-                  {getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).label}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-secondary/20 bg-gradient-to-br from-card to-secondary/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={() => handleCardClick('derivado')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-3xl group-hover:bg-secondary/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-secondary/10 ring-1 ring-secondary/20">
+                      <UserIcon className="w-6 h-6 text-secondary" />
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-secondary/30 text-secondary">
+                      Derivados
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Casos Derivados</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosPorEstado.derivado}
+                    </p>
+                    {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                      <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).className}`}>
+                        {getDeltaInfo(casosPorEstado.derivado, casosPorEstadoPrevio.derivado).label}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Casos que fueron derivados y que aún no se toma una decisión al respecto por un médico jefe</p>
+            </TooltipContent>
+          </Tooltip>
 
-        <Card 
-          className="relative overflow-hidden border-destructive/20 bg-gradient-to-br from-card to-destructive/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-          onClick={() => handleCardClick('rechazado')}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full blur-3xl group-hover:bg-destructive/20 transition-all"></div>
-          <CardContent className="p-6 relative">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-destructive/10 ring-1 ring-destructive/20">
-                <svg className="w-6 h-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <Badge variant="outline" className="text-xs font-semibold border-destructive/30 text-destructive">
-                No Aplicada
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Ley No Aplicada</p>
-              <p className="text-4xl font-bold text-foreground">
-                {casosPorEstado.rechazado}
-              </p>
-              {(rangoMetricas === '7' || rangoMetricas === '30') && (
-                <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).className}`}>
-                  {getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).label}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-destructive/20 bg-gradient-to-br from-card to-destructive/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={() => handleCardClick('rechazado')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full blur-3xl group-hover:bg-destructive/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-destructive/10 ring-1 ring-destructive/20">
+                      <svg className="w-6 h-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-destructive/30 text-destructive">
+                      No Aplicada
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Ley No Aplicada</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosPorEstado.rechazado}
+                    </p>
+                    {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                      <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).className}`}>
+                        {getDeltaInfo(casosPorEstado.rechazado, casosPorEstadoPrevio.rechazado).label}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Casos en que médico consideró no aplicar la ley</p>
+            </TooltipContent>
+          </Tooltip>
 
-        <Card 
-          className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
-          onClick={() => handleCardClick('aceptado')}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
-          <CardContent className="p-6 relative">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
-                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
-                Aplicada
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
-              <p className="text-4xl font-bold text-foreground">
-                {casosPorEstado.aceptado}
-              </p>
-              {(rangoMetricas === '7' || rangoMetricas === '30') && (
-                <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).className}`}>
-                  {getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).label}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-success/20 bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={() => handleCardClick('aceptado')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl group-hover:bg-success/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-success/10 ring-1 ring-success/20">
+                      <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-success/30 text-success">
+                      Aplicada
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Ley Aplicada</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosPorEstado.aceptado}
+                    </p>
+                    {(rangoMetricas === '7' || rangoMetricas === '30') && (
+                      <div className={`text-[11px] font-medium text-right mt-1 ${getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).className}`}>
+                        {getDeltaInfo(casosPorEstado.aceptado, casosPorEstadoPrevio.aceptado).label}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Casos en que médico consideró aplicar la ley</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        
+        {/* Segunda fila: 4 cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-amber-500/20 bg-gradient-to-br from-card to-amber-500/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={handleCardClickPendienteAseguradora}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20">
+                      <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-amber-500/30 text-amber-600">
+                      Pendiente
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Pendiente Resolución</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosPendientesAseguradora}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Casos pendientes de resolución por parte de la aseguradora</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-orange-500/20 bg-gradient-to-br from-card to-orange-500/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={handleCardClickPendienteEnvioAseguradora}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20">
+                      <svg className="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-orange-500/30 text-orange-600">
+                      Pendiente Envío
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Pendiente Envío</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosPendientesEnvioAseguradora}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Casos pendientes de comunicar a la aseguradora</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-red-600/20 bg-gradient-to-br from-card to-red-600/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={handleCardClickRechazadosAseguradora}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl group-hover:bg-red-600/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-red-600/10 ring-1 ring-red-600/20">
+                      <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-red-600/30 text-red-600">
+                      Rechazado
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Rechazos Aseguradora</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosRechazadosAseguradora}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ley fue aceptada por médico pero finalmente aseguradora lo rechazó</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card 
+                className="relative overflow-hidden border-green-600/20 bg-gradient-to-br from-card to-green-600/5 hover:shadow-xl transition-all duration-300 group cursor-pointer hover:scale-105"
+                onClick={handleCardClickAceptadosAseguradora}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-600/10 rounded-full blur-3xl group-hover:bg-green-600/20 transition-all"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-green-600/10 ring-1 ring-green-600/20">
+                      <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold border-green-600/30 text-green-600">
+                      Aceptado
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Aceptados Aseguradora</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {casosAceptadosAseguradora}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ley fue aceptada por médico y finalmente aseguradora lo aceptó</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
+      </TooltipProvider>
 
       {/* Header de lista */}
       <div id="casos-section" className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -750,6 +1054,10 @@ export function AdminCasosPanel() {
               handleRangoMetricasChange('todos');
               setFiltroMedico('todos');
               setFiltroCasoId(null);
+              setFiltroPendienteAseguradora(false);
+              setFiltroPendienteEnvioAseguradora(false);
+              setFiltroRechazadosAseguradora(false);
+              setFiltroAceptadosAseguradora(false);
               setCurrentPage(1);
             }}
             disabled={!filtrosActivos}
@@ -791,6 +1099,10 @@ export function AdminCasosPanel() {
                 setRangoMetricas('todos');
                 setFiltroMedico('todos');
                 setFiltroCasoId(null);
+                setFiltroPendienteAseguradora(false);
+                setFiltroPendienteEnvioAseguradora(false);
+                setFiltroRechazadosAseguradora(false);
+                setFiltroAceptadosAseguradora(false);
               }}
               className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
             >
