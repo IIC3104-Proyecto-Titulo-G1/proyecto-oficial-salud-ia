@@ -584,16 +584,51 @@ export default function AdminUsuarios() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'usuarios' | 'casos')} className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="usuarios" className="gap-2">
-              <Users className="w-4 h-4" />
-              Usuarios
-            </TabsTrigger>
-            <TabsTrigger value="casos" className="gap-2">
-              <FileText className="w-4 h-4" />
-              Casos
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList>
+              <TabsTrigger value="usuarios" className="gap-2">
+                <Users className="w-4 h-4" />
+                Usuarios
+              </TabsTrigger>
+              <TabsTrigger value="casos" className="gap-2">
+                <FileText className="w-4 h-4" />
+                Casos
+              </TabsTrigger>
+            </TabsList>
+            
+            {activeTab === 'usuarios' && (
+              <div className="flex gap-2">
+                <ExportDoctorMetricsButton
+                  doctors={filteredUsuarios
+                    .filter(u => u.rol === 'medico' || u.rol === 'medico_jefe')
+                    .map(u => ({
+                      id: u.id,
+                      nombre: u.nombre,
+                      email: u.email,
+                      rol: u.rol as 'medico' | 'medico_jefe',
+                      hospital: u.hospital,
+                      especialidad: u.especialidad,
+                    }))}
+                  rangoMetricas={rangoMetricas}
+                  fechaInicioMetricas={fechaInicioMetricas}
+                  fechaFinMetricas={fechaFinMetricas}
+                  usuarioExportador={userRoleData?.nombre || 'Administrador'}
+                  filtrosAplicados={{
+                    busqueda: searchTerm || undefined,
+                    rolFiltro: rolFiltro,
+                    filtrosMetricas: filtrosMetricas,
+                  }}
+                />
+                <Button
+                  onClick={() => handleOpenDialog()}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuevo Usuario
+                </Button>
+              </div>
+            )}
+          </div>
 
           <TabsContent value="usuarios" className="mt-0">
         {loading ? (
@@ -607,44 +642,10 @@ export default function AdminUsuarios() {
             {/* Barra de búsqueda y filtros */}
             <Card>
               <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <CardTitle>Buscar y Filtrar Usuarios</CardTitle>
-                    <CardDescription>
-                      Busca usuarios por nombre, email, hospital o especialidad
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <ExportDoctorMetricsButton
-                      doctors={filteredUsuarios
-                        .filter(u => u.rol === 'medico' || u.rol === 'medico_jefe')
-                        .map(u => ({
-                          id: u.id,
-                          nombre: u.nombre,
-                          email: u.email,
-                          rol: u.rol,
-                          hospital: u.hospital,
-                          especialidad: u.especialidad,
-                        }))}
-                      rangoMetricas={rangoMetricas}
-                      fechaInicioMetricas={fechaInicioMetricas}
-                      fechaFinMetricas={fechaFinMetricas}
-                      usuarioExportador={userRoleData?.nombre || 'Administrador'}
-                      filtrosAplicados={{
-                        busqueda: searchTerm || undefined,
-                        rolFiltro: rolFiltro,
-                        filtrosMetricas: filtrosMetricas,
-                      }}
-                    />
-                    <Button
-                      onClick={() => handleOpenDialog()}
-                      className="gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Nuevo Usuario
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle>Buscar y Filtrar Usuarios</CardTitle>
+                <CardDescription>
+                  Busca usuarios por nombre, email, hospital o especialidad
+                </CardDescription>
                 {/* Filtros de fecha y métricas */}
                 <div className="mt-4 pt-4 border-t space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
