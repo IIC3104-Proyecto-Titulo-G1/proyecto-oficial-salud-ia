@@ -654,7 +654,12 @@ export default function AdminEditUser() {
 
             <TabsContent value="estadisticas" className="space-y-6">
               {usuario.rol !== 'admin' ? (
-                <MedicoStatsDashboard medicoId={usuario.id} medicoRol={usuario.rol} />
+                <MedicoStatsDashboard 
+                  medicoId={usuario.id} 
+                  medicoRol={usuario.rol}
+                  medicoNombre={usuario.nombre}
+                  medicoImagen={usuario.imagen}
+                />
               ) : (
                 <Card>
                   <CardContent className="p-8 text-center">

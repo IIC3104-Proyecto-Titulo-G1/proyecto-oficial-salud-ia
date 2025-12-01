@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, ArrowRightLeft, Target, Info } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 import { consoleLogDebugger } from '@/lib/utils';
 
@@ -26,9 +27,11 @@ interface EstadisticasMedico {
 interface MedicoStatsDashboardProps {
   medicoId: string;
   medicoRol: 'medico' | 'medico_jefe';
+  medicoNombre?: string;
+  medicoImagen?: string | null;
 }
 
-export function MedicoStatsDashboard({ medicoId, medicoRol }: MedicoStatsDashboardProps) {
+export function MedicoStatsDashboard({ medicoId, medicoRol, medicoNombre, medicoImagen }: MedicoStatsDashboardProps) {
   const [rangoMetricas, setRangoMetricas] = useState<RangoMetricas>('todos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
@@ -269,8 +272,23 @@ export function MedicoStatsDashboard({ medicoId, medicoRol }: MedicoStatsDashboa
       {/* Filtros de tiempo */}
       <Card>
         <CardHeader>
-          <CardTitle>Filtros de Tiempo</CardTitle>
-          <CardDescription>Selecciona el período para las estadísticas</CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle>Filtros de Tiempo</CardTitle>
+              <CardDescription>Selecciona el período para las estadísticas</CardDescription>
+            </div>
+            {medicoNombre && (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={medicoImagen || ''} alt={medicoNombre} />
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    {medicoNombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-muted-foreground">{medicoNombre}</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
