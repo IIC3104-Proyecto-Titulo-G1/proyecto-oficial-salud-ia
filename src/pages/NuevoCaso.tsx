@@ -105,6 +105,28 @@ export default function NuevoCaso() {
   const [loading, setLoading] = useState(false);
   const [prefilling, setPrefilling] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showTestDataButtons, setShowTestDataButtons] = useState(false);
+
+  // Atajos de teclado para mostrar/ocultar botones de datos de prueba
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl + Alt + T para mostrar
+      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 't') {
+        event.preventDefault();
+        setShowTestDataButtons(true);
+      }
+      // Ctrl + Alt + O para ocultar
+      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'o') {
+        event.preventDefault();
+        setShowTestDataButtons(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const [evaluationMethod, setEvaluationMethod] = useState('rules');
   const testDatasets = {
@@ -1080,35 +1102,37 @@ export default function NuevoCaso() {
             <CardDescription>
               Complete la información del paciente y los datos clínicos para evaluar la Ley de Urgencia
             </CardDescription>
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillWithTestData('critico')}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                Llenar con datos de prueba (Crítico)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillWithTestData('leve')}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                Llenar con datos de prueba (Leve)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillWithTestData('intermedio')}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                Llenar con datos de prueba (Intermedio)
-              </Button>
-            </div>
+            {showTestDataButtons && (
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fillWithTestData('critico')}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  Llenar con datos de prueba (Crítico)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fillWithTestData('leve')}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  Llenar con datos de prueba (Leve)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fillWithTestData('intermedio')}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  Llenar con datos de prueba (Intermedio)
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">

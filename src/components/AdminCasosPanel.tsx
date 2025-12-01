@@ -1018,7 +1018,7 @@ export function AdminCasosPanel() {
               filtroAceptadosAseguradora,
             }}
             medicosData={medicosData}
-            usuarioExportador={userRoleData?.nombre || 'Administrador'}
+            usuarioExportador={(userRoleData && userRoleData.nombre) ? userRoleData.nombre : 'Administrador'}
           />
           <AseguradorasUpload onSuccess={loadCasos} />
         </div>
