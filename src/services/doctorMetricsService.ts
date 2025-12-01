@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { consoleLogDebugger } from '@/lib/utils';
 
 export interface DoctorBasicData {
   id: string;
@@ -251,7 +252,7 @@ export async function getMultipleDoctorsMetrics(
 ): Promise<DoctorCompleteMetrics[]> {
   const metricsPromises = doctors.map(doctor => 
     getDoctorCompleteMetrics(doctor, dateRange).catch(error => {
-      console.error(`Error obteniendo métricas para ${doctor.nombre}:`, error);
+      consoleLogDebugger(`Error obteniendo métricas para ${doctor.nombre}:`, error);
       // Retornar métricas vacías en caso de error
       return {
         id: doctor.id,

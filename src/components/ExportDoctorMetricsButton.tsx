@@ -9,6 +9,7 @@ import {
   type DoctorBasicData,
   type DoctorCompleteMetrics 
 } from '@/services/doctorMetricsService';
+import { consoleLogDebugger } from '@/lib/utils';
 
 interface FiltroMetrica {
   id: string;
@@ -462,7 +463,7 @@ export function ExportDoctorMetricsButton({
         description: `Se exportaron las métricas de ${metrics.length} doctor(es)`,
       });
     } catch (error: any) {
-      console.error('Error exportando métricas:', error);
+      consoleLogDebugger('Error exportando métricas:', error);
       toast({
         title: 'Error al exportar',
         description: error.message || 'Ocurrió un error al generar el archivo Excel',

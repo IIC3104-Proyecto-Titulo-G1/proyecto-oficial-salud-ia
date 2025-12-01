@@ -869,7 +869,7 @@ export default function NuevoCaso() {
         .insert([insertData]);
 
       if (error) {
-        console.error('Error de Supabase:', error);
+        consoleLogDebugger('Error de Supabase:', error);
         throw error;
       }
 
