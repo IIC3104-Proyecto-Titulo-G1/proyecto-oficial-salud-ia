@@ -18,6 +18,18 @@ CREATE POLICY "Admins can view all case resolutions"
   TO authenticated
   USING (public.has_role(auth.uid(), 'admin'));
 
+-- Política para que admins puedan actualizar resoluciones de casos
+CREATE POLICY "Admins can update case resolutions"
+  ON public.resolucion_caso FOR UPDATE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Política para que admins puedan insertar resoluciones de casos
+CREATE POLICY "Admins can insert case resolutions"
+  ON public.resolucion_caso FOR INSERT
+  TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
 -- Política para que admins puedan ver todas las sugerencias de IA
 CREATE POLICY "Admins can view all AI suggestions"
   ON public.sugerencia_ia FOR SELECT

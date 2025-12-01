@@ -50,40 +50,58 @@ export default function ComunicacionPaciente() {
 
   const loadData = async () => {
     if (!id) return;
+    setLoading(true);
 
-      const { data: casoData } = await supabase
-      .from('casos')
-      .select('id, nombre_paciente, email_paciente, diagnostico_principal, estado, medico_jefe_id, prevision, estado_resolucion_aseguradora')
-      .eq('id', id)
-      .single();
+    try {
+      // Cargar datos en paralelo
+      const [casoResult, sugerenciaResult, resolucionResult] = await Promise.all([
+        supabase
+          .from('casos')
+          .select('id, nombre_paciente, email_paciente, diagnostico_principal, estado, medico_jefe_id, prevision, estado_resolucion_aseguradora')
+          .eq('id', id)
+          .single(),
+        supabase
+          .from('sugerencia_ia')
+          .select('sugerencia, explicacion')
+          .eq('caso_id', id)
+          .order('fecha_procesamiento', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('resolucion_caso')
+          .select('comentario_email, email_paciente_enviado')
+          .eq('caso_id', id)
+          .maybeSingle()
+      ]);
 
-    const { data: sugerenciaData } = await supabase
-      .from('sugerencia_ia')
-      .select('sugerencia, explicacion')
-      .eq('caso_id', id)
-      .order('fecha_procesamiento', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      const casoData = casoResult.data;
+      const sugerenciaData = sugerenciaResult.data;
+      const resolucionData = resolucionResult.data;
 
-    // Cargar resolución para precargar comentario del email
-    const { data: resolucionData } = await supabase
-      .from('resolucion_caso')
-      .select('comentario_email')
-      .eq('caso_id', id)
-      .maybeSingle();
-
-    if (casoData) {
-      setCaso(casoData);
-      setEmailPaciente(casoData.email_paciente);
+      if (casoData) {
+        setCaso(casoData);
+        // Prioridad: 1) email del último correo enviado, 2) email del paciente del caso
+        const emailAMostrar = resolucionData?.email_paciente_enviado 
+          ? resolucionData.email_paciente_enviado 
+          : casoData.email_paciente;
+        setEmailPaciente(emailAMostrar);
+        consoleLogDebugger('Email cargado:', {
+          email_paciente_enviado: resolucionData?.email_paciente_enviado,
+          email_paciente: casoData.email_paciente,
+          email_seleccionado: emailAMostrar
+        });
+      }
+      setSugerencia(sugerenciaData);
+      
+      // Precargar comentario del email si existe
+      if (resolucionData?.comentario_email) {
+        setComentarioAdicional(resolucionData.comentario_email);
+      }
+    } catch (error) {
+      consoleLogDebugger('Error cargando datos:', error);
+    } finally {
+      setLoading(false);
     }
-    setSugerencia(sugerenciaData);
-    
-    // Precargar comentario del email si existe
-    if (resolucionData?.comentario_email) {
-      setComentarioAdicional(resolucionData.comentario_email);
-    }
-    
-    setLoading(false);
   };
 
   const handleEnviar = async (enviar: boolean) => {
@@ -139,21 +157,29 @@ export default function ComunicacionPaciente() {
         .maybeSingle();
 
       if (resolucionExistente) {
-        // Actualizar comentario del email
-        const { error: updateResolucionError } = await supabase
+        // Actualizar comentario del email y email usado
+        consoleLogDebugger('Actualizando resolución existente con email:', emailPaciente.trim());
+        const { data: updateData, error: updateResolucionError } = await supabase
           .from('resolucion_caso')
           .update({
             comentario_email: comentarioAdicional.trim() || null,
+            email_paciente_enviado: emailPaciente.trim() || null,
           })
-          .eq('caso_id', id);
+          .eq('caso_id', id)
+          .select();
 
-        if (updateResolucionError) throw updateResolucionError;
+        if (updateResolucionError) {
+          consoleLogDebugger('Error al actualizar resolución:', updateResolucionError);
+          throw updateResolucionError;
+        }
+        consoleLogDebugger('Resolución actualizada:', updateData);
       } else {
         // Crear nueva resolución
         const insertData: any = {
           caso_id: id,
           decision_medico: resultadoFinal,
           comentario_email: comentarioAdicional.trim() || null,
+          email_paciente_enviado: emailPaciente.trim() || null,
           fecha_decision_medico: new Date().toISOString(),
         };
 
@@ -164,11 +190,18 @@ export default function ComunicacionPaciente() {
           insertData.decision_final = resultadoFinal;
         }
 
-        const { error: resolucionError } = await supabase
+        consoleLogDebugger('Insertando nueva resolución con email:', emailPaciente.trim());
+        consoleLogDebugger('Datos a insertar:', insertData);
+        const { data: insertResult, error: resolucionError } = await supabase
           .from('resolucion_caso')
-          .insert([insertData]);
+          .insert([insertData])
+          .select();
 
-        if (resolucionError) throw resolucionError;
+        if (resolucionError) {
+          consoleLogDebugger('Error al insertar resolución:', resolucionError);
+          throw resolucionError;
+        }
+        consoleLogDebugger('Resolución insertada:', insertResult);
       }
 
       // Actualizar estado del caso si:
