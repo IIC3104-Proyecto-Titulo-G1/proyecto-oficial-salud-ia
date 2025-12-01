@@ -629,6 +629,12 @@ export default function AdminUsuarios() {
                       rangoMetricas={rangoMetricas}
                       fechaInicioMetricas={fechaInicioMetricas}
                       fechaFinMetricas={fechaFinMetricas}
+                      usuarioExportador={userRoleData?.nombre || 'Administrador'}
+                      filtrosAplicados={{
+                        busqueda: searchTerm || undefined,
+                        rolFiltro: rolFiltro,
+                        filtrosMetricas: filtrosMetricas,
+                      }}
                     />
                     <Button
                       onClick={() => handleOpenDialog()}
