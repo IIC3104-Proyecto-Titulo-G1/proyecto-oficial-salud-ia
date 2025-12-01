@@ -648,7 +648,7 @@ export default function AdminUsuarios() {
                 </CardDescription>
                 {/* Filtros de fecha y métricas */}
                 <div className="mt-4 pt-4 border-t space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {/* Filtro de fecha */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Rango de Tiempo para Métricas</Label>
@@ -694,106 +694,120 @@ export default function AdminUsuarios() {
                     </div>
                     {/* Filtros avanzados por métrica */}
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Filtros Avanzados por Métrica</Label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setFiltrosMetricas([...filtrosMetricas, {
-                              id: Date.now().toString(),
-                              tipo: 'totalCasos',
-                              operador: 'mayor_igual',
-                              valor: 0
-                            }]);
-                          }}
-                          className="gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Agregar filtro
-                        </Button>
-                      </div>
+                      <Label className="text-sm font-medium">Filtros Avanzados por Métrica</Label>
                       <div className="space-y-2">
-                        {filtrosMetricas.map((filtro, index) => (
-                          <div key={filtro.id} className="flex gap-2">
-                            <Select 
-                              value={filtro.tipo} 
-                              onValueChange={(value) => {
-                                const nuevosFiltros = [...filtrosMetricas];
-                                nuevosFiltros[index].tipo = value as TipoFiltroMetrica;
-                                setFiltrosMetricas(nuevosFiltros);
-                              }}
-                            >
-                              <SelectTrigger className="flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="totalCasos">Total de Casos</SelectItem>
-                                <SelectItem value="porcentajeAceptacionIA">% Aceptación IA</SelectItem>
-                                <SelectItem value="totalDerivaciones">Derivaciones</SelectItem>
-                                <SelectItem value="casosAceptadosAseguradora">Aceptados Aseguradora</SelectItem>
-                                <SelectItem value="casosRechazadosAseguradora">Rechazados Aseguradora</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Select 
-                              value={filtro.operador} 
-                              onValueChange={(value) => {
-                                const nuevosFiltros = [...filtrosMetricas];
-                                nuevosFiltros[index].operador = value as OperadorFiltro;
-                                setFiltrosMetricas(nuevosFiltros);
-                              }}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="mayor_igual">≥</SelectItem>
-                                <SelectItem value="menor_igual">≤</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              type="number"
-                              value={filtro.valor === 0 ? '' : filtro.valor}
-                              onChange={(e) => {
-                                const nuevosFiltros = [...filtrosMetricas];
-                                const valorInput = e.target.value;
-                                // Si está vacío, establecer 0
-                                if (valorInput === '') {
-                                  nuevosFiltros[index].valor = 0;
-                                } else {
-                                  // Convertir a número (esto elimina automáticamente ceros a la izquierda)
-                                  const valor = Number(valorInput);
-                                  // No permitir valores negativos
-                                  if (valor < 0) {
-                                    nuevosFiltros[index].valor = 0;
-                                  } else if (filtro.tipo === 'porcentajeAceptacionIA') {
-                                    // Para porcentajes, limitar a 100
-                                    nuevosFiltros[index].valor = valor > 100 ? 100 : valor;
-                                  } else {
-                                    nuevosFiltros[index].valor = valor;
-                                  }
-                                }
-                                setFiltrosMetricas(nuevosFiltros);
-                              }}
-                              placeholder={filtro.tipo === 'porcentajeAceptacionIA' ? '0-100%' : '0'}
-                              min={0}
-                              max={filtro.tipo === 'porcentajeAceptacionIA' ? 100 : undefined}
-                              step={filtro.tipo === 'porcentajeAceptacionIA' ? 0.1 : 1}
-                              className="w-24"
-                            />
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => {
-                                setFiltrosMetricas(filtrosMetricas.filter((_, i) => i !== index));
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        {filtrosMetricas.length === 0 && (
-                          <p className="text-xs text-muted-foreground">No hay filtros aplicados. Haz clic en "Agregar filtro" para comenzar.</p>
+                        {filtrosMetricas.length === 0 ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFiltrosMetricas([{
+                                id: Date.now().toString(),
+                                tipo: 'totalCasos',
+                                operador: 'mayor_igual',
+                                valor: 0
+                              }]);
+                            }}
+                            className="gap-2 w-full"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Agregar filtro
+                          </Button>
+                        ) : (
+                          <>
+                            {filtrosMetricas.map((filtro, index) => (
+                              <div key={filtro.id} className="flex gap-2">
+                                <Select 
+                                  value={filtro.tipo} 
+                                  onValueChange={(value) => {
+                                    const nuevosFiltros = [...filtrosMetricas];
+                                    nuevosFiltros[index].tipo = value as TipoFiltroMetrica;
+                                    setFiltrosMetricas(nuevosFiltros);
+                                  }}
+                                >
+                                  <SelectTrigger className="flex-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="totalCasos">Total de Casos</SelectItem>
+                                    <SelectItem value="porcentajeAceptacionIA">% Aceptación IA</SelectItem>
+                                    <SelectItem value="totalDerivaciones">Derivaciones</SelectItem>
+                                    <SelectItem value="casosAceptadosAseguradora">Aceptados Aseguradora</SelectItem>
+                                    <SelectItem value="casosRechazadosAseguradora">Rechazados Aseguradora</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Select 
+                                  value={filtro.operador} 
+                                  onValueChange={(value) => {
+                                    const nuevosFiltros = [...filtrosMetricas];
+                                    nuevosFiltros[index].operador = value as OperadorFiltro;
+                                    setFiltrosMetricas(nuevosFiltros);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="mayor_igual">≥</SelectItem>
+                                    <SelectItem value="menor_igual">≤</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  type="number"
+                                  value={filtro.valor === 0 ? '' : filtro.valor}
+                                  onChange={(e) => {
+                                    const nuevosFiltros = [...filtrosMetricas];
+                                    const valorInput = e.target.value;
+                                    // Si está vacío, establecer 0
+                                    if (valorInput === '') {
+                                      nuevosFiltros[index].valor = 0;
+                                    } else {
+                                      // Convertir a número (esto elimina automáticamente ceros a la izquierda)
+                                      const valor = Number(valorInput);
+                                      // No permitir valores negativos
+                                      if (valor < 0) {
+                                        nuevosFiltros[index].valor = 0;
+                                      } else if (filtro.tipo === 'porcentajeAceptacionIA') {
+                                        // Para porcentajes, limitar a 100
+                                        nuevosFiltros[index].valor = valor > 100 ? 100 : valor;
+                                      } else {
+                                        nuevosFiltros[index].valor = valor;
+                                      }
+                                    }
+                                    setFiltrosMetricas(nuevosFiltros);
+                                  }}
+                                  placeholder={filtro.tipo === 'porcentajeAceptacionIA' ? '0-100%' : '0'}
+                                  min={0}
+                                  max={filtro.tipo === 'porcentajeAceptacionIA' ? 100 : undefined}
+                                  step={filtro.tipo === 'porcentajeAceptacionIA' ? 0.1 : 1}
+                                  className="w-24"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    setFiltrosMetricas(filtrosMetricas.filter((_, i) => i !== index));
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    setFiltrosMetricas([...filtrosMetricas, {
+                                      id: Date.now().toString(),
+                                      tipo: 'totalCasos',
+                                      operador: 'mayor_igual',
+                                      valor: 0
+                                    }]);
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </>
                         )}
                       </div>
                     </div>
