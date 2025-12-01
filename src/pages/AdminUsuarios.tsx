@@ -117,11 +117,21 @@ export default function AdminUsuarios() {
         especialidad: u.especialidad,
         imagen: u.imagen,
       }));
-      setUsuarios(usuariosData);
+      
+      // Ordenar: primero médicos jefe, luego médicos normales, luego otros
+      const usuariosOrdenados = usuariosData.sort((a, b) => {
+        if (a.rol === 'medico_jefe' && b.rol !== 'medico_jefe') return -1;
+        if (a.rol !== 'medico_jefe' && b.rol === 'medico_jefe') return 1;
+        if (a.rol === 'medico' && b.rol !== 'medico') return -1;
+        if (a.rol !== 'medico' && b.rol === 'medico') return 1;
+        return 0;
+      });
+      
+      setUsuarios(usuariosOrdenados);
       setLoading(false);
       
       // Cargar métricas después de establecer los usuarios
-      loadMetricasMedicos(usuariosData);
+      loadMetricasMedicos(usuariosOrdenados);
     } else {
       setLoading(false);
     }
@@ -710,13 +720,32 @@ export default function AdminUsuarios() {
                             </Select>
                             <Input
                               type="number"
-                              value={filtro.valor}
+                              value={filtro.valor === 0 ? '' : filtro.valor}
                               onChange={(e) => {
                                 const nuevosFiltros = [...filtrosMetricas];
-                                nuevosFiltros[index].valor = e.target.value ? Number(e.target.value) : 0;
+                                const valorInput = e.target.value;
+                                // Si está vacío, establecer 0
+                                if (valorInput === '') {
+                                  nuevosFiltros[index].valor = 0;
+                                } else {
+                                  // Convertir a número (esto elimina automáticamente ceros a la izquierda)
+                                  const valor = Number(valorInput);
+                                  // No permitir valores negativos
+                                  if (valor < 0) {
+                                    nuevosFiltros[index].valor = 0;
+                                  } else if (filtro.tipo === 'porcentajeAceptacionIA') {
+                                    // Para porcentajes, limitar a 100
+                                    nuevosFiltros[index].valor = valor > 100 ? 100 : valor;
+                                  } else {
+                                    nuevosFiltros[index].valor = valor;
+                                  }
+                                }
                                 setFiltrosMetricas(nuevosFiltros);
                               }}
-                              placeholder="Valor"
+                              placeholder={filtro.tipo === 'porcentajeAceptacionIA' ? '0-100%' : '0'}
+                              min={0}
+                              max={filtro.tipo === 'porcentajeAceptacionIA' ? 100 : undefined}
+                              step={filtro.tipo === 'porcentajeAceptacionIA' ? 0.1 : 1}
                               className="w-24"
                             />
                             <Button
