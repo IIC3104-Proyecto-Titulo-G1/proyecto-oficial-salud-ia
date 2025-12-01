@@ -355,7 +355,7 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button className="gap-2 bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90">
           <FileSpreadsheet className="h-4 w-4" />
           Cargar Resoluciones Aseguradoras
         </Button>
