@@ -128,7 +128,7 @@ export function ExportDoctorMetricsButton({
       // Estilos para filas de datos (franjas alternadas)
       const evenRowStyle = {
         fill: {
-          fgColor: { rgb: 'E7E6E6' } // Gris claro
+          fgColor: { rgb: 'D6E9F5' } // Celeste claro
         },
         font: {
           sz: 10
@@ -137,10 +137,10 @@ export function ExportDoctorMetricsButton({
           vertical: 'center'
         },
         border: {
-          top: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          bottom: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          left: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          right: { style: 'thin', color: { rgb: 'D0D0D0' } }
+          top: { style: 'thin', color: { rgb: 'B3D9FF' } },
+          bottom: { style: 'thin', color: { rgb: 'B3D9FF' } },
+          left: { style: 'thin', color: { rgb: 'B3D9FF' } },
+          right: { style: 'thin', color: { rgb: 'B3D9FF' } }
         }
       };
 
@@ -155,10 +155,10 @@ export function ExportDoctorMetricsButton({
           vertical: 'center'
         },
         border: {
-          top: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          bottom: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          left: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          right: { style: 'thin', color: { rgb: 'D0D0D0' } }
+          top: { style: 'thin', color: { rgb: 'B3D9FF' } },
+          bottom: { style: 'thin', color: { rgb: 'B3D9FF' } },
+          left: { style: 'thin', color: { rgb: 'B3D9FF' } },
+          right: { style: 'thin', color: { rgb: 'B3D9FF' } }
         }
       };
 
