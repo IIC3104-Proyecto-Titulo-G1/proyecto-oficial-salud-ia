@@ -419,6 +419,13 @@ export default function VerCaso() {
       return;
     }
 
+    // Si es médico jefe en pendiente_envio y decide en contra de la IA, pedir comentario opcional
+    if (userRole === 'medico_jefe' && (caso as any)?.estado_resolucion_aseguradora === 'pendiente_envio' && sugerencia?.sugerencia === 'rechazar') {
+      setDecisionTemporal('aplicar');
+      setShowExplicacionModal(true);
+      return;
+    }
+
     // Flujo normal para médicos o casos pendientes
     if (sugerencia?.sugerencia === 'aceptar') {
       navigate(`/caso/${id}/comunicacion?accion=aceptar&decision=aplicar`);
@@ -435,6 +442,13 @@ export default function VerCaso() {
   const handleNoAplicarLey = () => {
     // Si es médico jefe en caso derivado o editado, pedir explicación primero
     if (userRole === 'medico_jefe' && (caso?.estado === 'derivado' || caso?.estado === 'aceptado' || caso?.estado === 'rechazado')) {
+      setDecisionTemporal('rechazar');
+      setShowExplicacionModal(true);
+      return;
+    }
+
+    // Si es médico jefe en pendiente_envio y decide en contra de la IA, pedir comentario opcional
+    if (userRole === 'medico_jefe' && (caso as any)?.estado_resolucion_aseguradora === 'pendiente_envio' && sugerencia?.sugerencia === 'aceptar') {
       setDecisionTemporal('rechazar');
       setShowExplicacionModal(true);
       return;
@@ -462,6 +476,48 @@ export default function VerCaso() {
         data: resolucionExistente
       } = await supabase.from('resolucion_caso').select('*').eq('caso_id', id).maybeSingle();
       const resultadoFinal = decisionTemporal === 'aplicar' ? 'aceptado' : 'rechazado';
+      
+      // Si es médico jefe en pendiente_envio y decide en contra de la IA, guardar comentario y resolver directamente (sin derivar)
+      const esPendienteEnvio = (caso as any)?.estado_resolucion_aseguradora === 'pendiente_envio';
+      const esDecisionContrariaIA = (decisionTemporal === 'aplicar' && sugerencia?.sugerencia === 'rechazar') || 
+                                     (decisionTemporal === 'rechazar' && sugerencia?.sugerencia === 'aceptar');
+      
+      if (userRole === 'medico_jefe' && esPendienteEnvio && esDecisionContrariaIA) {
+        // Guardar comentario opcional como razón de la decisión
+        if (resolucionExistente) {
+          await supabase.from('resolucion_caso').update({
+            decision_final: resultadoFinal,
+            comentario_medico: explicacionDecision.trim() || null,
+            fecha_decision_medico_jefe: new Date().toISOString()
+          }).eq('caso_id', id);
+        } else {
+          await supabase.from('resolucion_caso').insert([{
+            caso_id: id,
+            decision_final: resultadoFinal,
+            comentario_medico: explicacionDecision.trim() || null,
+            fecha_decision_medico_jefe: new Date().toISOString()
+          }]);
+        }
+
+        // Asignar médico jefe si no está asignado
+        if (!caso?.medico_jefe_id) {
+          await supabase.from('casos').update({
+            medico_jefe_id: user?.id
+          }).eq('id', id);
+        }
+
+        // Actualizar estado del caso directamente (no se deriva porque el médico jefe lo resuelve)
+        await supabase.from('casos').update({
+          estado: resultadoFinal
+        }).eq('id', id);
+
+        // Navegar a comunicación
+        const accion = sugerencia?.sugerencia === (decisionTemporal === 'aplicar' ? 'aceptar' : 'rechazar') ? 'aceptar' : 'rechazar';
+        navigate(`/caso/${id}/comunicacion?accion=${accion}&decision=${decisionTemporal}`);
+        return;
+      }
+
+      // Flujo normal para casos derivados o editados
       if (resolucionExistente) {
         await supabase.from('resolucion_caso').update({
           decision_final: resultadoFinal,
@@ -863,9 +919,9 @@ export default function VerCaso() {
                 {/* Solo mostrar botón de editar si está en pendiente_envio y NO es admin */}
                 {userRole !== 'admin' && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (
                   <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
-                    <Edit className="w-5 h-5 mr-2" />
-                    Editar Caso
-                  </Button>
+                  <Edit className="w-5 h-5 mr-2" />
+                  Editar Caso
+                </Button>
                 )}
               </div>
             </CardContent>
@@ -931,7 +987,7 @@ export default function VerCaso() {
                   {caso.edad_paciente} años • {caso.sexo_paciente === 'M' ? 'Masculino' : caso.sexo_paciente === 'F' ? 'Femenino' : 'Otro'}
                 </CardDescription>
                 {/* Tags de Previsión y Resolución Aseguradora */}
-                {((caso as any).prevision || (caso.estado === 'aceptado' && (caso as any).estado_resolucion_aseguradora)) && (
+                {((caso as any).prevision || (caso as any).estado_resolucion_aseguradora) && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {(caso as any).prevision && (
                       <Badge variant="outline" className="text-xs">
@@ -940,7 +996,7 @@ export default function VerCaso() {
                           : (caso as any).prevision}
                       </Badge>
                     )}
-                    {caso.estado === 'aceptado' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+                    {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
                       <Badge 
                         variant={
                           (caso as any).estado_resolucion_aseguradora === 'aceptada' 
@@ -960,7 +1016,7 @@ export default function VerCaso() {
                           : `Pendiente resolución ${(caso as any).prevision}`}
                       </Badge>
                     )}
-                  </div>
+              </div>
                 )}
               </div>
               {/* Botón de editar: solo cuando está en pendiente_envio (cualquier médico), derivados/cerrados (solo médico jefe) */}
@@ -1063,16 +1119,16 @@ export default function VerCaso() {
             </CardHeader>
             <CardContent className="space-y-4">
               {userRole !== 'admin' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Aplicar Ley
-                  </Button>
-                  <Button size="lg" onClick={handleNoAplicarLey} className={sugerencia?.sugerencia === 'rechazar' ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30" : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}>
-                    <XCircle className="w-5 h-5 mr-2" />
-                    No Aplicar Ley
-                  </Button>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Aplicar Ley
+                </Button>
+                <Button size="lg" onClick={handleNoAplicarLey} className={sugerencia?.sugerencia === 'rechazar' ? "w-full bg-destructive hover:bg-destructive/90 text-white shadow-md shadow-destructive/30" : "w-full bg-destructive/10 border-destructive text-destructive hover:bg-destructive/20"}>
+                  <XCircle className="w-5 h-5 mr-2" />
+                  No Aplicar Ley
+                </Button>
+              </div>
               )}
               {/* Botón para cancelar edición en casos cerrados que han sido reabiertos */}
               {(caso.estado === 'aceptado' || caso.estado === 'rechazado') && showReopenCase && <Button size="lg" variant="outline" onClick={handleCancelEdit} disabled={isCancelingEdit} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
@@ -1238,15 +1294,18 @@ export default function VerCaso() {
       <Dialog open={showExplicacionModal} onOpenChange={setShowExplicacionModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Explicación de Decisión</DialogTitle>
+            <DialogTitle>Comentario Opcional</DialogTitle>
             <DialogDescription>
-              Por favor, explique brevemente su decisión sobre {decisionTemporal === 'aplicar' ? 'aplicar' : 'no aplicar'} la ley de urgencia.
-              Esta explicación será visible en la resolución final del caso (opcional).
+              {userRole === 'medico_jefe' && (caso as any)?.estado_resolucion_aseguradora === 'pendiente_envio' && 
+               ((decisionTemporal === 'aplicar' && sugerencia?.sugerencia === 'rechazar') || 
+                (decisionTemporal === 'rechazar' && sugerencia?.sugerencia === 'aceptar'))
+                ? 'Su decisión es opuesta a la recomendación de la IA. Puede agregar un comentario opcional explicando su decisión. El caso será resuelto directamente sin derivación.'
+                : `Por favor, explique brevemente su decisión sobre ${decisionTemporal === 'aplicar' ? 'aplicar' : 'no aplicar'} la ley de urgencia. Esta explicación será visible en la resolución final del caso (opcional).`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="explicacion">Explicación (Opcional)</Label>
+              <Label htmlFor="explicacion">Comentario (Opcional)</Label>
               <Textarea id="explicacion" value={explicacionDecision} onChange={e => setExplicacionDecision(e.target.value)} rows={4} placeholder="Explique los motivos de su decisión..." />
             </div>
           </div>

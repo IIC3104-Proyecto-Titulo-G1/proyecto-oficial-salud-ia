@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [fechaFin, setFechaFin] = useState('');
   const [filtroMedico, setFiltroMedico] = useState('todos');
   const [filtroCasoId, setFiltroCasoId] = useState<string | null>(null);
+  const [filtroVistaCasos, setFiltroVistaCasos] = useState<'mis_casos' | 'todos_los_casos'>('todos_los_casos');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [medicosData, setMedicosData] = useState<Record<string, MedicoData>>({});
@@ -78,10 +79,24 @@ export default function Dashboard() {
 
   const loadCasos = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('casos')
-      .select('*, estado_resolucion_aseguradora, prevision')
-      .order('fecha_creacion', { ascending: false });
+      .select('*, estado_resolucion_aseguradora, prevision');
+    
+    // Para médico normal: solo sus casos
+    if (userRole === 'medico') {
+      query = query.eq('medico_tratante_id', user?.id);
+    }
+    // Para médico jefe: filtrar según el filtro de vista
+    else if (userRole === 'medico_jefe') {
+      if (filtroVistaCasos === 'mis_casos') {
+        // Solo casos derivados a él
+        query = query.eq('medico_jefe_id', user?.id);
+      }
+      // Si es 'todos_los_casos', no aplicamos filtro
+    }
+    
+    const { data, error } = await query.order('fecha_creacion', { ascending: false });
 
     if (error) {
       toast({
@@ -145,7 +160,7 @@ export default function Dashboard() {
     }
 
     setLoading(false);
-  }, [toast, userRole]);
+  }, [toast, userRole, user?.id, filtroVistaCasos]);
 
   useEffect(() => {
     if (!user) {
@@ -166,7 +181,7 @@ export default function Dashboard() {
 
     loadCasos();
      
-  }, [user, userRole]);
+  }, [user, userRole, loadCasos]);
 
   // Efecto separado para manejar el filtrado desde notificaciones
   useEffect(() => {
@@ -181,7 +196,7 @@ export default function Dashboard() {
         // También establecer el nombre en el searchTerm para que se muestre en el input
         setSearchTerm(caso.nombre_paciente);
         // Limpiar el parámetro de la URL después de procesarlo
-        setSearchParams({});
+      setSearchParams({});
         // Resetear el flag después de un pequeño delay para permitir que los otros efectos se ejecuten
         setTimeout(() => {
           filtroDesdeNotificacion.current = false;
@@ -367,7 +382,7 @@ export default function Dashboard() {
   // Resetear a la primera página cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
+  }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico, filtroVistaCasos]);
 
   const filteredCasos = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -400,8 +415,8 @@ export default function Dashboard() {
         }
       }
 
-      // Filtro por médico
-      if (filtroMedico !== 'todos' && caso.medico_tratante_id !== filtroMedico) {
+      // Filtro por médico (solo para médico jefe cuando está en "todos los casos")
+      if (userRole === 'medico_jefe' && filtroVistaCasos === 'todos_los_casos' && filtroMedico !== 'todos' && caso.medico_tratante_id !== filtroMedico) {
         return false;
       }
 
@@ -910,16 +925,16 @@ export default function Dashboard() {
             {userRole === 'medico_jefe' && (
               <AseguradorasUpload onSuccess={loadCasos} />
             )}
-            {(userRole === 'medico' || userRole === 'medico_jefe') && (
-              <Button
-                onClick={() => navigate('/caso/nuevo')}
-                size="lg"
-                className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
-              >
-                <Plus className="w-5 h-5" />
-                Nuevo Caso
-              </Button>
-            )}
+          {(userRole === 'medico' || userRole === 'medico_jefe') && (
+            <Button
+              onClick={() => navigate('/caso/nuevo')}
+              size="lg"
+              className="gap-2 bg-crm hover:bg-crm/90 text-white shadow-lg shadow-crm/30 hover:shadow-xl hover:shadow-crm/40 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Caso
+            </Button>
+          )}
           </div>
         </div>
 
@@ -947,8 +962,21 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
 
-            {/* Filtro por médico solo para médicos jefe */}
-            {userRole === 'medico_jefe' && Object.keys(medicosData).length > 0 && (
+            {/* Filtro de vista de casos solo para médicos jefe */}
+            {userRole === 'medico_jefe' && (
+              <Select value={filtroVistaCasos} onValueChange={(value) => setFiltroVistaCasos(value as 'mis_casos' | 'todos_los_casos')}>
+                <SelectTrigger className="sm:w-[200px]">
+                  <SelectValue placeholder="Vista de casos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mis_casos">Mis casos</SelectItem>
+                  <SelectItem value="todos_los_casos">Todos los casos</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Filtro por médico solo para médicos jefe cuando está en "todos los casos" */}
+            {userRole === 'medico_jefe' && filtroVistaCasos === 'todos_los_casos' && Object.keys(medicosData).length > 0 && (
               <Select value={filtroMedico || 'todos'} onValueChange={setFiltroMedico}>
                 <SelectTrigger className="sm:w-[200px]">
                   <SelectValue placeholder="Filtrar por médico" />
@@ -1099,8 +1127,8 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-col items-end gap-3">
                       <div className="flex items-center gap-2">
-                        {/* Tags de resolución de aseguradora (solo para casos aceptados) */}
-                        {caso.estado === 'aceptado' && (caso as any).prevision && (
+                        {/* Tags de resolución de aseguradora (cuando hay estado_resolucion_aseguradora y prevision) */}
+                        {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
                           <Badge 
                             variant={
                               (caso as any).estado_resolucion_aseguradora === 'aceptada' 

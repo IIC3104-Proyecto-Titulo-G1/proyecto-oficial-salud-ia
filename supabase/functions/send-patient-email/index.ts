@@ -40,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending email to:", to);
 
-    const resultText = result === 'aceptado' ? 'ACTIVADA' : 'NO ACTIVADA';
+    const resultText = result === 'aceptado' ? 'APLICAR LEY DE URGENCIA' : 'Ley de Urgencia Rechazada';
     const resultColor = result === 'aceptado' ? '#10b981' : '#ef4444';
     
     // Determinar el estado de la aseguradora
@@ -147,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <span style="color: #0EA5E9; font-size: 16px;">Decisión Médica:</span>
                   <div style="margin-top: 8px;">
                     <span class="result-status" style="font-size: 28px; font-weight: bold; color: ${resultColor};">
-                      LEY DE URGENCIA ${resultText}
+                      ${resultText}
                     </span>
                   </div>
                 </div>
@@ -166,22 +166,17 @@ const handler = async (req: Request): Promise<Response> => {
                       ${insuranceStatusText}
                     </span>
                   </div>
-                </div>
-              ` : ''}
-              
-              ${result === 'aceptado' && insuranceStatus && insuranceType ? `
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                  <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
-                    <strong>Importante:</strong> 
-                    ${insuranceStatus === 'aceptada' 
-                      ? `Su aseguradora (${insuranceType}) ha aprobado la decisión médica. La Ley de Urgencia está activa y en pleno efecto.`
-                      : insuranceStatus === 'rechazada'
-                      ? `Su aseguradora (${insuranceType}) ha rechazado la decisión médica. La Ley de Urgencia no se activará. Por favor, contacte con su aseguradora para más información sobre su caso.`
-                      : (insuranceStatus === 'pendiente' || insuranceStatus === 'pendiente_envio')
-                      ? `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.`
-                      : `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.`
-                    }
-                  </p>
+                  
+                  ${result === 'aceptado' && insuranceStatus && insuranceType && insuranceStatus === 'pendiente' ? `
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
+                          <strong>Importante:</strong> 
+                          Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.
+                        </p>
+                      </div>
+                    </div>
+                  ` : ''}
                 </div>
               ` : ''}
               

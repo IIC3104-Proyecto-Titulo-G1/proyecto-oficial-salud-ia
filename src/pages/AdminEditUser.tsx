@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ export default function AdminEditUser() {
   const { userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -434,17 +435,36 @@ export default function AdminEditUser() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto space-y-6">
-          <Tabs defaultValue="informacion" className="w-full">
+          <Tabs defaultValue={searchParams.get('tab') === 'informacion' ? 'informacion' : 'estadisticas'} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="informacion" className="gap-2">
-                <UserCircle className="w-4 h-4" />
-                Información
-              </TabsTrigger>
               <TabsTrigger value="estadisticas" className="gap-2" disabled={usuario.rol === 'admin'}>
                 <BarChart3 className="w-4 h-4" />
                 Estadísticas
               </TabsTrigger>
+              <TabsTrigger value="informacion" className="gap-2">
+                <UserCircle className="w-4 h-4" />
+                Información
+              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="estadisticas" className="space-y-6">
+              {usuario.rol !== 'admin' ? (
+                <MedicoStatsDashboard 
+                  medicoId={usuario.id} 
+                  medicoRol={usuario.rol}
+                  medicoNombre={usuario.nombre}
+                  medicoImagen={usuario.imagen}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">
+                      Las estadísticas solo están disponibles para médicos y médicos jefe.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
             <TabsContent value="informacion" className="space-y-6">
           {/* Información Personal con Imagen */}
@@ -650,25 +670,6 @@ export default function AdminEditUser() {
               )}
             </Button>
           </div>
-            </TabsContent>
-
-            <TabsContent value="estadisticas" className="space-y-6">
-              {usuario.rol !== 'admin' ? (
-                <MedicoStatsDashboard 
-                  medicoId={usuario.id} 
-                  medicoRol={usuario.rol}
-                  medicoNombre={usuario.nombre}
-                  medicoImagen={usuario.imagen}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <p className="text-muted-foreground">
-                      Las estadísticas solo están disponibles para médicos y médicos jefe.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -16,6 +16,7 @@ import { consoleLogDebugger } from '@/lib/utils';
 import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Users, FileText, Calendar, Filter, X, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdminCasosPanel } from '@/components/AdminCasosPanel';
+import { ExportDoctorMetricsButton } from '@/components/ExportDoctorMetricsButton';
 
 interface Usuario {
   id: string;
@@ -95,8 +96,10 @@ export default function AdminUsuarios() {
     const tabParam = searchParams.get('tab');
     if (tabParam === 'casos' || tabParam === 'usuarios') {
       setActiveTab(tabParam);
-      // Limpiar el parámetro de la URL después de leerlo
-      setSearchParams({}, { replace: true });
+      // Limpiar solo el parámetro tab, pero preservar otros parámetros como 'medico'
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('tab');
+      setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -143,8 +146,8 @@ export default function AdminUsuarios() {
       if (usuarioEditar.id === user?.id) {
         navigate('/admin/perfil');
       } else {
-        // Navegar a la vista de edición de otro usuario
-        navigate(`/admin/usuario/${usuarioEditar.id}`);
+        // Navegar a la vista de edición de otro usuario, abriendo directamente en Estadísticas
+        navigate(`/admin/usuario/${usuarioEditar.id}?tab=estadisticas`);
       }
     } else {
       // Crear nuevo usuario - mantener el modal
@@ -163,11 +166,11 @@ export default function AdminUsuarios() {
   };
 
   const handleCardClick = (usuario: Usuario) => {
-    // Navegar a la vista de detalle del usuario
+    // Navegar a la vista de detalle del usuario, abriendo directamente en Estadísticas
     if (usuario.id === user?.id) {
       navigate('/admin/perfil');
     } else {
-      navigate(`/admin/usuario/${usuario.id}`);
+      navigate(`/admin/usuario/${usuario.id}?tab=estadisticas`);
     }
   };
 
@@ -415,8 +418,14 @@ export default function AdminUsuarios() {
             return resolucion && (resolucion.decision_final || resolucion.decision_medico);
           }).length;
         } else {
-          // Para médico normal: casos que él derivó (estado = 'derivado' y medico_tratante_id = su ID)
-          totalDerivaciones = casos?.filter(c => c.estado === 'derivado' && c.medico_tratante_id === medico.id).length || 0;
+          // Para médico normal: casos que él derivó
+          // Un caso fue derivado si tiene medico_jefe_id asignado (independientemente del estado actual)
+          // porque el estado puede cambiar después de que el médico jefe lo resuelva
+          totalDerivaciones = casos?.filter(c => 
+            c.medico_tratante_id === medico.id && 
+            c.medico_jefe_id !== null && 
+            c.medico_jefe_id !== undefined
+          ).length || 0;
         }
 
         // Porcentaje aceptación IA
@@ -605,13 +614,36 @@ export default function AdminUsuarios() {
                       Busca usuarios por nombre, email, hospital o especialidad
                     </CardDescription>
                   </div>
-                  <Button
-                    onClick={() => handleOpenDialog()}
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Nuevo Usuario
-                  </Button>
+                  <div className="flex gap-2">
+                    <ExportDoctorMetricsButton
+                      doctors={filteredUsuarios
+                        .filter(u => u.rol === 'medico' || u.rol === 'medico_jefe')
+                        .map(u => ({
+                          id: u.id,
+                          nombre: u.nombre,
+                          email: u.email,
+                          rol: u.rol,
+                          hospital: u.hospital,
+                          especialidad: u.especialidad,
+                        }))}
+                      rangoMetricas={rangoMetricas}
+                      fechaInicioMetricas={fechaInicioMetricas}
+                      fechaFinMetricas={fechaFinMetricas}
+                      usuarioExportador={userRoleData?.nombre || 'Administrador'}
+                      filtrosAplicados={{
+                        busqueda: searchTerm || undefined,
+                        rolFiltro: rolFiltro,
+                        filtrosMetricas: filtrosMetricas,
+                      }}
+                    />
+                    <Button
+                      onClick={() => handleOpenDialog()}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Nuevo Usuario
+                    </Button>
+                  </div>
                 </div>
                 {/* Filtros de fecha y métricas */}
                 <div className="mt-4 pt-4 border-t space-y-4">

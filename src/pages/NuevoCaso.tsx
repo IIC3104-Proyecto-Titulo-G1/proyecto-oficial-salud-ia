@@ -105,6 +105,28 @@ export default function NuevoCaso() {
   const [loading, setLoading] = useState(false);
   const [prefilling, setPrefilling] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showTestDataButtons, setShowTestDataButtons] = useState(false);
+
+  // Atajos de teclado para mostrar/ocultar botones de datos de prueba
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl + Alt + T para mostrar
+      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 't') {
+        event.preventDefault();
+        setShowTestDataButtons(true);
+      }
+      // Ctrl + Alt + O para ocultar
+      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'o') {
+        event.preventDefault();
+        setShowTestDataButtons(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const [evaluationMethod, setEvaluationMethod] = useState('rules');
   const testDatasets = {
@@ -752,7 +774,7 @@ export default function NuevoCaso() {
 
   const saveEvaluationResult = async (casoId: string, result: any, method: string) => {
     try {
-      console.log('Guardando resultado:', { casoId, result, method });
+      consoleLogDebugger('Guardando resultado:', { casoId, result, method });
 
       const payload = result?.data ?? result?.result ?? result;
       let sugerencia: 'aceptar' | 'rechazar' | 'incierto' = 'incierto';
@@ -840,20 +862,20 @@ export default function NuevoCaso() {
         explicacion: explicacion,
       };
 
-      console.log('Insertando en sugerencia_ia:', insertData);
+      consoleLogDebugger('Insertando en sugerencia_ia:', insertData);
 
       const { error } = await supabase
         .from('sugerencia_ia')
         .insert([insertData]);
 
       if (error) {
-        console.error('Error de Supabase:', error);
+        consoleLogDebugger('Error de Supabase:', error);
         throw error;
       }
 
-      console.log('Resultado guardado exitosamente');
+      consoleLogDebugger('Resultado guardado exitosamente');
     } catch (error: any) {
-      console.error('Error guardando resultado:', {
+      consoleLogDebugger('Error guardando resultado:', {
         casoId,
         method,
         error: error.message,
@@ -1080,35 +1102,37 @@ export default function NuevoCaso() {
             <CardDescription>
               Complete la información del paciente y los datos clínicos para evaluar la Ley de Urgencia
             </CardDescription>
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillWithTestData('critico')}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                Llenar con datos de prueba (Crítico)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillWithTestData('leve')}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                Llenar con datos de prueba (Leve)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillWithTestData('intermedio')}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                Llenar con datos de prueba (Intermedio)
-              </Button>
-            </div>
+            {showTestDataButtons && (
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fillWithTestData('critico')}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  Llenar con datos de prueba (Crítico)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fillWithTestData('leve')}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  Llenar con datos de prueba (Leve)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fillWithTestData('intermedio')}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  Llenar con datos de prueba (Intermedio)
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
