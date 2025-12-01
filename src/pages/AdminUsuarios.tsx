@@ -415,8 +415,14 @@ export default function AdminUsuarios() {
             return resolucion && (resolucion.decision_final || resolucion.decision_medico);
           }).length;
         } else {
-          // Para médico normal: casos que él derivó (estado = 'derivado' y medico_tratante_id = su ID)
-          totalDerivaciones = casos?.filter(c => c.estado === 'derivado' && c.medico_tratante_id === medico.id).length || 0;
+          // Para médico normal: casos que él derivó
+          // Un caso fue derivado si tiene medico_jefe_id asignado (independientemente del estado actual)
+          // porque el estado puede cambiar después de que el médico jefe lo resuelva
+          totalDerivaciones = casos?.filter(c => 
+            c.medico_tratante_id === medico.id && 
+            c.medico_jefe_id !== null && 
+            c.medico_jefe_id !== undefined
+          ).length || 0;
         }
 
         // Porcentaje aceptación IA
