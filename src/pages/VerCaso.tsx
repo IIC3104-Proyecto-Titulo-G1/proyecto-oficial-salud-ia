@@ -1043,7 +1043,7 @@ export default function VerCaso() {
           </Card>}
 
         {/* Acciones para casos pendientes o derivados */}
-        {sugerencia && (caso.estado === 'pendiente' || caso.estado === 'derivado' && (userRole === 'medico_jefe' || userRole === 'admin') || (userRole === 'medico_jefe' || userRole === 'admin') && showReopenCase) && <Card>
+        {sugerencia && userRole !== 'admin' && (caso.estado === 'pendiente' || (caso.estado === 'derivado' && userRole === 'medico_jefe') || (userRole === 'medico_jefe' && showReopenCase)) && <Card>
             <CardHeader>
               <CardTitle>Decisión del Médico</CardTitle>
               <CardDescription>

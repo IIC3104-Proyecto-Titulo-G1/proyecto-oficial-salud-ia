@@ -80,7 +80,7 @@ export default function Dashboard() {
     setLoading(true);
     const { data, error } = await supabase
       .from('casos')
-      .select('*')
+      .select('*, estado_resolucion_aseguradora, prevision')
       .order('fecha_creacion', { ascending: false });
 
     if (error) {
@@ -91,6 +91,27 @@ export default function Dashboard() {
       });
     } else {
       setCasos(data || []);
+      
+      // Log para verificar que los campos se carguen correctamente
+      if (data && data.length > 0) {
+        const casosConResolucion = data.filter(c => (c as any).estado_resolucion_aseguradora);
+        consoleLogDebugger('🔍 Casos con estado_resolucion_aseguradora:', casosConResolucion.map(c => ({
+          episodio: (c as any).episodio,
+          estado: c.estado,
+          estado_resolucion_aseguradora: (c as any).estado_resolucion_aseguradora,
+          prevision: (c as any).prevision
+        })));
+        
+        // Log específico para casos que deberían mostrar el badge
+        const casosAceptados = data.filter(c => c.estado === 'aceptado' && (c as any).prevision);
+        consoleLogDebugger('🔍 Casos aceptados con prevision:', casosAceptados.map(c => ({
+          episodio: (c as any).episodio,
+          estado: c.estado,
+          estado_resolucion_aseguradora: (c as any).estado_resolucion_aseguradora,
+          prevision: (c as any).prevision,
+          tieneEstadoResolucion: !!(c as any).estado_resolucion_aseguradora
+        })));
+      }
       
       // Cargar información de médicos solo si es médico jefe
       consoleLogDebugger('🔍 userRole:', userRole);
@@ -887,7 +908,7 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             {userRole === 'medico_jefe' && (
-              <AseguradorasUpload />
+              <AseguradorasUpload onSuccess={loadCasos} />
             )}
             {(userRole === 'medico' || userRole === 'medico_jefe') && (
               <Button
@@ -1079,7 +1100,7 @@ export default function Dashboard() {
                     <div className="flex flex-col items-end gap-3">
                       <div className="flex items-center gap-2">
                         {/* Tags de resolución de aseguradora (solo para casos aceptados) */}
-                        {caso.estado === 'aceptado' && (caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
+                        {caso.estado === 'aceptado' && (caso as any).prevision && (
                           <Badge 
                             variant={
                               (caso as any).estado_resolucion_aseguradora === 'aceptada' 
