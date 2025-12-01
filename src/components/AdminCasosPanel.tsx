@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -982,49 +983,46 @@ export function AdminCasosPanel() {
       </div>
       </TooltipProvider>
 
-      {/* Header de lista */}
-      <div id="casos-section" className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold mb-2 text-foreground">Casos Recientes</h2>
-          <p className="text-muted-foreground">
-            Ver y gestionar casos clínicos bajo la Ley de Urgencia
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <ExportCasosMetricsButton
-            casosFiltrados={filteredCasos}
-            casosParaMetricas={casosParaMetricas}
-            metricas={{
-              totalCasos: casosParaMetricas.length,
-              casosPendientes: casosPorEstado.pendiente,
-              casosDerivados: casosPorEstado.derivado,
-              casosRechazados: casosPorEstado.rechazado,
-              casosAceptados: casosPorEstado.aceptado,
-              casosPendientesAseguradora,
-              casosPendientesEnvioAseguradora,
-              casosRechazadosAseguradora,
-              casosAceptadosAseguradora,
-            }}
-            filtros={{
-              searchTerm,
-              estadoFiltro,
-              fechaInicio,
-              fechaFin,
-              filtroMedico,
-              rangoMetricas,
-              filtroPendienteAseguradora,
-              filtroPendienteEnvioAseguradora,
-              filtroRechazadosAseguradora,
-              filtroAceptadosAseguradora,
-            }}
-            medicosData={medicosData}
-            usuarioExportador={(userRoleData && userRoleData.nombre) ? userRoleData.nombre : 'Administrador'}
-          />
-          <AseguradorasUpload onSuccess={loadCasos} />
-        </div>
-      </div>
+      {/* Buttons container se renderiza via portal */}
+      {typeof window !== 'undefined' && document.getElementById('admin-casos-buttons-container') && 
+        ReactDOM.createPortal(
+          <>
+            <ExportCasosMetricsButton
+              casosFiltrados={filteredCasos}
+              casosParaMetricas={casosParaMetricas}
+              metricas={{
+                totalCasos: casosParaMetricas.length,
+                casosPendientes: casosPorEstado.pendiente,
+                casosDerivados: casosPorEstado.derivado,
+                casosRechazados: casosPorEstado.rechazado,
+                casosAceptados: casosPorEstado.aceptado,
+                casosPendientesAseguradora,
+                casosPendientesEnvioAseguradora,
+                casosRechazadosAseguradora,
+                casosAceptadosAseguradora,
+              }}
+              filtros={{
+                searchTerm,
+                estadoFiltro,
+                fechaInicio,
+                fechaFin,
+                filtroMedico,
+                rangoMetricas,
+                filtroPendienteAseguradora,
+                filtroPendienteEnvioAseguradora,
+                filtroRechazadosAseguradora,
+                filtroAceptadosAseguradora,
+              }}
+              medicosData={medicosData}
+              usuarioExportador={(userRoleData && userRoleData.nombre) ? userRoleData.nombre : 'Administrador'}
+            />
+            <AseguradorasUpload onSuccess={loadCasos} />
+          </>,
+          document.getElementById('admin-casos-buttons-container')!
+        )
+      }
 
-      <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div id="casos-section" className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <div className="relative sm:max-w-[300px] w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
