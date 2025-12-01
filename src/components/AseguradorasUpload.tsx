@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Upload, FileSpreadsheet } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { consoleLogDebugger } from '@/lib/utils';
+import * as XLSX from 'xlsx';
 
 interface AseguradorasUploadProps {
   onSuccess?: () => void;
@@ -17,7 +18,22 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
   const [open, setOpen] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Prevenir auto-focus cuando se abre el modal
+  useEffect(() => {
+    if (open && textareaRef.current) {
+      // Pequeño delay para asegurar que el modal esté completamente renderizado
+      setTimeout(() => {
+        if (textareaRef.current && document.activeElement === textareaRef.current) {
+          textareaRef.current.blur();
+        }
+      }, 100);
+    }
+  }, [open]);
 
   const processResolutions = async (input: string) => {
     setProcessing(true);
@@ -194,6 +210,148 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
     await processResolutions(textInput);
   };
 
+  const handleFileSelect = async (file: File) => {
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      toast({
+        title: 'Formato inválido',
+        description: 'Por favor seleccione un archivo Excel (.xlsx o .xls)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      // Obtener la primera hoja
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+      if (jsonData.length === 0) {
+        toast({
+          title: 'Archivo vacío',
+          description: 'El archivo Excel no contiene datos',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Buscar las columnas "Episodio" y "Validación" en la primera fila
+      const headerRow = jsonData[0] || [];
+      let episodioColIndex = -1;
+      let validacionColIndex = -1;
+
+      headerRow.forEach((cell, index) => {
+        const cellValue = String(cell || '').trim();
+        if (cellValue.toLowerCase() === 'episodio' || cellValue.toLowerCase() === 'episode') {
+          episodioColIndex = index;
+        }
+        if (cellValue.toLowerCase() === 'validación' || 
+            cellValue.toLowerCase() === 'validacion' || 
+            cellValue.toLowerCase() === 'validación' ||
+            cellValue.toLowerCase() === 'validation') {
+          validacionColIndex = index;
+        }
+      });
+
+      // Verificar que se encontraron las columnas
+      const columnasFaltantes: string[] = [];
+      if (episodioColIndex === -1) {
+        columnasFaltantes.push('Episodio');
+      }
+      if (validacionColIndex === -1) {
+        columnasFaltantes.push('Validación');
+      }
+
+      if (columnasFaltantes.length > 0) {
+        toast({
+          title: 'Columnas no encontradas',
+          description: `Las columnas ${columnasFaltantes.join(' y ')} no fueron encontradas en el archivo Excel`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Extraer datos y convertir a formato texto
+      const lines: string[] = [];
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const episodio = String(row[episodioColIndex] || '').trim();
+        const validacion = String(row[validacionColIndex] || '').trim();
+
+        if (episodio && validacion) {
+          // Traducir PERTINENTE/NO PERTINENTE a Aceptada/Rechazada
+          let resolucion = validacion;
+          const validacionUpper = validacion.toUpperCase();
+          if (validacionUpper === 'PERTINENTE') {
+            resolucion = 'Aceptada';
+          } else if (validacionUpper === 'NO PERTINENTE' || validacionUpper === 'NO PERTINENTE') {
+            resolucion = 'Rechazada';
+          }
+
+          lines.push(`${episodio},${resolucion}`);
+        }
+      }
+
+      if (lines.length === 0) {
+        toast({
+          title: 'Sin datos válidos',
+          description: 'No se encontraron filas con datos válidos en el archivo Excel',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Poner los datos en el textarea
+      setTextInput(lines.join('\n'));
+
+      toast({
+        title: 'Archivo procesado',
+        description: `Se cargaron ${lines.length} registro(s) desde el archivo Excel`,
+      });
+    } catch (error: any) {
+      consoleLogDebugger('Error procesando archivo Excel:', error);
+      toast({
+        title: 'Error al procesar archivo',
+        description: error.message || 'Ocurrió un error al leer el archivo Excel',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+    // Resetear el input para permitir seleccionar el mismo archivo nuevamente
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -202,7 +360,12 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
           Cargar Resoluciones Aseguradoras
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent 
+        className="max-w-2xl"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Cargar Pertinencia/Resolución de Aseguradoras</DialogTitle>
           <DialogDescription>
@@ -231,15 +394,59 @@ export function AseguradorasUpload({ onSuccess }: AseguradorasUploadProps = {} a
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="resolutions">Datos de Resoluciones</Label>
-            <Textarea
-              id="resolutions"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              placeholder={`EP-2024-001,Aceptada\nEP-2024-002,Rechazada\nEP-2024-003,Pendiente\nEP-2024-004,PendienteEnvio`}
-              rows={10}
-              className="font-mono text-sm"
-              disabled={processing}
-            />
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`relative border-2 border-dashed rounded-lg transition-colors ${
+                isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+              }`}
+            >
+              <Textarea
+                ref={textareaRef}
+                id="resolutions"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder={`EP-2024-001,Aceptada\nEP-2024-002,Rechazada\nEP-2024-003,Pendiente\nEP-2024-004,PendienteEnvio`}
+                rows={10}
+                className="font-mono text-sm border-0 focus-visible:ring-0"
+                disabled={processing}
+                tabIndex={-1}
+                onFocus={(e) => {
+                  // Prevenir que se seleccione el texto al hacer focus
+                  e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+                }}
+              />
+              {isDragging && (
+                <div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-lg pointer-events-none">
+                  <p className="text-primary font-medium">Suelta el archivo Excel aquí</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileInputChange}
+                className="hidden"
+                id="excel-file-input"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={processing}
+                className="gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Seleccionar archivo Excel
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                O arrastra y suelta un archivo Excel aquí
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">
