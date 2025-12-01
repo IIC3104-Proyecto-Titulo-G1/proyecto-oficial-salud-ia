@@ -1114,11 +1114,10 @@ export default function VerCaso() {
             <CardHeader>
               <CardTitle>Decisión del Médico</CardTitle>
               <CardDescription>
-                {userRole === 'medico_jefe' ? 'Como médico jefe, puede tomar la decisión final sobre este caso.' : userRole === 'admin' ? 'Como administrador, puede ver la información del caso pero no puede tomar decisiones médicas.' : 'Revise la sugerencia de IA y tome una decisión sobre el caso'}
+                {userRole === 'medico_jefe' ? 'Como médico jefe, puede tomar la decisión final sobre este caso.' : 'Revise la sugerencia de IA y tome una decisión sobre el caso'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {userRole !== 'admin' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button size="lg" onClick={handleAplicarLey} className={sugerencia?.sugerencia === 'aceptar' ? "w-full bg-crm hover:bg-crm/90 text-white shadow-md shadow-crm/30" : "w-full bg-crm/10 border-crm text-crm hover:bg-crm/20"}>
                   <CheckCircle className="w-5 h-5 mr-2" />
@@ -1129,7 +1128,6 @@ export default function VerCaso() {
                   No Aplicar Ley
                 </Button>
               </div>
-              )}
               {/* Botón para cancelar edición en casos cerrados que han sido reabiertos */}
               {(caso.estado === 'aceptado' || caso.estado === 'rechazado') && showReopenCase && <Button size="lg" variant="outline" onClick={handleCancelEdit} disabled={isCancelingEdit} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
                   {isCancelingEdit ? 'Cancelando...' : 'Cancelar Edición'}

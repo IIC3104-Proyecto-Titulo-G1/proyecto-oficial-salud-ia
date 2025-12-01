@@ -69,7 +69,7 @@ export default function ComunicacionPaciente() {
           .maybeSingle(),
         supabase
       .from('resolucion_caso')
-          .select('comentario_email, email_paciente_enviado')
+          .select('comentario_email, comentario_medico, email_paciente_enviado, decision_medico, decision_final')
       .eq('caso_id', id)
           .maybeSingle()
       ]);

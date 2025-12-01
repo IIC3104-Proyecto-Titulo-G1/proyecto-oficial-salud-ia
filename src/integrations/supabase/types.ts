@@ -307,6 +307,7 @@ export type Database = {
             | Database["public"]["Enums"]["resultado_comunicacion"]
             | null
           decision_medico: Database["public"]["Enums"]["decision_tipo"] | null
+          email_paciente_enviado: string | null
           fecha_decision_medico: string | null
           fecha_decision_medico_jefe: string | null
           id: string
@@ -320,6 +321,7 @@ export type Database = {
             | Database["public"]["Enums"]["resultado_comunicacion"]
             | null
           decision_medico?: Database["public"]["Enums"]["decision_tipo"] | null
+          email_paciente_enviado?: string | null
           fecha_decision_medico?: string | null
           fecha_decision_medico_jefe?: string | null
           id?: string
@@ -333,6 +335,7 @@ export type Database = {
             | Database["public"]["Enums"]["resultado_comunicacion"]
             | null
           decision_medico?: Database["public"]["Enums"]["decision_tipo"] | null
+          email_paciente_enviado?: string | null
           fecha_decision_medico?: string | null
           fecha_decision_medico_jefe?: string | null
           id?: string
