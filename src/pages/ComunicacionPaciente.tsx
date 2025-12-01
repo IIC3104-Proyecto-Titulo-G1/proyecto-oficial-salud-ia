@@ -312,23 +312,23 @@ export default function ComunicacionPaciente() {
   
   if (decisionMedico) {
     // Si hay una decisión nueva del médico, usarla
-    resultado = decisionMedico === 'aplicar' ? 'ACTIVADA' : 'NO ACTIVADA';
+    resultado = decisionMedico === 'aplicar' ? 'APLICAR LEY DE URGENCIA' : 'Ley de Urgencia Rechazada';
   } else if (caso.estado === 'aceptado' || caso.estado === 'rechazado') {
     // Si el caso ya está cerrado, usar el estado del caso
-    resultado = caso.estado === 'aceptado' ? 'ACTIVADA' : 'NO ACTIVADA';
+    resultado = caso.estado === 'aceptado' ? 'APLICAR LEY DE URGENCIA' : 'Ley de Urgencia Rechazada';
   } else if (sugerencia) {
     // Si no está cerrado, calcular basado en acción y sugerencia
     if (accionMedico === 'aceptar') {
-      resultado = sugerencia.sugerencia === 'aceptar' ? 'ACTIVADA' : 'NO ACTIVADA';
+      resultado = sugerencia.sugerencia === 'aceptar' ? 'APLICAR LEY DE URGENCIA' : 'Ley de Urgencia Rechazada';
     } else {
-      resultado = sugerencia.sugerencia === 'aceptar' ? 'NO ACTIVADA' : 'ACTIVADA';
+      resultado = sugerencia.sugerencia === 'aceptar' ? 'Ley de Urgencia Rechazada' : 'APLICAR LEY DE URGENCIA';
     }
   } else {
     // Fallback si no hay sugerencia
-    resultado = 'NO ACTIVADA';
+    resultado = 'Ley de Urgencia Rechazada';
   }
   
-  const resultadoColor = resultado === 'ACTIVADA' ? 'text-crm' : 'text-destructive';
+  const resultadoColor = resultado === 'APLICAR LEY DE URGENCIA' ? 'text-crm' : 'text-destructive';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -397,12 +397,12 @@ export default function ComunicacionPaciente() {
               </p>
 
               {/* Decisión Médica y Estado de Aseguradora (solo cuando se activó la ley) */}
-              {resultado === 'ACTIVADA' && (
+              {resultado === 'APLICAR LEY DE URGENCIA' && (
                 <div className="bg-muted/50 rounded-lg p-4 border-l-4 border-success space-y-4">
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Decisión Médica:</p>
                     <p className="font-bold text-2xl mb-2">
-                      <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
+                      <span className={resultadoColor}>{resultado}</span>
                 </p>
                 <p className="text-sm">
                   <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
@@ -411,51 +411,44 @@ export default function ComunicacionPaciente() {
 
                   {/* Estado de Aseguradora */}
                   {(caso as any).prevision && (caso as any).estado_resolucion_aseguradora && (
-                    <>
-                      <div className="pt-4 border-t border-border/50">
-                        <p className="text-sm text-muted-foreground mb-2">Estado de Aseguradora:</p>
-                        <p className={`font-bold text-2xl ${
-                          (caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                            ? 'text-success' 
-                            : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
-                            ? 'text-destructive' 
-                            : 'text-yellow-600'
-                        }`}>
-                          {(caso as any).estado_resolucion_aseguradora === 'pendiente' || (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
-                            ? `PENDIENTE RESOLUCIÓN ${(caso as any).prevision?.toUpperCase()}` 
-                            : (caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                            ? `ACEPTADO POR ${(caso as any).prevision?.toUpperCase()}` 
-                            : `RECHAZADO POR ${(caso as any).prevision?.toUpperCase()}`}
-                        </p>
-                      </div>
-                      
-                      {/* Nota sobre aprobación de aseguradora */}
-                      <div className="mt-4 pt-4 border-t border-border/50">
-                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
-                          <p className="text-sm text-yellow-900 leading-relaxed">
-                            <strong>Importante:</strong>{' '}
-                            {(caso as any).estado_resolucion_aseguradora === 'aceptada' 
-                              ? `Su aseguradora (${(caso as any).prevision}) ha aprobado la decisión médica. La Ley de Urgencia está activa y en pleno efecto.`
-                              : (caso as any).estado_resolucion_aseguradora === 'rechazada'
-                              ? `Su aseguradora (${(caso as any).prevision}) ha rechazado la decisión médica. La Ley de Urgencia no se activará. Por favor, contacte con su aseguradora para más información sobre su caso.`
-                              : (caso as any).estado_resolucion_aseguradora === 'pendiente' || (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
-                              ? `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${(caso as any).prevision}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${(caso as any).prevision}.`
-                              : `Para que la Ley de Urgencia se active definitivamente, su aseguradora (${(caso as any).prevision}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${(caso as any).prevision}.`
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </>
+                    <div className="pt-4 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground mb-2">Estado de Aseguradora:</p>
+                      <p className={`font-bold text-2xl ${
+                        (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                          ? 'text-success' 
+                          : (caso as any).estado_resolucion_aseguradora === 'rechazada' 
+                          ? 'text-destructive' 
+                          : 'text-yellow-600'
+                      }`}>
+                        {(caso as any).estado_resolucion_aseguradora === 'pendiente' || (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
+                          ? `PENDIENTE RESOLUCIÓN ${(caso as any).prevision?.toUpperCase()}` 
+                          : (caso as any).estado_resolucion_aseguradora === 'aceptada' 
+                          ? `ACEPTADO POR ${(caso as any).prevision?.toUpperCase()}` 
+                          : `RECHAZADO POR ${(caso as any).prevision?.toUpperCase()}`}
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
 
+              {/* Nota sobre aprobación de aseguradora - Solo para pendiente o pendiente_envio */}
+              {resultado === 'APLICAR LEY DE URGENCIA' && 
+               (caso as any).prevision && 
+               ((caso as any).estado_resolucion_aseguradora === 'pendiente' || (caso as any).estado_resolucion_aseguradora === 'pendiente_envio') && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+                  <p className="text-sm text-yellow-900 leading-relaxed">
+                    <strong>Importante:</strong>{' '}
+                    Para que la Ley de Urgencia se active definitivamente, su aseguradora ({(caso as any).prevision}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de {(caso as any).prevision}.
+                  </p>
+                </div>
+              )}
+
               {/* Decisión Médica (solo cuando NO se activó la ley) */}
-              {resultado !== 'ACTIVADA' && (
+              {resultado !== 'APLICAR LEY DE URGENCIA' && (
                 <div className={`bg-muted/50 rounded-lg p-4 border-l-4 border-destructive`}>
                   <p className="text-sm text-muted-foreground mb-2">Decisión Médica:</p>
                   <p className="font-bold text-2xl mb-2">
-                    <span className={resultadoColor}>LEY DE URGENCIA {resultado}</span>
+                    <span className={resultadoColor}>{resultado}</span>
                   </p>
                   <p className="text-sm">
                     <strong>Diagnóstico:</strong> {caso.diagnostico_principal}
