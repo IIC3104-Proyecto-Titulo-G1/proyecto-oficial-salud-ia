@@ -917,6 +917,7 @@ export default function VerCaso() {
                   Enviar Correo a Paciente
                 </Button>
                 {/* Solo mostrar botón de editar si está en pendiente_envio y NO es admin */}
+                {/* No permitir editar si está en pendiente resolución, aceptada o rechazada */}
                 {userRole !== 'admin' && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (
                   <Button size="lg" variant="outline" onClick={() => setShowEditWarning(true)} className="w-full border-amber-500 text-amber-700 hover:bg-amber-50 hover:text-amber-700 [&_svg]:text-amber-700 hover:[&_svg]:text-amber-700">
                   <Edit className="w-5 h-5 mr-2" />
@@ -1019,11 +1020,11 @@ export default function VerCaso() {
               </div>
                 )}
               </div>
-              {/* Botón de editar datos: solo cuando está en estado derivado o pendiente (caso sin dictaminar) */}
-              {/* Se permite editar si no hay resolución de aseguradora (no está aceptada ni rechazada) */}
-              {(caso.estado === 'derivado' || caso.estado === 'pendiente') && 
-               (caso as any).estado_resolucion_aseguradora !== 'aceptada' && 
-               (caso as any).estado_resolucion_aseguradora !== 'rechazada' && (
+              {/* Botón de editar datos: solo cuando está en pendiente_envio y NO está rechazado */}
+              {/* Se permite editar solo si está en pendiente_envio (no en pendiente resolución, aceptada o rechazada) */}
+              {/* Si está rechazado, solo se muestra el botón grande "Editar Caso" para evitar redundancia */}
+              {(caso.estado === 'derivado' || caso.estado === 'pendiente' || caso.estado === 'aceptado') && 
+               (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && (
                 <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
