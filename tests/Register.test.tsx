@@ -26,6 +26,17 @@ beforeEach(() => {
 });
 
 describe('Register (AdminUsuarios crear usuario)', () => {
+  it('renderiza la lista de usuarios (unit)', () => {
+    render(
+      <MemoryRouter>
+        <AdminUsuarios />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/panel de administración/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /nuevo usuario/i })).toBeInTheDocument();
+  });
+
   it('abre modal y valida campos requeridos (unit)', async () => {
     render(
       <MemoryRouter>

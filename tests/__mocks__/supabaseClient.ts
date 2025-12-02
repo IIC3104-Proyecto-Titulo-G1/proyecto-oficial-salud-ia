@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
 type FromQuery = {
@@ -30,6 +31,11 @@ export const mockAuth = {
 
   resetPasswordForEmail: vi.fn(async (_: string) => ({ data: {}, error: null })),
 
+  updateUser: vi.fn(async (_: { password?: string }) => ({
+    data: { user: { id: 'user-1' } as any },
+    error: null,
+  })),
+
   getSession: vi.fn(async () => mockAuth._getSession),
 
   onAuthStateChange: vi.fn((cb: (e: string, s: Session | null) => void) => {
@@ -48,7 +54,7 @@ function createFromMock(initialData: any[] = []) {
     if (typeof limitCount === 'number') {
       rows = rows.slice(0, limitCount);
     }
-    return { data: rows, error: null };
+    return Promise.resolve({ data: rows, error: null });
   };
 
   const api: any = {
@@ -71,16 +77,27 @@ function createFromMock(initialData: any[] = []) {
       return api;
     },
     single: async () => {
-      const rows = getResults().data as any[];
+      const result = await getResults();
+      const rows = result.data as any[];
       const one = rows[0] ?? null;
       return one ? { data: one, error: null } : { data: null, error: null };
     },
-    then: (resolve: any) => {
-      // Permitir await sobre la cadena
-      resolve(getResults());
+    maybeSingle: async () => {
+      const result = await getResults();
+      const rows = result.data as any[];
+      const one = rows[0] ?? null;
+      return one ? { data: one, error: null } : { data: null, error: null };
+    },
+    then: (resolve: any, reject?: any) => {
+      // Permitir await sobre la cadena - convertir a Promise
+      return getResults().then(resolve, reject);
+    },
+    catch: (reject: any) => {
+      return getResults().catch(reject);
     },
   } satisfies FromQuery;
 
+  // Hacer que el objeto sea "thenable" (compatible con await)
   return api;
 }
 

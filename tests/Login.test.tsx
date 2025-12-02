@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Login from '@/pages/Login';
 import { mockAuth } from './__mocks__/supabaseClient';
-import { vi } from 'vitest';
 
 vi.mock('@/contexts/AuthContext', () => {
   return {
@@ -40,6 +39,15 @@ beforeEach(() => {
 });
 
 describe('Login', () => {
+  it('renderiza el formulario correctamente (unit)', () => {
+    renderWithProviders();
+
+    expect(screen.getByText(/saludia/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument();
+  });
+
   it('muestra error de validación para email inválido (unit)', async () => {
     renderWithProviders();
 
@@ -49,6 +57,18 @@ describe('Login', () => {
 
     // No hay toast en el DOM real, pero podemos verificar que el botón cambia a estado de carga solo si pasa validación.
     // Si la validación falla, no debería cambiar a "Iniciando sesión..." inmediatamente.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeEnabled();
+    });
+  });
+
+  it('muestra error de validación para contraseña muy corta (unit)', async () => {
+    renderWithProviders();
+
+    fireEvent.change(screen.getByLabelText(/correo/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText(/contraseña/i), { target: { value: '12345' } }); // Menos de 6 caracteres
+    fireEvent.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeEnabled();
     });
@@ -78,6 +98,7 @@ describe('Login', () => {
       expect(mockAuth.signInWithPassword).toHaveBeenCalled();
     });
   });
+
 });
 
 
