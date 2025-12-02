@@ -1020,10 +1020,15 @@ export default function VerCaso() {
                 )}
               </div>
               {/* Botón de editar datos: solo cuando está en estado derivado o pendiente (caso sin dictaminar) */}
-              {(caso.estado === 'derivado' || caso.estado === 'pendiente') && (caso as any).estado_resolucion_aseguradora === 'pendiente_envio' && <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
+              {/* Se permite editar si no hay resolución de aseguradora (no está aceptada ni rechazada) */}
+              {(caso.estado === 'derivado' || caso.estado === 'pendiente') && 
+               (caso as any).estado_resolucion_aseguradora !== 'aceptada' && 
+               (caso as any).estado_resolucion_aseguradora !== 'rechazada' && (
+                <Button variant="outline" size="sm" onClick={() => setShowEditWarning(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar datos
-                </Button>}
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
