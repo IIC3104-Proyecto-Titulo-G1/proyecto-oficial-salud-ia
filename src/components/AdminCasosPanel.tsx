@@ -170,6 +170,15 @@ export function AdminCasosPanel() {
   }, [searchTerm, estadoFiltro, fechaInicio, fechaFin, filtroMedico]);
 
   const handleCambiarEstadoAseguradora = (caso: Caso) => {
+    // No permitir cambiar el estado si el caso está en estado 'pendiente' (aún no se ha decidido por el doctor)
+    if (caso.estado === 'pendiente') {
+      toast({
+        title: 'No se puede cambiar el estado',
+        description: 'No se puede cambiar el estado de resolución de la aseguradora mientras el caso esté pendiente de decisión médica. Primero debe tomarse una decisión sobre el caso.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setCasoEditandoEstado(caso);
     setShowEstadoAseguradoraModal(true);
   };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { consoleLogDebugger } from '@/lib/utils';
-import { ArrowLeft, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, Loader2, Sparkles } from 'lucide-react';
 import { z } from 'zod';
 import type { Database } from '@/integrations/supabase/types';
 import { EVALUATION_CONFIG } from '@/config/evaluation';
@@ -49,6 +49,7 @@ const formSchema = z.object({
   temperatura: z.string().optional(),
   saturacion_oxigeno: z.string().optional(),
   frecuencia_respiratoria: z.string().optional(),
+  prevision: z.string().min(1, 'Debes seleccionar un tipo de previsión'),
 });
 
 // Tipado local extendido hasta regenerar los tipos de Supabase
@@ -106,19 +107,39 @@ export default function NuevoCaso() {
   const [prefilling, setPrefilling] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTestDataButtons, setShowTestDataButtons] = useState(false);
+  const [showEvaluationMethod, setShowEvaluationMethod] = useState(false);
+  const waitingForARef = useRef(false);
 
-  // Atajos de teclado para mostrar/ocultar botones de datos de prueba
+  // Atajos de teclado para mostrar/ocultar botones de datos de prueba y método de evaluación
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Ctrl + Alt + T para mostrar
+      // Ctrl + Alt + T para toggle botones de prueba
       if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 't') {
         event.preventDefault();
-        setShowTestDataButtons(true);
+        setShowTestDataButtons(prev => !prev);
+        waitingForARef.current = false;
+        return;
       }
-      // Ctrl + Alt + O para ocultar
-      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'o') {
+      // Ctrl + I + A para toggle método de evaluación
+      if (event.ctrlKey && event.key.toLowerCase() === 'i' && !event.altKey) {
         event.preventDefault();
-        setShowTestDataButtons(false);
+        waitingForARef.current = true;
+        // Resetear después de 1 segundo si no se presiona 'A'
+        setTimeout(() => {
+          waitingForARef.current = false;
+        }, 1000);
+        return;
+      }
+      // Si estamos esperando 'A' y se presiona Ctrl + A
+      if (waitingForARef.current && event.ctrlKey && event.key.toLowerCase() === 'a' && !event.altKey) {
+        event.preventDefault();
+        setShowEvaluationMethod(prev => !prev);
+        waitingForARef.current = false;
+        return;
+      }
+      // Si se presiona cualquier otra tecla mientras esperamos, cancelar la espera
+      if (waitingForARef.current && event.ctrlKey) {
+        waitingForARef.current = false;
       }
     };
 
@@ -128,7 +149,7 @@ export default function NuevoCaso() {
     };
   }, []);
 
-  const [evaluationMethod, setEvaluationMethod] = useState('rules');
+  const [evaluationMethod, setEvaluationMethod] = useState('gemini');
   const testDatasets = {
     critico: {
       // Identificación del episodio
@@ -446,6 +467,13 @@ export default function NuevoCaso() {
     }
     if (!formData.sexo) {
       validationErrors.sexo = 'Selecciona el sexo del paciente';
+    }
+    if (!formData.prevision || formData.prevision.trim() === '') {
+      validationErrors.prevision = 'Debes seleccionar un tipo de previsión';
+    }
+    // Validar nombre de Isapre solo si el tipo de previsión es Isapre
+    if (formData.prevision === 'Isapre' && (!formData.nombre_isapre || formData.nombre_isapre.trim() === '')) {
+      validationErrors.nombre_isapre = 'Debes ingresar el nombre de la Isapre';
     }
     if (!formData.diagnostico_principal.trim() || formData.diagnostico_principal.length < 10) {
       validationErrors.diagnostico_principal = 'El diagnóstico debe tener al menos 10 caracteres';
@@ -1251,7 +1279,7 @@ export default function NuevoCaso() {
                 <h3 className="text-lg font-semibold text-primary border-b pb-2">Previsión de Salud</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="prevision">Tipo de Previsión</Label>
+                    <Label htmlFor="prevision">Tipo de Previsión *</Label>
                     <Select
                       value={formData.prevision}
                       onValueChange={(value) => {
@@ -1260,10 +1288,12 @@ export default function NuevoCaso() {
                         if (value === 'Fonasa') {
                           setFormData(prev => ({ ...prev, nombre_isapre: '' }));
                         }
+                        // Limpiar error al seleccionar
+                        setErrors((prev) => ({ ...prev, prevision: '' }));
                       }}
                       disabled={loading}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.prevision ? 'border-destructive focus-visible:ring-destructive' : undefined}>
                         <SelectValue placeholder="Seleccionar previsión" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1271,10 +1301,11 @@ export default function NuevoCaso() {
                         <SelectItem value="Isapre">Isapre</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.prevision && <p className="text-sm text-destructive">{errors.prevision}</p>}
                   </div>
                   {formData.prevision === 'Isapre' && (
                     <div className="space-y-2">
-                      <Label htmlFor="nombre_isapre">Nombre de la Isapre</Label>
+                      <Label htmlFor="nombre_isapre">Nombre de la Isapre *</Label>
                       <Input
                         id="nombre_isapre"
                         name="nombre_isapre"
@@ -1282,7 +1313,9 @@ export default function NuevoCaso() {
                         onChange={handleChange}
                         disabled={loading}
                         placeholder="Ej: Banmédica, Cruz Blanca, Consalud"
+                        className={errors.nombre_isapre ? 'border-destructive focus-visible:ring-destructive' : undefined}
                       />
+                      {errors.nombre_isapre && <p className="text-sm text-destructive">{errors.nombre_isapre}</p>}
                     </div>
                   )}
                 </div>
@@ -1813,42 +1846,60 @@ export default function NuevoCaso() {
                 </div>
               </div>
 
-              {/* Método de Evaluación */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-primary border-b pb-2">Método de Evaluación</h3>
-                <div className="space-y-2">
-                  <Select
-                    value={evaluationMethod}
-                    onValueChange={setEvaluationMethod}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar método" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="rules">Motor de Reglas (DS N°34/2021)</SelectItem>
-                      <SelectItem value="grok">Grok</SelectItem>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="gemini">Gemini Pro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground">
-                    {evaluationMethod === 'rules' && 'Evaluación determinística basada en criterios del Decreto Supremo N°34/2021'}
-                    {evaluationMethod === 'grok' && 'Evaluación con IA usando el modelo grok-4-fast-reasoning de xAI'}
-                    {evaluationMethod === 'openai' && 'Evaluación con IA usando OpenAI'}
-                    {evaluationMethod === 'gemini' && 'Evaluación con IA usando Gemini'}
-                  </p>
+              {/* Método de Evaluación - Solo visible con Ctrl + I + A */}
+              {showEvaluationMethod && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-primary border-b pb-2">Método de Evaluación</h3>
+                  <div className="space-y-2">
+                    <Select
+                      value={evaluationMethod}
+                      onValueChange={setEvaluationMethod}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="rules">Motor de Reglas (DS N°34/2021)</SelectItem>
+                        <SelectItem value="grok">Grok</SelectItem>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="gemini">Gemini Pro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      {evaluationMethod === 'rules' && 'Evaluación determinística basada en criterios del Decreto Supremo N°34/2021'}
+                      {evaluationMethod === 'grok' && 'Evaluación con IA usando el modelo grok-4-fast-reasoning de xAI'}
+                      {evaluationMethod === 'openai' && 'Evaluación con IA usando OpenAI'}
+                      {evaluationMethod === 'gemini' && 'Evaluación con IA usando Gemini'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="pt-6 border-t">
-                <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                  {loading ? 'Evaluando...' : `Evaluar con ${
-                    evaluationMethod === 'rules' ? 'Motor de Reglas' :
-                    evaluationMethod === 'grok' ? 'Grok' :
-                    evaluationMethod === 'openai' ? 'OpenAI' :
-                    evaluationMethod === 'gemini' ? 'Gemini' : 'IA'
-                  }`}
+              <div className="pt-6 border-t relative">
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  className="w-full relative overflow-hidden bg-gradient-to-r from-primary via-primary/90 to-primary hover:from-primary hover:via-primary hover:to-primary text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  disabled={loading}
+                >
+                  {/* Contenido del botón */}
+                  <div className="relative z-10 flex items-center justify-center gap-2">
+                    {!loading && (
+                      <Sparkles className="w-5 h-5 animate-pulse" />
+                    )}
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Evaluando...</span>
+                      </>
+                    ) : (
+                      <span>Evaluar caso con IA</span>
+                    )}
+                  </div>
+                  
+                  {/* Efecto de brillo animado */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                 </Button>
               </div>
             </form>
