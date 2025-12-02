@@ -1139,20 +1139,14 @@ export default function Dashboard() {
                             }
                             className={`text-xs font-medium ${
                               (caso as any).estado_resolucion_aseguradora === 'aceptada'
-                                ? 'bg-success/10 text-success border-success/20 hover:bg-success/20'
+                                ? 'bg-success/10 text-success border-success/20 hover:bg-success/20 hover:border-2 hover:shadow-md transition-all'
                                 : (caso as any).estado_resolucion_aseguradora === 'rechazada'
-                                ? userRole === 'medico_jefe' 
-                                  ? 'hover:border-destructive hover:border-2 hover:shadow-md transition-all' 
-                                  : ''
+                                ? 'hover:border-destructive hover:border-2 hover:shadow-md transition-all'
                                 : (caso as any).estado_resolucion_aseguradora === 'pendiente_envio'
-                                ? userRole === 'medico_jefe'
-                                  ? 'bg-amber/10 text-amber-700 border-amber-300 hover:bg-amber/20 hover:border-2 hover:shadow-md transition-all'
-                                  : 'bg-amber/10 text-amber-700 border-amber-300'
-                                : userRole === 'medico_jefe'
-                                ? 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted/70 hover:border-2 hover:shadow-md transition-all'
-                                : 'bg-muted/50 text-muted-foreground border-border/50'
+                                ? 'bg-amber/10 text-amber-700 border-amber-300 hover:bg-amber/20 hover:border-2 hover:shadow-md transition-all'
+                                : 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted/70 hover:border-2 hover:shadow-md transition-all'
                             } ${
-                              userRole === 'medico_jefe' ? 'cursor-pointer transition-all' : ''
+                              userRole === 'medico_jefe' ? 'cursor-pointer' : ''
                             }`}
                             onClick={(e) => {
                               if (userRole === 'medico_jefe') {
