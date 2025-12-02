@@ -1108,6 +1108,11 @@ export default function VerCaso() {
                         __html: (sugerencia.explicacion || '').replace(/\n/g, '<br />')
                       }}
                     />
+                    <div className="mt-3 p-2 bg-yellow-100 border-l-4 border-yellow-500 rounded">
+                      <p className="text-xs text-yellow-800">
+                        La respuesta se ha cortado debido al límite de tokens. La explicación completa podría incluir información adicional.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

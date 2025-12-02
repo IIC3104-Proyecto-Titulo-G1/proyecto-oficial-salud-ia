@@ -472,12 +472,19 @@ export default function ComunicacionPaciente() {
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-5 h-5 text-crm mt-0.5" />
-                    <div
-                      className="text-sm text-muted-foreground whitespace-pre-line [&_strong]:font-semibold"
-                      dangerouslySetInnerHTML={{
-                        __html: ((sugerencia?.explicacion || 'Análisis realizado por el equipo médico.') as string).replace(/\n/g, '<br />')
-                      }}
-                    />
+                    <div>
+                      <div
+                        className="text-sm text-muted-foreground whitespace-pre-line [&_strong]:font-semibold"
+                        dangerouslySetInnerHTML={{
+                          __html: ((sugerencia?.explicacion || 'Análisis realizado por el equipo médico.') as string).replace(/\n/g, '<br />')
+                        }}
+                      />
+                      <div className="mt-3 p-2 bg-yellow-100 border-l-4 border-yellow-500 rounded">
+                        <p className="text-xs text-yellow-800">
+                          La respuesta se ha cortado debido al límite de tokens. La explicación completa podría incluir información adicional.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
