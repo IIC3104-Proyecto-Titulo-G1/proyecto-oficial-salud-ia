@@ -16,70 +16,202 @@ export type Database = {
     Tables: {
       casos: {
         Row: {
+          antecedentes_cardiacos: boolean | null
+          antecedentes_diabeticos: boolean | null
+          antecedentes_hta: boolean | null
+          bun: number | null
+          centro: string | null
+          cirugia: boolean | null
+          cirugia_same_day: boolean | null
+          compromiso_conciencia: boolean | null
+          creatinina: number | null
           descripcion_adicional: string | null
           diagnostico_principal: string
+          dialisis: boolean | null
+          dreo: boolean | null
+          dva: boolean | null
+          ecg_alterado: boolean | null
           edad_paciente: number
-          email_paciente: string
+          email_paciente: string | null
+          endoscopia: boolean | null
+          endoscopia_same_day: boolean | null
+          episodio: string | null
           estado: Database["public"]["Enums"]["estado_caso"] | null
+          estado_resolucion_aseguradora: string | null
+          fc: number | null
           fecha_actualizacion: string | null
           fecha_analisis_ia: string | null
           fecha_creacion: string | null
+          fecha_ingreso: string | null
+          fio2: number | null
+          fio2_ge_50: boolean | null
+          fr: number | null
           frecuencia_cardiaca: number | null
           frecuencia_respiratoria: number | null
+          glasgow: number | null
+          hb: number | null
+          hemodinamia: boolean | null
+          hemodinamia_same_day: boolean | null
           historia_clinica: string | null
           id: string
           medico_jefe_id: string | null
           medico_tratante_id: string
+          nombre_isapre: string | null
           nombre_paciente: string
+          pa_diastolica: number | null
+          pa_media: number | null
+          pa_sistolica: number | null
+          pcr: boolean | null
+          potasio: number | null
           presion_arterial: string | null
+          prevision: string | null
+          rnm_protocol_stroke: boolean | null
+          sat_o2: number | null
           saturacion_oxigeno: number | null
           sexo_paciente: string
           sintomas: string | null
+          sodio: number | null
           temperatura: number | null
+          temperatura_c: number | null
+          tipo_cama: string | null
+          transfusiones: number | null
+          triage: string | null
+          trombolisis: boolean | null
+          trombolisis_same_day: boolean | null
+          troponinas_alteradas: boolean | null
+          vm: boolean | null
         }
         Insert: {
+          antecedentes_cardiacos?: boolean | null
+          antecedentes_diabeticos?: boolean | null
+          antecedentes_hta?: boolean | null
+          bun?: number | null
+          centro?: string | null
+          cirugia?: boolean | null
+          cirugia_same_day?: boolean | null
+          compromiso_conciencia?: boolean | null
+          creatinina?: number | null
           descripcion_adicional?: string | null
           diagnostico_principal: string
+          dialisis?: boolean | null
+          dreo?: boolean | null
+          dva?: boolean | null
+          ecg_alterado?: boolean | null
           edad_paciente: number
-          email_paciente: string
+          email_paciente?: string | null
+          endoscopia?: boolean | null
+          endoscopia_same_day?: boolean | null
+          episodio?: string | null
           estado?: Database["public"]["Enums"]["estado_caso"] | null
+          estado_resolucion_aseguradora?: string | null
+          fc?: number | null
           fecha_actualizacion?: string | null
           fecha_analisis_ia?: string | null
           fecha_creacion?: string | null
+          fecha_ingreso?: string | null
+          fio2?: number | null
+          fio2_ge_50?: boolean | null
+          fr?: number | null
           frecuencia_cardiaca?: number | null
           frecuencia_respiratoria?: number | null
+          glasgow?: number | null
+          hb?: number | null
+          hemodinamia?: boolean | null
+          hemodinamia_same_day?: boolean | null
           historia_clinica?: string | null
           id?: string
           medico_jefe_id?: string | null
           medico_tratante_id: string
+          nombre_isapre?: string | null
           nombre_paciente: string
+          pa_diastolica?: number | null
+          pa_media?: number | null
+          pa_sistolica?: number | null
+          pcr?: boolean | null
+          potasio?: number | null
           presion_arterial?: string | null
+          prevision?: string | null
+          rnm_protocol_stroke?: boolean | null
+          sat_o2?: number | null
           saturacion_oxigeno?: number | null
           sexo_paciente: string
           sintomas?: string | null
+          sodio?: number | null
           temperatura?: number | null
+          temperatura_c?: number | null
+          tipo_cama?: string | null
+          transfusiones?: number | null
+          triage?: string | null
+          trombolisis?: boolean | null
+          trombolisis_same_day?: boolean | null
+          troponinas_alteradas?: boolean | null
+          vm?: boolean | null
         }
         Update: {
+          antecedentes_cardiacos?: boolean | null
+          antecedentes_diabeticos?: boolean | null
+          antecedentes_hta?: boolean | null
+          bun?: number | null
+          centro?: string | null
+          cirugia?: boolean | null
+          cirugia_same_day?: boolean | null
+          compromiso_conciencia?: boolean | null
+          creatinina?: number | null
           descripcion_adicional?: string | null
           diagnostico_principal?: string
+          dialisis?: boolean | null
+          dreo?: boolean | null
+          dva?: boolean | null
+          ecg_alterado?: boolean | null
           edad_paciente?: number
-          email_paciente?: string
+          email_paciente?: string | null
+          endoscopia?: boolean | null
+          endoscopia_same_day?: boolean | null
+          episodio?: string | null
           estado?: Database["public"]["Enums"]["estado_caso"] | null
+          estado_resolucion_aseguradora?: string | null
+          fc?: number | null
           fecha_actualizacion?: string | null
           fecha_analisis_ia?: string | null
           fecha_creacion?: string | null
+          fecha_ingreso?: string | null
+          fio2?: number | null
+          fio2_ge_50?: boolean | null
+          fr?: number | null
           frecuencia_cardiaca?: number | null
           frecuencia_respiratoria?: number | null
+          glasgow?: number | null
+          hb?: number | null
+          hemodinamia?: boolean | null
+          hemodinamia_same_day?: boolean | null
           historia_clinica?: string | null
           id?: string
           medico_jefe_id?: string | null
           medico_tratante_id?: string
+          nombre_isapre?: string | null
           nombre_paciente?: string
+          pa_diastolica?: number | null
+          pa_media?: number | null
+          pa_sistolica?: number | null
+          pcr?: boolean | null
+          potasio?: number | null
           presion_arterial?: string | null
+          prevision?: string | null
+          rnm_protocol_stroke?: boolean | null
+          sat_o2?: number | null
           saturacion_oxigeno?: number | null
           sexo_paciente?: string
           sintomas?: string | null
+          sodio?: number | null
           temperatura?: number | null
+          temperatura_c?: number | null
+          tipo_cama?: string | null
+          transfusiones?: number | null
+          triage?: string | null
+          trombolisis?: boolean | null
+          trombolisis_same_day?: boolean | null
+          troponinas_alteradas?: boolean | null
+          vm?: boolean | null
         }
         Relationships: []
       }
@@ -175,6 +307,7 @@ export type Database = {
             | Database["public"]["Enums"]["resultado_comunicacion"]
             | null
           decision_medico: Database["public"]["Enums"]["decision_tipo"] | null
+          email_paciente_enviado: string | null
           fecha_decision_medico: string | null
           fecha_decision_medico_jefe: string | null
           id: string
@@ -188,6 +321,7 @@ export type Database = {
             | Database["public"]["Enums"]["resultado_comunicacion"]
             | null
           decision_medico?: Database["public"]["Enums"]["decision_tipo"] | null
+          email_paciente_enviado?: string | null
           fecha_decision_medico?: string | null
           fecha_decision_medico_jefe?: string | null
           id?: string
@@ -201,6 +335,7 @@ export type Database = {
             | Database["public"]["Enums"]["resultado_comunicacion"]
             | null
           decision_medico?: Database["public"]["Enums"]["decision_tipo"] | null
+          email_paciente_enviado?: string | null
           fecha_decision_medico?: string | null
           fecha_decision_medico_jefe?: string | null
           id?: string
@@ -256,6 +391,7 @@ export type Database = {
           especialidad: string | null
           fecha_actualizacion: string | null
           fecha_creacion: string | null
+          genero: string | null
           hospital: string | null
           id: string
           imagen: string | null
@@ -270,6 +406,7 @@ export type Database = {
           especialidad?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
+          genero?: string | null
           hospital?: string | null
           id?: string
           imagen?: string | null
@@ -284,6 +421,7 @@ export type Database = {
           especialidad?: string | null
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
+          genero?: string | null
           hospital?: string | null
           id?: string
           imagen?: string | null
@@ -306,6 +444,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_doctor_prefix: { Args: { p_genero: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

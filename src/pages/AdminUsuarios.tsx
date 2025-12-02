@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search } from 'lucide-react';
+import { consoleLogDebugger } from '@/lib/utils';
+import { ArrowLeft, Plus, Edit, Trash2, User, LogOut, UserIcon, Search, Users, FileText, Calendar, Filter, X, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AdminCasosPanel } from '@/components/AdminCasosPanel';
+import { ExportDoctorMetricsButton } from '@/components/ExportDoctorMetricsButton';
 
 interface Usuario {
   id: string;
@@ -23,20 +28,46 @@ interface Usuario {
   imagen?: string;
 }
 
-type RolFiltro = 'todos' | 'admin' | 'medico' | 'medico_jefe';
+interface MetricasMedico {
+  totalCasos: number;
+  porcentajeAceptacionIA: number;
+  totalDerivaciones: number;
+  casosAceptadosAseguradora: number;
+  casosRechazadosAseguradora: number;
+  casosAceptadosPorMedico: number;
+}
+
+type TipoFiltroMetrica = 'totalCasos' | 'porcentajeAceptacionIA' | 'totalDerivaciones' | 'casosAceptadosAseguradora' | 'casosRechazadosAseguradora';
+type OperadorFiltro = 'mayor_igual' | 'menor_igual';
+
+type RolFiltro = 'todos' | 'doctores' | 'admin' | 'medico' | 'medico_jefe';
+type RangoMetricas = 'todos' | '30' | '7' | '1' | 'custom';
 
 export default function AdminUsuarios() {
   const { user, userRole, userRoleData, signOut, refreshUserRole } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [rolFiltro, setRolFiltro] = useState<RolFiltro>('todos');
+  const [rolFiltro, setRolFiltro] = useState<RolFiltro>('doctores');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'casos'>('usuarios');
+  const [metricasPorUsuario, setMetricasPorUsuario] = useState<Record<string, MetricasMedico>>({});
+  const [cargandoMetricas, setCargandoMetricas] = useState(false);
+  const [rangoMetricas, setRangoMetricas] = useState<RangoMetricas>('todos');
+  const [fechaInicioMetricas, setFechaInicioMetricas] = useState('');
+  const [fechaFinMetricas, setFechaFinMetricas] = useState('');
+  const [filtrosMetricas, setFiltrosMetricas] = useState<Array<{
+    id: string;
+    tipo: TipoFiltroMetrica;
+    operador: OperadorFiltro;
+    valor: number;
+  }>>([]);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -44,6 +75,7 @@ export default function AdminUsuarios() {
     rol: 'medico' as 'admin' | 'medico' | 'medico_jefe',
     hospital: '',
     especialidad: '',
+    genero: 'masculino',
   });
 
   useEffect(() => {
@@ -59,6 +91,17 @@ export default function AdminUsuarios() {
     loadUsuarios();
   }, [userRole]);
 
+  // Leer parámetro tab de la URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'casos' || tabParam === 'usuarios') {
+      setActiveTab(tabParam);
+      // Limpiar solo el parámetro tab, pero preservar otros parámetros como 'medico'
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('tab');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const loadUsuarios = async () => {
     setLoading(true);
@@ -68,7 +111,7 @@ export default function AdminUsuarios() {
       .order('nombre');
 
     if (!error && data) {
-      setUsuarios(data.map((u: any) => ({
+      const usuariosData = data.map((u: any) => ({
         id: u.user_id,
         nombre: u.nombre,
         email: u.email,
@@ -76,9 +119,25 @@ export default function AdminUsuarios() {
         hospital: u.hospital,
         especialidad: u.especialidad,
         imagen: u.imagen,
-      })));
+      }));
+      
+      // Ordenar: primero médicos jefe, luego médicos normales, luego otros
+      const usuariosOrdenados = usuariosData.sort((a, b) => {
+        if (a.rol === 'medico_jefe' && b.rol !== 'medico_jefe') return -1;
+        if (a.rol !== 'medico_jefe' && b.rol === 'medico_jefe') return 1;
+        if (a.rol === 'medico' && b.rol !== 'medico') return -1;
+        if (a.rol !== 'medico' && b.rol === 'medico') return 1;
+        return 0;
+      });
+      
+      setUsuarios(usuariosOrdenados);
+      setLoading(false);
+      
+      // Cargar métricas después de establecer los usuarios
+      loadMetricasMedicos(usuariosOrdenados);
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenDialog = (usuarioEditar?: Usuario) => {
@@ -87,8 +146,8 @@ export default function AdminUsuarios() {
       if (usuarioEditar.id === user?.id) {
         navigate('/admin/perfil');
       } else {
-        // Navegar a la vista de edición de otro usuario
-        navigate(`/admin/usuario/${usuarioEditar.id}`);
+        // Navegar a la vista de edición de otro usuario, abriendo directamente en Estadísticas
+        navigate(`/admin/usuario/${usuarioEditar.id}?tab=estadisticas`);
       }
     } else {
       // Crear nuevo usuario - mantener el modal
@@ -100,8 +159,18 @@ export default function AdminUsuarios() {
         rol: 'medico',
         hospital: '',
         especialidad: '',
+        genero: 'masculino',
       });
       setShowDialog(true);
+    }
+  };
+
+  const handleCardClick = (usuario: Usuario) => {
+    // Navegar a la vista de detalle del usuario, abriendo directamente en Estadísticas
+    if (usuario.id === user?.id) {
+      navigate('/admin/perfil');
+    } else {
+      navigate(`/admin/usuario/${usuario.id}?tab=estadisticas`);
     }
   };
 
@@ -152,6 +221,7 @@ export default function AdminUsuarios() {
               email: formData.email,
               hospital: formData.hospital,
               especialidad: formData.especialidad,
+              genero: formData.genero,
             },
           ]);
 
@@ -222,8 +292,195 @@ export default function AdminUsuarios() {
   // Resetear a la primera página cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, rolFiltro]);
+  }, [searchTerm, rolFiltro, filtrosMetricas]);
 
+  // Recargar métricas cuando cambian las fechas o el rango
+  useEffect(() => {
+    if (usuarios.length > 0) {
+      loadMetricasMedicos(usuarios);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangoMetricas, fechaInicioMetricas, fechaFinMetricas]);
+
+  const handleRangoMetricasChange = (value: RangoMetricas) => {
+    setRangoMetricas(value);
+    if (value !== 'custom') {
+      setFechaInicioMetricas('');
+      setFechaFinMetricas('');
+    }
+  };
+
+  const loadMetricasMedicos = async (usuariosData: Usuario[]) => {
+    try {
+      setCargandoMetricas(true);
+      const medicos = usuariosData.filter(u => u.rol === 'medico' || u.rol === 'medico_jefe');
+      consoleLogDebugger('📊 Cargando métricas para', medicos.length, 'médicos');
+      const metricas: Record<string, MetricasMedico> = {};
+
+    // Construir rango de fechas según el selector
+    let inicio: Date | null = null;
+    let fin: Date = new Date();
+    fin.setHours(23, 59, 59, 999);
+
+    const hoy = new Date();
+    switch (rangoMetricas) {
+      case '1': {
+        const fechaInicio = new Date();
+        fechaInicio.setDate(fechaInicio.getDate() - 1);
+        fechaInicio.setHours(0, 0, 0, 0);
+        inicio = fechaInicio;
+        break;
+      }
+      case '7': {
+        const fechaInicio = new Date();
+        fechaInicio.setDate(fechaInicio.getDate() - 7);
+        fechaInicio.setHours(0, 0, 0, 0);
+        inicio = fechaInicio;
+        break;
+      }
+      case '30': {
+        const fechaInicio = new Date();
+        fechaInicio.setDate(fechaInicio.getDate() - 30);
+        fechaInicio.setHours(0, 0, 0, 0);
+        inicio = fechaInicio;
+        break;
+      }
+      case 'custom':
+        if (fechaInicioMetricas && fechaFinMetricas) {
+          inicio = new Date(fechaInicioMetricas);
+          inicio.setHours(0, 0, 0, 0);
+          fin = new Date(fechaFinMetricas);
+          fin.setHours(23, 59, 59, 999);
+        }
+        break;
+      case 'todos':
+      default:
+        inicio = null;
+        break;
+    }
+
+    for (const medico of medicos) {
+      try {
+        // Construir query según el rol
+        let casosQuery = supabase
+          .from('casos')
+          .select('id, estado, fecha_creacion, fecha_actualizacion, estado_resolucion_aseguradora, medico_tratante_id, medico_jefe_id');
+        
+        if (medico.rol === 'medico_jefe') {
+          casosQuery = casosQuery.eq('medico_jefe_id', medico.id);
+        } else {
+          casosQuery = casosQuery.eq('medico_tratante_id', medico.id);
+        }
+
+        if (inicio) {
+          casosQuery = casosQuery.gte('fecha_creacion', inicio.toISOString());
+          casosQuery = casosQuery.lte('fecha_creacion', fin.toISOString());
+        }
+
+        const { data: casos, error: casosError } = await casosQuery;
+        if (casosError) continue;
+
+        const casosIds = casos?.map(c => c.id) || [];
+
+        // Cargar sugerencias y resoluciones
+        const [sugerenciasResult, resolucionesResult] = await Promise.all([
+          supabase
+            .from('sugerencia_ia')
+            .select('caso_id, sugerencia')
+            .in('caso_id', casosIds.length > 0 ? casosIds : ['00000000-0000-0000-0000-000000000000'])
+            .order('fecha_procesamiento', { ascending: false }),
+          supabase
+            .from('resolucion_caso')
+            .select('caso_id, decision_medico, decision_final')
+            .in('caso_id', casosIds.length > 0 ? casosIds : ['00000000-0000-0000-0000-000000000000'])
+        ]);
+
+        const sugerencias = sugerenciasResult.data || [];
+        const resoluciones = resolucionesResult.data || [];
+
+        const sugerenciasMap = new Map(sugerencias.map(s => [s.caso_id, s]));
+        const resolucionesMap = new Map(resoluciones.map(r => [r.caso_id, r]));
+
+        // Calcular métricas
+        const totalCasos = casos?.length || 0;
+        const casosAceptadosPorMedico = casos?.filter(c => c.estado === 'aceptado').length || 0;
+
+        // Derivaciones
+        let totalDerivaciones = 0;
+        if (medico.rol === 'medico_jefe') {
+          // Para médico jefe: casos derivados que resolvió
+          // Casos que fueron derivados a él (medico_jefe_id = su ID) y que tienen resolución
+          const casosDerivados = casos?.filter(c => c.medico_jefe_id === medico.id) || [];
+          // De esos casos, contamos los que tienen una resolución (fueron resueltos)
+          totalDerivaciones = casosDerivados.filter(c => {
+            const resolucion = resolucionesMap.get(c.id);
+            // Caso resuelto si tiene decision_final o decision_medico
+            return resolucion && (resolucion.decision_final || resolucion.decision_medico);
+          }).length;
+        } else {
+          // Para médico normal: casos que él derivó
+          // Un caso fue derivado si tiene medico_jefe_id asignado (independientemente del estado actual)
+          // porque el estado puede cambiar después de que el médico jefe lo resuelva
+          totalDerivaciones = casos?.filter(c => 
+            c.medico_tratante_id === medico.id && 
+            c.medico_jefe_id !== null && 
+            c.medico_jefe_id !== undefined
+          ).length || 0;
+        }
+
+        // Porcentaje aceptación IA
+        let casosConSugerenciaAceptar = 0;
+        let casosAceptadosConSugerenciaAceptar = 0;
+
+        casos?.forEach(caso => {
+          const sugerencia = sugerenciasMap.get(caso.id);
+          const resolucion = resolucionesMap.get(caso.id);
+          
+          if (sugerencia?.sugerencia === 'aceptar') {
+            casosConSugerenciaAceptar++;
+            if (resolucion?.decision_medico === 'aceptado' || caso.estado === 'aceptado') {
+              casosAceptadosConSugerenciaAceptar++;
+            }
+          }
+        });
+
+        const porcentajeAceptacionIA = casosConSugerenciaAceptar > 0
+          ? (casosAceptadosConSugerenciaAceptar / casosConSugerenciaAceptar) * 100
+          : 0;
+
+        // Casos aceptados/rechazados por aseguradora
+        const casosAceptadosAseguradora = casos?.filter(c => 
+          c.estado === 'aceptado' && (c as any).estado_resolucion_aseguradora === 'aceptada'
+        ).length || 0;
+
+        const casosRechazadosAseguradora = casos?.filter(c => 
+          c.estado === 'aceptado' && (c as any).estado_resolucion_aseguradora === 'rechazada'
+        ).length || 0;
+
+        metricas[medico.id] = {
+          totalCasos,
+          porcentajeAceptacionIA: Math.round(porcentajeAceptacionIA * 10) / 10,
+          totalDerivaciones,
+          casosAceptadosAseguradora,
+          casosRechazadosAseguradora,
+          casosAceptadosPorMedico,
+        };
+        consoleLogDebugger(`📊 Métricas para ${medico.nombre}:`, metricas[medico.id]);
+      } catch (error) {
+        consoleLogDebugger('Error cargando métricas para', medico.nombre, error);
+        // Continuar con el siguiente médico si hay error
+        continue;
+      }
+    }
+
+    setMetricasPorUsuario(metricas);
+    setCargandoMetricas(false);
+    consoleLogDebugger('📊 Métricas cargadas para médicos:', Object.keys(metricas).length, 'médicos', metricas);
+    } catch (error) {
+      consoleLogDebugger('Error general cargando métricas:', error);
+      setCargandoMetricas(false);
+    }
+  };
 
   const getRoleBadge = (rol: string) => {
     switch (rol) {
@@ -246,11 +503,32 @@ export default function AdminUsuarios() {
         (usuario.hospital && usuario.hospital.toLowerCase().includes(normalizedSearch)) ||
         (usuario.especialidad && usuario.especialidad.toLowerCase().includes(normalizedSearch));
       
-      const matchesRol = rolFiltro === 'todos' || usuario.rol === rolFiltro;
+      const matchesRol = 
+        rolFiltro === 'todos' || 
+        usuario.rol === rolFiltro ||
+        (rolFiltro === 'doctores' && (usuario.rol === 'medico' || usuario.rol === 'medico_jefe'));
       
-      return matchesSearch && matchesRol;
+      // Filtros por métricas (todos deben cumplirse)
+      let matchesMetricas = true;
+      if (filtrosMetricas.length > 0) {
+        const metricas = metricasPorUsuario[usuario.id];
+        if (!metricas) {
+          matchesMetricas = false;
+        } else {
+          matchesMetricas = filtrosMetricas.every(filtro => {
+            const valorMetrica = metricas[filtro.tipo];
+            if (filtro.operador === 'mayor_igual') {
+              return valorMetrica >= filtro.valor;
+            } else {
+              return valorMetrica <= filtro.valor;
+            }
+          });
+        }
+      }
+      
+      return matchesSearch && matchesRol && matchesMetricas;
     });
-  }, [usuarios, searchTerm, rolFiltro]);
+  }, [usuarios, searchTerm, rolFiltro, filtrosMetricas, metricasPorUsuario]);
 
   // Calcular usuarios paginados
   const totalPages = Math.ceil(filteredUsuarios.length / itemsPerPage);
@@ -269,7 +547,7 @@ export default function AdminUsuarios() {
     }, 100);
   };
 
-  const filtrosActivos = searchTerm.trim() !== '' || rolFiltro !== 'todos';
+  const filtrosActivos = searchTerm.trim() !== '' || rolFiltro !== 'doctores' || filtrosMetricas.length > 0 || rangoMetricas !== 'todos';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -277,17 +555,10 @@ export default function AdminUsuarios() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-              <p className="text-sm text-white/80">Administrar médicos y médicos jefe</p>
+              <h1 className="text-2xl font-bold">Panel de Administración</h1>
+              <p className="text-sm text-white/80">Gestionar usuarios y casos</p>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={() => handleOpenDialog()}
-                className="bg-white/20 hover:bg-white/30 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nuevo Usuario
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -312,6 +583,54 @@ export default function AdminUsuarios() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'usuarios' | 'casos')} className="w-full">
+          <div className="flex items-center justify-between mb-6">
+            <TabsList>
+              <TabsTrigger value="usuarios" className="gap-2">
+                <Users className="w-4 h-4" />
+                Usuarios
+              </TabsTrigger>
+              <TabsTrigger value="casos" className="gap-2">
+                <FileText className="w-4 h-4" />
+                Casos
+              </TabsTrigger>
+            </TabsList>
+            
+            {activeTab === 'usuarios' && (
+              <div className="flex gap-2">
+                <ExportDoctorMetricsButton
+                  doctors={filteredUsuarios
+                    .filter(u => u.rol === 'medico' || u.rol === 'medico_jefe')
+                    .map(u => ({
+                      id: u.id,
+                      nombre: u.nombre,
+                      email: u.email,
+                      rol: u.rol as 'medico' | 'medico_jefe',
+                      hospital: u.hospital,
+                      especialidad: u.especialidad,
+                    }))}
+                  rangoMetricas={rangoMetricas}
+                  fechaInicioMetricas={fechaInicioMetricas}
+                  fechaFinMetricas={fechaFinMetricas}
+                  usuarioExportador={userRoleData?.nombre || 'Administrador'}
+                  filtrosAplicados={{
+                    busqueda: searchTerm || undefined,
+                    rolFiltro: rolFiltro,
+                    filtrosMetricas: filtrosMetricas,
+                  }}
+                />
+                <Button
+                  onClick={() => handleOpenDialog()}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuevo Usuario
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <TabsContent value="usuarios" className="mt-0">
         {loading ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -327,6 +646,173 @@ export default function AdminUsuarios() {
                 <CardDescription>
                   Busca usuarios por nombre, email, hospital o especialidad
                 </CardDescription>
+                {/* Filtros de fecha y métricas */}
+                <div className="mt-4 pt-4 border-t space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    {/* Filtro de fecha */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Rango de Tiempo para Métricas</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select value={rangoMetricas} onValueChange={handleRangoMetricasChange}>
+                          <SelectTrigger className="w-full">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Rango de tiempo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="todos">Todos</SelectItem>
+                            <SelectItem value="30">Últimos 30 días</SelectItem>
+                            <SelectItem value="7">Últimos 7 días</SelectItem>
+                            <SelectItem value="1">Último día</SelectItem>
+                            <SelectItem value="custom">Personalizado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {rangoMetricas === 'custom' && (
+                          <div className="flex gap-2">
+                            <Input
+                              type="date"
+                              value={fechaInicioMetricas}
+                              onChange={(e) => {
+                                setFechaInicioMetricas(e.target.value);
+                                setRangoMetricas('custom');
+                              }}
+                              placeholder="Fecha inicio"
+                              className="flex-1"
+                            />
+                            <Input
+                              type="date"
+                              value={fechaFinMetricas}
+                              onChange={(e) => {
+                                setFechaFinMetricas(e.target.value);
+                                setRangoMetricas('custom');
+                              }}
+                              placeholder="Fecha fin"
+                              className="flex-1"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Filtros avanzados por métrica */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Filtros Avanzados por Métrica</Label>
+                      <div className="space-y-2">
+                        {filtrosMetricas.length === 0 ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFiltrosMetricas([{
+                                id: Date.now().toString(),
+                                tipo: 'totalCasos',
+                                operador: 'mayor_igual',
+                                valor: 0
+                              }]);
+                            }}
+                            className="gap-2 w-full"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Agregar filtro
+                          </Button>
+                        ) : (
+                          <>
+                            {filtrosMetricas.map((filtro, index) => (
+                              <div key={filtro.id} className="flex gap-2">
+                                <Select 
+                                  value={filtro.tipo} 
+                                  onValueChange={(value) => {
+                                    const nuevosFiltros = [...filtrosMetricas];
+                                    nuevosFiltros[index].tipo = value as TipoFiltroMetrica;
+                                    setFiltrosMetricas(nuevosFiltros);
+                                  }}
+                                >
+                                  <SelectTrigger className="flex-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="totalCasos">Total de Casos</SelectItem>
+                                    <SelectItem value="porcentajeAceptacionIA">% Aceptación IA</SelectItem>
+                                    <SelectItem value="totalDerivaciones">Derivaciones</SelectItem>
+                                    <SelectItem value="casosAceptadosAseguradora">Aceptados Aseguradora</SelectItem>
+                                    <SelectItem value="casosRechazadosAseguradora">Rechazados Aseguradora</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Select 
+                                  value={filtro.operador} 
+                                  onValueChange={(value) => {
+                                    const nuevosFiltros = [...filtrosMetricas];
+                                    nuevosFiltros[index].operador = value as OperadorFiltro;
+                                    setFiltrosMetricas(nuevosFiltros);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="mayor_igual">≥</SelectItem>
+                                    <SelectItem value="menor_igual">≤</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  type="number"
+                                  value={filtro.valor === 0 ? '' : filtro.valor}
+                                  onChange={(e) => {
+                                    const nuevosFiltros = [...filtrosMetricas];
+                                    const valorInput = e.target.value;
+                                    // Si está vacío, establecer 0
+                                    if (valorInput === '') {
+                                      nuevosFiltros[index].valor = 0;
+                                    } else {
+                                      // Convertir a número (esto elimina automáticamente ceros a la izquierda)
+                                      const valor = Number(valorInput);
+                                      // No permitir valores negativos
+                                      if (valor < 0) {
+                                        nuevosFiltros[index].valor = 0;
+                                      } else if (filtro.tipo === 'porcentajeAceptacionIA') {
+                                        // Para porcentajes, limitar a 100
+                                        nuevosFiltros[index].valor = valor > 100 ? 100 : valor;
+                                      } else {
+                                        nuevosFiltros[index].valor = valor;
+                                      }
+                                    }
+                                    setFiltrosMetricas(nuevosFiltros);
+                                  }}
+                                  placeholder={filtro.tipo === 'porcentajeAceptacionIA' ? '0-100%' : '0'}
+                                  min={0}
+                                  max={filtro.tipo === 'porcentajeAceptacionIA' ? 100 : undefined}
+                                  step={filtro.tipo === 'porcentajeAceptacionIA' ? 0.1 : 1}
+                                  className="w-24"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    setFiltrosMetricas(filtrosMetricas.filter((_, i) => i !== index));
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    setFiltrosMetricas([...filtrosMetricas, {
+                                      id: Date.now().toString(),
+                                      tipo: 'totalCasos',
+                                      operador: 'mayor_igual',
+                                      valor: 0
+                                    }]);
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -346,6 +832,7 @@ export default function AdminUsuarios() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todos los roles</SelectItem>
+                        <SelectItem value="doctores">Todos los doctores</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
                         <SelectItem value="medico">Médico</SelectItem>
                         <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
@@ -366,7 +853,10 @@ export default function AdminUsuarios() {
                       size="sm"
                       onClick={() => {
                         setSearchTerm('');
-                        setRolFiltro('todos');
+                        setRolFiltro('doctores');
+                        setFechaInicioMetricas('');
+                        setFechaFinMetricas('');
+                        setFiltrosMetricas([]);
                         setCurrentPage(1);
                       }}
                       disabled={!filtrosActivos}
@@ -396,7 +886,11 @@ export default function AdminUsuarios() {
                       size="sm"
                       onClick={() => {
                         setSearchTerm('');
-                        setRolFiltro('todos');
+                        setRolFiltro('doctores');
+                        setRangoMetricas('todos');
+                        setFechaInicioMetricas('');
+                        setFechaFinMetricas('');
+                        setFiltrosMetricas([]);
                       }}
                       className="mt-4"
                     >
@@ -409,17 +903,22 @@ export default function AdminUsuarios() {
               <>
                 <div className="grid gap-4">
                   {paginatedUsuarios.map((usuario) => (
-              <Card key={usuario.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={usuario.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleCardClick(usuario)}
+              >
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
+                  <div className="flex items-start justify-between gap-6">
+                    {/* Datos del doctor */}
+                    <div className="flex items-start gap-4 flex-1">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={usuario.imagen || ''} alt={usuario.nombre} />
                         <AvatarFallback className="bg-primary/10 text-primary">
                           {usuario.nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="flex-1">
                         <CardTitle className="mb-2">
                           {usuario.id === user?.id ? 'Tú' : usuario.nombre}
                         </CardTitle>
@@ -432,7 +931,106 @@ export default function AdminUsuarios() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    
+                    {/* Métricas del médico - A la derecha */}
+                    {(usuario.rol === 'medico' || usuario.rol === 'medico_jefe') && (
+                      <div className="flex-shrink-0">
+                        {metricasPorUsuario[usuario.id] ? (
+                          <TooltipProvider>
+                            <div className="grid grid-cols-5 gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="bg-muted/50 rounded-lg p-3 border cursor-help">
+                                    <div className="text-xs text-muted-foreground mb-1">Total Casos</div>
+                                    <div className="text-lg font-bold">{metricasPorUsuario[usuario.id].totalCasos}</div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-semibold mb-1">¿Cómo se calcula?</p>
+                                  <p className="text-xs">
+                                    {usuario.rol === 'medico_jefe' 
+                                      ? 'Total de casos que fueron derivados a este médico jefe en el período seleccionado.'
+                                      : 'Total de casos registrados por este médico en el período seleccionado.'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="bg-muted/50 rounded-lg p-3 border cursor-help">
+                                    <div className="text-xs text-muted-foreground mb-1">% Aceptación IA</div>
+                                    <div className="text-lg font-bold text-green-600">{metricasPorUsuario[usuario.id].porcentajeAceptacionIA}%</div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-semibold mb-1">¿Cómo se calcula?</p>
+                                  <p className="text-xs">
+                                    Porcentaje de casos donde la IA recomendaba aceptar y el médico efectivamente aceptó el caso. 
+                                    Se calcula: (Casos aceptados cuando IA recomendaba aceptar / Total de casos donde IA recomendaba aceptar) × 100
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="bg-muted/50 rounded-lg p-3 border cursor-help">
+                                    <div className="text-xs text-muted-foreground mb-1">
+                                      {usuario.rol === 'medico_jefe' ? 'Derivados Resueltos' : 'Derivaciones'}
+                                    </div>
+                                    <div className="text-lg font-bold text-amber-600">{metricasPorUsuario[usuario.id].totalDerivaciones}</div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-semibold mb-1">¿Cómo se calcula?</p>
+                                  <p className="text-xs">
+                                    {usuario.rol === 'medico_jefe' 
+                                      ? 'Cantidad de casos derivados a este médico jefe que fueron resueltos (aceptados o rechazados) en el período seleccionado.'
+                                      : 'Cantidad de casos que este médico derivó a un médico jefe en el período seleccionado.'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="bg-muted/50 rounded-lg p-3 border cursor-help">
+                                    <div className="text-xs text-muted-foreground mb-1">Aceptados Aseg.</div>
+                                    <div className="text-lg font-bold text-green-700">{metricasPorUsuario[usuario.id].casosAceptadosAseguradora}</div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-semibold mb-1">¿Cómo se calcula?</p>
+                                  <p className="text-xs">
+                                    Cantidad de casos aceptados por el médico que fueron aceptados por la aseguradora (Fonasa/Isapre) 
+                                    en el período seleccionado.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="bg-muted/50 rounded-lg p-3 border cursor-help">
+                                    <div className="text-xs text-muted-foreground mb-1">Rechazados Aseg.</div>
+                                    <div className="text-lg font-bold text-red-700">{metricasPorUsuario[usuario.id].casosRechazadosAseguradora}</div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-semibold mb-1">¿Cómo se calcula?</p>
+                                  <p className="text-xs">
+                                    Cantidad de casos aceptados por el médico que fueron rechazados por la aseguradora (Fonasa/Isapre) 
+                                    en el período seleccionado.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
+                        ) : cargandoMetricas ? (
+                          <div className="text-xs text-muted-foreground">Cargando métricas...</div>
+                        ) : null}
+                      </div>
+                    )}
+                    
+                    {/* Botones de acción */}
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="outline"
                         size="sm"
@@ -559,6 +1157,12 @@ export default function AdminUsuarios() {
             </div>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="casos" className="mt-0">
+            <AdminCasosPanel />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Dialog para crear/editar usuario */}
@@ -635,6 +1239,22 @@ export default function AdminUsuarios() {
                 value={formData.especialidad}
                 onChange={(e) => setFormData({ ...formData, especialidad: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="genero">Género *</Label>
+              <Select
+                value={formData.genero}
+                onValueChange={(value) => setFormData({ ...formData, genero: value })}
+              >
+                <SelectTrigger id="genero">
+                  <SelectValue placeholder="Selecciona el género" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="femenino">Femenino</SelectItem>
+                  <SelectItem value="prefiero_no_responder">Prefiero no responder</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

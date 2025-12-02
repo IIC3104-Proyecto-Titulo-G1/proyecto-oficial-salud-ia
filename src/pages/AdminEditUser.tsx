@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Upload, User, X } from 'lucide-react';
+import { ArrowLeft, Save, Upload, User, X, BarChart3, UserCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageCropper } from '@/components/ImageCropper';
+import { MedicoStatsDashboard } from '@/components/MedicoStatsDashboard';
 
 interface Usuario {
   id: string;
@@ -27,6 +29,7 @@ export default function AdminEditUser() {
   const { userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,6 +42,7 @@ export default function AdminEditUser() {
     hospital: '',
     especialidad: '',
     telefono: '',
+    genero: 'masculino',
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -92,6 +96,7 @@ export default function AdminEditUser() {
         hospital: data.hospital || '',
         especialidad: data.especialidad || '',
         telefono: data.telefono || '',
+        genero: data.genero || 'masculino',
       });
 
       if (data.imagen) {
@@ -357,6 +362,7 @@ export default function AdminEditUser() {
           hospital: formData.hospital || null,
           especialidad: formData.especialidad || null,
           telefono: formData.telefono || null,
+          genero: formData.genero,
           role: formData.rol,
           imagen: imageUrl,
         })
@@ -429,6 +435,38 @@ export default function AdminEditUser() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto space-y-6">
+          <Tabs defaultValue={searchParams.get('tab') === 'informacion' ? 'informacion' : 'estadisticas'} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="estadisticas" className="gap-2" disabled={usuario.rol === 'admin'}>
+                <BarChart3 className="w-4 h-4" />
+                Estadísticas
+              </TabsTrigger>
+              <TabsTrigger value="informacion" className="gap-2">
+                <UserCircle className="w-4 h-4" />
+                Información
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="estadisticas" className="space-y-6">
+              {usuario.rol !== 'admin' ? (
+                <MedicoStatsDashboard 
+                  medicoId={usuario.id} 
+                  medicoRol={usuario.rol}
+                  medicoNombre={usuario.nombre}
+                  medicoImagen={usuario.imagen}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">
+                      Las estadísticas solo están disponibles para médicos y médicos jefe.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="informacion" className="space-y-6">
           {/* Información Personal con Imagen */}
           <Card>
             <CardHeader>
@@ -566,26 +604,40 @@ export default function AdminEditUser() {
                       {errors.telefono && (
                         <p className="text-sm text-destructive">{errors.telefono}</p>
                       )}
-                      <p className="text-sm text-muted-foreground">
-                        Formato chileno: +56912345678, 912345678 o 12345678
-                      </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="rol">Rol *</Label>
+                      <Label htmlFor="genero">Género *</Label>
                       <Select
-                        value={formData.rol}
-                        onValueChange={(value: any) => handleFormChange('rol', value)}
+                        value={formData.genero}
+                        onValueChange={(value) => handleFormChange('genero', value)}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
+                        <SelectTrigger id="genero">
+                          <SelectValue placeholder="Selecciona el género" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                          <SelectItem value="medico">Médico</SelectItem>
-                          <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="prefiero_no_responder">Prefiero no responder</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rol">Rol *</Label>
+                    <Select
+                      value={formData.rol}
+                      onValueChange={(value: any) => handleFormChange('rol', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="medico">Médico</SelectItem>
+                        <SelectItem value="medico_jefe">Médico Jefe</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -618,6 +670,8 @@ export default function AdminEditUser() {
               )}
             </Button>
           </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 

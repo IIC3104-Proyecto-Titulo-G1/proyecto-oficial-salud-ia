@@ -16,6 +16,8 @@ interface PatientEmailRequest {
   result: 'aceptado' | 'rechazado';
   explanation: string;
   additionalComment?: string;
+  insuranceStatus?: 'pendiente' | 'aceptada' | 'rechazada' | null;
+  insuranceType?: string | null;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -31,13 +33,31 @@ const handler = async (req: Request): Promise<Response> => {
       diagnosis, 
       result, 
       explanation, 
-      additionalComment 
+      additionalComment,
+      insuranceStatus,
+      insuranceType
     }: PatientEmailRequest = await req.json();
 
     console.log("Sending email to:", to);
 
-    const resultText = result === 'aceptado' ? 'ACTIVADA' : 'NO ACTIVADA';
+    const resultText = result === 'aceptado' ? 'APLICAR LEY DE URGENCIA' : 'Ley de Urgencia Rechazada';
     const resultColor = result === 'aceptado' ? '#10b981' : '#ef4444';
+    
+    // Determinar el estado de la aseguradora
+    let insuranceStatusText = '';
+    let insuranceStatusColor = '';
+    if (insuranceStatus && insuranceType) {
+      if (insuranceStatus === 'pendiente') {
+        insuranceStatusText = `PENDIENTE RESOLUCIÓN ${insuranceType.toUpperCase()}`;
+        insuranceStatusColor = '#6b7280';
+      } else if (insuranceStatus === 'aceptada') {
+        insuranceStatusText = `ACEPTADO POR ${insuranceType.toUpperCase()}`;
+        insuranceStatusColor = '#10b981';
+      } else if (insuranceStatus === 'rechazada') {
+        insuranceStatusText = `RECHAZADO POR ${insuranceType.toUpperCase()}`;
+        insuranceStatusColor = '#ef4444';
+      }
+    }
 
     const emailResponse = await resend.emails.send({
       from: "SaludIA <noreply@saludia.net>",
@@ -124,12 +144,41 @@ const handler = async (req: Request): Promise<Response> => {
               
               <div class="result-box">
                 <div class="result-title">
-                  Resultado: <span class="result-status">LEY DE URGENCIA ${resultText}</span>
+                  <span style="color: #0EA5E9; font-size: 16px;">Decisión Médica:</span>
+                  <div style="margin-top: 8px;">
+                    <span class="result-status" style="font-size: 28px; font-weight: bold; color: ${resultColor};">
+                      ${resultText}
+                    </span>
+                  </div>
                 </div>
-                <p style="margin: 10px 0 0 0; font-size: 14px;">
+                <p style="margin: 15px 0 0 0; font-size: 14px;">
                   <strong>Diagnóstico:</strong> ${diagnosis}
                 </p>
               </div>
+              
+              ${insuranceStatusText ? `
+                <div style="background: #f9fafb; border-left: 4px solid ${insuranceStatusColor}; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                  <div style="margin-bottom: 10px;">
+                    <span style="color: #0EA5E9; font-size: 16px; font-weight: bold;">Estado de Aseguradora:</span>
+                  </div>
+                  <div>
+                    <span style="color: ${insuranceStatusColor}; font-weight: bold; font-size: 24px;">
+                      ${insuranceStatusText}
+                    </span>
+                  </div>
+                  
+                  ${result === 'aceptado' && insuranceStatus && insuranceType && insuranceStatus === 'pendiente' ? `
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
+                          <strong>Importante:</strong> 
+                          Para que la Ley de Urgencia se active definitivamente, su aseguradora (${insuranceType}) debe aprobar esta decisión médica. La activación definitiva de la ley está sujeta a la aprobación de ${insuranceType}.
+                        </p>
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              ` : ''}
               
               <div class="section">
                 <div class="section-title">Fundamento Legal:</div>

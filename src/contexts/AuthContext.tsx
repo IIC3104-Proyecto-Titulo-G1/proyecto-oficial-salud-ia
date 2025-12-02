@@ -15,6 +15,7 @@ interface UserRoleData {
   especialidad?: string;
   telefono?: string;
   imagen?: string;
+  genero?: string;
 }
 
 interface AuthContextType {
