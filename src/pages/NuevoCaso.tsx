@@ -1126,7 +1126,12 @@ export default function NuevoCaso() {
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         <Card>
           <CardHeader>
-            <CardTitle>Datos del Paciente y Caso Clínico</CardTitle>
+            <CardTitle
+              onClick={() => setShowTestDataButtons(prev => !prev)}
+              className="cursor-default select-none"
+            >
+              Datos del Paciente y Caso Clínico
+            </CardTitle>
             <CardDescription>
               Complete la información del paciente y los datos clínicos para evaluar la Ley de Urgencia
             </CardDescription>

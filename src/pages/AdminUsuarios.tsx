@@ -299,7 +299,7 @@ export default function AdminUsuarios() {
     if (usuarios.length > 0) {
       loadMetricasMedicos(usuarios);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [rangoMetricas, fechaInicioMetricas, fechaFinMetricas]);
 
   const handleRangoMetricasChange = (value: RangoMetricas) => {
